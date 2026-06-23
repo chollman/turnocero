@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
@@ -32,6 +33,7 @@ function Side({ side, name }) {
 export default function BgWatchH2H() {
   const { userA, userB } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("bgwatch");
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
 
@@ -52,7 +54,7 @@ export default function BgWatchH2H() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <p className={styles.errorMsg}>No se pudo cargar el head-to-head.</p>
+          <p className={styles.errorMsg}>{t("h2h.loadError")}</p>
         </div>
       </div>
     );
@@ -62,7 +64,7 @@ export default function BgWatchH2H() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <div className={styles.loading}>Cargando…</div>
+          <div className={styles.loading}>{t("common.loading")}</div>
         </div>
       </div>
     );
@@ -75,21 +77,21 @@ export default function BgWatchH2H() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <BackButton onClick={() => navigate(-1)} flush>
-          Volver
+          {t("common.back")}
         </BackButton>
 
         <header className={styles.hero}>
           <div className={styles.eyebrow}>
             <Meeple />
-            BG WATCH · MANO A MANO
+            {t("h2h.brand")}
           </div>
           <h1 className={styles.heroTitle}>
-            {nameA} vs {nameB}
+            {t("h2h.title", { a: nameA, b: nameB })}
           </h1>
           <p className={styles.heroSub}>
             {data.total === 0
-              ? "Todavía no compartieron ninguna partida registrada."
-              : `${data.total} ${data.total === 1 ? "partida compartida" : "partidas compartidas"}.`}
+              ? t("h2h.none")
+              : t("h2h.sharedCount", { count: data.total })}
           </p>
         </header>
 
@@ -103,7 +105,7 @@ export default function BgWatchH2H() {
                 <span className={styles.h2hWins}>{data.bWins}</span>
                 {data.draws > 0 && (
                   <span className={styles.h2hDraws}>
-                    {data.draws} sin decidir
+                    {t("h2h.undecided", { n: data.draws })}
                   </span>
                 )}
               </div>
@@ -112,18 +114,18 @@ export default function BgWatchH2H() {
 
             {data.byGame?.length > 0 && (
               <section>
-                <h2 className={styles.sectionTitle}>Por juego</h2>
+                <h2 className={styles.sectionTitle}>{t("h2h.byGame")}</h2>
                 <ul className={styles.byGameList}>
                   {data.byGame.map((g) => (
                     <li key={g.gameId || g.name} className={styles.byGameRow}>
                       <span className={styles.byGameName}>
-                        {g.name || `Juego ${g.gameId}`}
+                        {g.name || t("h2h.gameFallback", { id: g.gameId })}
                       </span>
                       <span className={styles.byGameScore}>
                         {g.aWins} – {g.bWins}
                         <span className={styles.byGameTotal}>
                           {" "}
-                          ({g.total} {g.total === 1 ? "partida" : "partidas"})
+                          {t("h2h.gamePlays", { count: g.total })}
                         </span>
                       </span>
                     </li>

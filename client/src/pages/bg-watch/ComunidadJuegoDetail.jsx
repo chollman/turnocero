@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
@@ -7,14 +8,15 @@ import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
 import styles from "./BgWatchComunidad.module.css";
 
-function fmtWinRate(stats) {
+function fmtWinRate(t, stats) {
   if (stats.winRate == null) return "—";
-  return `${Math.round(stats.winRate * 100)}%`;
+  return t("juegoDetail.winRate", { n: Math.round(stats.winRate * 100) });
 }
 
 export default function ComunidadJuegoDetail() {
   const { gameId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("bgwatch");
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
 
@@ -35,7 +37,7 @@ export default function ComunidadJuegoDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <p className={styles.errorMsg}>No se pudo cargar el juego.</p>
+          <p className={styles.errorMsg}>{t("juegoDetail.loadError")}</p>
         </div>
       </div>
     );
@@ -45,21 +47,21 @@ export default function ComunidadJuegoDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <div className={styles.loading}>Cargando…</div>
+          <div className={styles.loading}>{t("common.loading")}</div>
         </div>
       </div>
     );
   }
 
   const { game, stats, owners } = data;
-  const name = game?.name || `Juego ${gameId}`;
+  const name = game?.name || t("juegoDetail.gameFallback", { id: gameId });
   const cover = game?.image || game?.thumbnail;
 
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
         <BackButton onClick={() => navigate(-1)} flush>
-          Volver
+          {t("common.back")}
         </BackButton>
 
         <div className={styles.detailHero}>
@@ -67,7 +69,7 @@ export default function ComunidadJuegoDetail() {
             {cover ? <img src={cover} alt={name} /> : <span>?</span>}
           </div>
           <div className={styles.detailInfo}>
-            <div className={styles.eyebrow}>BG WATCH · COMUNIDAD</div>
+            <div className={styles.eyebrow}>{t("juegoDetail.brand")}</div>
             <h1 className={styles.heroTitle}>{name}</h1>
             {game?.year ? (
               <span className={styles.feedMeta}>{game.year}</span>
@@ -78,33 +80,47 @@ export default function ComunidadJuegoDetail() {
         <div className={styles.statRow}>
           <div className={styles.statCard}>
             <span className={styles.statValue}>{stats.totalPlays}</span>
-            <span className={styles.statLabel}>Partidas</span>
+            <span className={styles.statLabel}>
+              {t("juegoDetail.stats.partidas")}
+            </span>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statValue}>{stats.memberCount}</span>
-            <span className={styles.statLabel}>Jugadores</span>
+            <span className={styles.statLabel}>
+              {t("juegoDetail.stats.jugadores")}
+            </span>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statValue}>{fmtWinRate(stats)}</span>
-            <span className={styles.statLabel}>Win-rate</span>
+            <span className={styles.statValue}>{fmtWinRate(t, stats)}</span>
+            <span className={styles.statLabel}>
+              {t("juegoDetail.stats.winRate")}
+            </span>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statValue}>
-              {stats.avgDuration != null ? `${stats.avgDuration}′` : "—"}
+              {stats.avgDuration != null
+                ? t("juegoDetail.duration", { n: stats.avgDuration })
+                : "—"}
             </span>
-            <span className={styles.statLabel}>Duración prom.</span>
+            <span className={styles.statLabel}>
+              {t("juegoDetail.stats.avgDuration")}
+            </span>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statValue}>
               {stats.avgScore != null ? stats.avgScore : "—"}
             </span>
-            <span className={styles.statLabel}>Score prom.</span>
+            <span className={styles.statLabel}>
+              {t("juegoDetail.stats.avgScore")}
+            </span>
           </div>
         </div>
 
         {stats.topPlayers?.length > 0 && (
           <section>
-            <h2 className={styles.sectionTitle}>Quién lo jugó más</h2>
+            <h2 className={styles.sectionTitle}>
+              {t("juegoDetail.whoPlayedMost")}
+            </h2>
             <ol className={styles.leaderboard}>
               {stats.topPlayers.map((p, i) => (
                 <li key={p.bggUsername} className={styles.lbRow}>
@@ -130,12 +146,9 @@ export default function ComunidadJuegoDetail() {
         )}
 
         <section>
-          <h2 className={styles.sectionTitle}>¿Quién lo tiene?</h2>
+          <h2 className={styles.sectionTitle}>{t("juegoDetail.whoHasIt")}</h2>
           {owners.length === 0 ? (
-            <p className={styles.feedMeta}>
-              Ningún miembro tiene este juego en su colección (o sus colecciones
-              son privadas).
-            </p>
+            <p className={styles.feedMeta}>{t("juegoDetail.noOwners")}</p>
           ) : (
             <>
               <div className={styles.ownerList}>
@@ -154,14 +167,12 @@ export default function ComunidadJuegoDetail() {
                   </Link>
                 ))}
               </div>
-              <p className={styles.ownerNote}>
-                La colección puede estar incompleta si algún perfil es privado.
-              </p>
+              <p className={styles.ownerNote}>{t("juegoDetail.ownerNote")}</p>
             </>
           )}
           <div className={styles.ctaRow}>
             <Link to="/mesas/crear" className={styles.ctaBtn}>
-              Armar una mesa
+              {t("juegoDetail.createTable")}
             </Link>
           </div>
         </section>

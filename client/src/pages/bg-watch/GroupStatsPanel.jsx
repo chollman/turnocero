@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
+import { getLocale } from "../../utils/locale";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
 import PlayCard from "./PlayCard";
@@ -11,20 +13,20 @@ import styles from "./GroupStatsPanel.module.css";
 function formatShortDate(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+  return new Date(y, m - 1, d).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
 
-function rosterDisplayName(row, userMap) {
+function rosterDisplayName(t, row, userMap) {
   if (row.overlayName) return row.overlayName;
   const turnoceroUser = row.username
     ? userMap?.[row.username.toLowerCase()]
     : null;
   if (turnoceroUser) return turnoceroUser.displayName || turnoceroUser.username;
-  return row.name || row.username || "Anónimo";
+  return row.name || row.username || t("groupStats.rosterFallbackName");
 }
 
 /**
@@ -35,6 +37,7 @@ function rosterDisplayName(row, userMap) {
  */
 export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("bgwatch");
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
@@ -77,10 +80,10 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
         aria-expanded={open}
       >
         <span className={styles.toggleLabel}>
-          👥 Estadísticas con este grupo
+          {t("groupStats.toggleLabel")}
         </span>
         <span className={styles.toggleHint}>
-          {open ? "Ocultar" : "Ver cómo les fue jugando juntos"}
+          {open ? t("groupStats.hide") : t("groupStats.show")}
         </span>
         <span className={styles.chevron} aria-hidden="true">
           ▾
@@ -90,12 +93,12 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
       {open && (
         <div className={styles.panel}>
           {error && (
-            <p className={styles.errorText}>
-              No se pudieron cargar las estadísticas del grupo.
-            </p>
+            <p className={styles.errorText}>{t("groupStats.error")}</p>
           )}
 
-          {!error && !data && <div className={styles.loading}>Cargando…</div>}
+          {!error && !data && (
+            <div className={styles.loading}>{t("common.loading")}</div>
+          )}
 
           {!error && data && (
             <>
@@ -103,15 +106,21 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
                 <div className={styles.bigStat}>
                   <span className={styles.bigStatVal}>{stats.total}</span>
                   <span className={styles.bigStatLbl}>
-                    {stats.total === 1 ? "partida juntos" : "partidas juntos"}
+                    {t("groupStats.playsTogether", { count: stats.total })}
                   </span>
                 </div>
                 {stats.firstPlayedDate && (
                   <div className={styles.summaryDates}>
                     <span>
-                      Primera: {formatShortDate(stats.firstPlayedDate)}
+                      {t("groupStats.first", {
+                        date: formatShortDate(stats.firstPlayedDate),
+                      })}
                     </span>
-                    <span>Última: {formatShortDate(stats.lastPlayedDate)}</span>
+                    <span>
+                      {t("groupStats.last", {
+                        date: formatShortDate(stats.lastPlayedDate),
+                      })}
+                    </span>
                   </div>
                 )}
               </div>
@@ -119,14 +128,14 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
               <div className={styles.columns}>
                 <div className={styles.col}>
                   <div className={styles.colLabel}>
-                    <Meeple /> Victorias
+                    <Meeple /> {t("groupStats.wins")}
                   </div>
                   <div className={styles.rankList}>
                     {roster.map((row) => {
                       const turnoceroUser = row.username
                         ? userMap?.[row.username.toLowerCase()]
                         : null;
-                      const name = rosterDisplayName(row, userMap);
+                      const name = rosterDisplayName(t, row, userMap);
                       const pct = stats.total
                         ? Math.round((row.wins / stats.total) * 100)
                         : 0;
@@ -163,8 +172,7 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
                             </div>
                           </div>
                           <span className={styles.rankCount}>
-                            {row.wins}{" "}
-                            {row.wins === 1 ? "victoria" : "victorias"}
+                            {t("groupStats.winsCount", { count: row.wins })}
                           </span>
                         </div>
                       );
@@ -174,7 +182,7 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
 
                 <div className={styles.col}>
                   <div className={styles.colLabel}>
-                    <Meeple /> Juegos del grupo
+                    <Meeple /> {t("groupStats.groupGames")}
                   </div>
                   <div className={styles.rankList}>
                     {stats.byGame.slice(0, 6).map((g) => {
@@ -205,7 +213,9 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
                               />
                             </div>
                           </div>
-                          <span className={styles.rankCount}>{g.total}×</span>
+                          <span className={styles.rankCount}>
+                            {t("groupStats.gameTimes", { n: g.total })}
+                          </span>
                         </div>
                       );
                     })}
@@ -214,11 +224,11 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
               </div>
 
               <div className={styles.playsLabel}>
-                <Meeple /> Otras partidas con este grupo
+                <Meeple /> {t("groupStats.otherPlays")}
               </div>
               {otherPlays.length === 0 ? (
                 <p className={styles.emptyText}>
-                  Este grupo no tiene otras partidas registradas.
+                  {t("groupStats.noOtherPlays")}
                 </p>
               ) : (
                 <div className={styles.playsList}>

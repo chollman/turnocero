@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Pagination from "./Pagination";
@@ -14,6 +15,7 @@ function StarRating({ value }) {
 }
 
 function GameCard({ game, index = 0, logPlayHref = null }) {
+  const { t } = useTranslation("bgwatch");
   return (
     <div className={styles.gameCard} style={{ "--i": index }}>
       <div className={styles.gameThumbWrap}>
@@ -30,7 +32,9 @@ function GameCard({ game, index = 0, logPlayHref = null }) {
         <span
           className={`${styles.gameCardCount} ${(game.numPlays || 0) === 0 ? styles.gameCardCountZero : ""}`}
         >
-          {(game.numPlays || 0) === 0 ? "Sin jugar" : `${game.numPlays}×`}
+          {(game.numPlays || 0) === 0
+            ? t("coleccion.unplayed")
+            : t("coleccion.playsTimes", { n: game.numPlays })}
         </span>
       </div>
       <div className={styles.gameInfo}>
@@ -40,23 +44,29 @@ function GameCard({ game, index = 0, logPlayHref = null }) {
         )}
         <div className={styles.gameRatings}>
           <span className={styles.ratingBlock}>
-            <span className={styles.ratingLabel}>Tu nota</span>
+            <span className={styles.ratingLabel}>
+              {t("coleccion.yourRating")}
+            </span>
             <StarRating value={game.userRating} />
           </span>
           <span className={styles.ratingBlock}>
-            <span className={styles.ratingLabel}>BGG</span>
+            <span className={styles.ratingLabel}>{t("coleccion.bggRating")}</span>
             <StarRating value={game.bggRating} />
           </span>
           {game.numPlays > 0 && (
             <span className={styles.ratingBlock}>
-              <span className={styles.ratingLabel}>Partidas</span>
-              <span className={styles.rating}>{game.numPlays}×</span>
+              <span className={styles.ratingLabel}>
+                {t("coleccion.partidas")}
+              </span>
+              <span className={styles.rating}>
+                {t("coleccion.playsTimes", { n: game.numPlays })}
+              </span>
             </span>
           )}
         </div>
         {logPlayHref && (
           <Link to={logPlayHref} className={styles.gamePlayBtn}>
-            + Cargar partida
+            {t("coleccion.logPlay")}
           </Link>
         )}
       </div>
@@ -70,6 +80,7 @@ export default function ColeccionPanel({
   canRefresh = false,
   canCreate = false,
 }) {
+  const { t } = useTranslation("bgwatch");
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -119,7 +130,7 @@ export default function ColeccionPanel({
           setNow(Date.now());
         }
         setError(
-          err.response?.data?.message || "No se pudo cargar la colección",
+          err.response?.data?.message || t("coleccion.loadError"),
         );
       })
       .finally(() => {
@@ -129,7 +140,7 @@ export default function ColeccionPanel({
     return () => {
       cancelled = true;
     };
-  }, [bggUsername, onLoaded, refreshTick]);
+  }, [bggUsername, onLoaded, refreshTick, t]);
 
   const totalPages = collection
     ? Math.ceil(collection.length / COLLECTION_PAGE_SIZE)
@@ -159,10 +170,12 @@ export default function ColeccionPanel({
               setRefreshTick((t) => t + 1);
             }}
             disabled={loading || inCooldown}
-            aria-label="Actualizar colección"
+            aria-label={t("coleccion.refreshLabel")}
             style={{ marginLeft: "auto" }}
           >
-            ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : "Actualizar"}
+            {inCooldown
+              ? t("coleccion.refreshWait", { n: cooldownRemaining })
+              : t("coleccion.refresh")}
           </button>
         )}
       </div>
@@ -183,7 +196,7 @@ export default function ColeccionPanel({
 
       {!loading && !error && collection && collection.length === 0 && (
         <div className={styles.stateCenter}>
-          <p>Este usuario no tiene juegos marcados como propios en BGG.</p>
+          <p>{t("coleccion.empty")}</p>
         </div>
       )}
 
@@ -191,7 +204,11 @@ export default function ColeccionPanel({
         <>
           <div className={styles.paginationHeader}>
             <span className={styles.paginationInfo}>
-              {collection.length} juegos · página {page} de {totalPages}
+              {t("coleccion.header", {
+                n: collection.length,
+                page,
+                total: totalPages,
+              })}
             </span>
           </div>
           <div className={styles.gameGrid}>

@@ -31,6 +31,7 @@ export const NAMESPACES = [
   "compartidas",
   "tables",
   "admin",
+  "bgwatch",
 ];
 export const DEFAULT_NS = "common";
 

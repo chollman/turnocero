@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
@@ -11,14 +12,11 @@ import { useBrandName } from "../../hooks/useBrandName";
 import { CommunityContext } from "../../context/CommunityContext";
 import styles from "./BgWatchComunidad.module.css";
 
-const TABS = [
-  { key: "juegos", label: "Juegos" },
-  { key: "jugadores", label: "Jugadores" },
-  { key: "actividad", label: "Actividad" },
-];
+const TAB_KEYS = ["juegos", "jugadores", "actividad"];
 
 // ─── Tab: Juegos ──────────────────────────────────────────────────────────
 function JuegosTab() {
+  const { t } = useTranslation("bgwatch");
   const [periodo, setPeriodo] = useState("all");
   const [games, setGames] = useState(null);
   const [error, setError] = useState(false);
@@ -44,7 +42,7 @@ function JuegosTab() {
       <div
         className={styles.periodToggle}
         role="radiogroup"
-        aria-label="Período"
+        aria-label={t("comunidad.periodLabel")}
       >
         <button
           type="button"
@@ -53,7 +51,7 @@ function JuegosTab() {
           className={`${styles.pill} ${periodo === "all" ? styles.pillOn : ""}`}
           onClick={() => setPeriodo("all")}
         >
-          Más jugados
+          {t("comunidad.mostPlayed")}
         </button>
         <button
           type="button"
@@ -62,20 +60,20 @@ function JuegosTab() {
           className={`${styles.pill} ${periodo === "mes" ? styles.pillOn : ""}`}
           onClick={() => setPeriodo("mes")}
         >
-          En llamas 🔥
+          {t("comunidad.onFire")}
         </button>
       </div>
 
       {error && (
-        <p className={styles.errorMsg}>No se pudieron cargar los juegos.</p>
+        <p className={styles.errorMsg}>{t("comunidad.gamesError")}</p>
       )}
 
       {games && games.length === 0 && !error && (
         <EmptyState
           variant="first"
-          eyebrow="SIN DATOS"
-          title="Todavía no hay partidas en la comunidad"
-          text="Cuando los miembros registren partidas, vas a ver acá los juegos más jugados."
+          eyebrow={t("comunidad.noDataEyebrow")}
+          title={t("comunidad.gamesEmptyTitle")}
+          text={t("comunidad.gamesEmptyText")}
         />
       )}
 
@@ -101,12 +99,15 @@ function JuegosTab() {
               </div>
               <div className={styles.gameInfo}>
                 <span className={styles.gameName}>
-                  {g.name || `Juego ${g.id}`}
+                  {g.name || t("comunidad.gameFallback", { id: g.id })}
                 </span>
                 <span className={styles.gameMeta}>
-                  {g.totalPlays} {g.totalPlays === 1 ? "partida" : "partidas"} ·{" "}
-                  {g.playerCount}{" "}
-                  {g.playerCount === 1 ? "jugador" : "jugadores"}
+                  {t("comunidad.gameMeta", {
+                    plays: t("comunidad.playsCount", { count: g.totalPlays }),
+                    players: t("comunidad.playersCount", {
+                      count: g.playerCount,
+                    }),
+                  })}
                 </span>
               </div>
             </Link>
@@ -115,28 +116,29 @@ function JuegosTab() {
       )}
 
       {games === null && !error && (
-        <div className={styles.loading}>Cargando…</div>
+        <div className={styles.loading}>{t("common.loading")}</div>
       )}
     </div>
   );
 }
 
 // ─── Tab: Jugadores ───────────────────────────────────────────────────────
-const METRICS = [
-  { key: "plays", label: "Partidas" },
-  { key: "variedad", label: "Variedad" },
-  { key: "winrate", label: "Win-rate" },
-  { key: "racha", label: "Racha" },
-];
+const METRIC_KEYS = ["plays", "variedad", "winrate", "racha"];
 
-function metricValue(metric, p) {
-  if (metric === "variedad") return `${p.uniqueGames} juegos`;
-  if (metric === "winrate") return `${Math.round(p.winRate * 100)}%`;
-  if (metric === "racha") return `${p.weekStreak} sem`;
-  return `${p.totalPlays} partidas`;
+function metricValue(t, metric, p) {
+  if (metric === "variedad")
+    return t("comunidad.metricValue.variedad", { n: p.uniqueGames });
+  if (metric === "winrate")
+    return t("comunidad.metricValue.winrate", {
+      n: Math.round(p.winRate * 100),
+    });
+  if (metric === "racha")
+    return t("comunidad.metricValue.racha", { n: p.weekStreak });
+  return t("comunidad.metricValue.plays", { n: p.totalPlays });
 }
 
 function JugadoresTab() {
+  const { t } = useTranslation("bgwatch");
   const [metric, setMetric] = useState("plays");
   const [players, setPlayers] = useState(null);
   const [error, setError] = useState(false);
@@ -162,32 +164,32 @@ function JugadoresTab() {
       <div
         className={styles.metricToggle}
         role="radiogroup"
-        aria-label="Métrica"
+        aria-label={t("comunidad.metricLabel")}
       >
-        {METRICS.map((m) => (
+        {METRIC_KEYS.map((key) => (
           <button
-            key={m.key}
+            key={key}
             type="button"
             role="radio"
-            aria-checked={metric === m.key}
-            className={`${styles.pill} ${metric === m.key ? styles.pillOn : ""}`}
-            onClick={() => setMetric(m.key)}
+            aria-checked={metric === key}
+            className={`${styles.pill} ${metric === key ? styles.pillOn : ""}`}
+            onClick={() => setMetric(key)}
           >
-            {m.label}
+            {t(`comunidad.metrics.${key}`)}
           </button>
         ))}
       </div>
 
       {error && (
-        <p className={styles.errorMsg}>No se pudo cargar el ranking.</p>
+        <p className={styles.errorMsg}>{t("comunidad.rankingError")}</p>
       )}
 
       {players && players.length === 0 && !error && (
         <EmptyState
           variant="first"
-          eyebrow="SIN DATOS"
-          title="Ranking vacío"
-          text="No hay suficientes partidas registradas para armar este ranking todavía."
+          eyebrow={t("comunidad.noDataEyebrow")}
+          title={t("comunidad.rankingEmptyTitle")}
+          text={t("comunidad.rankingEmptyText")}
         />
       )}
 
@@ -205,7 +207,9 @@ function JugadoresTab() {
                   <span className={styles.lbDot} aria-hidden="true" />
                 )}
                 <span className={styles.lbName}>{name}</span>
-                <span className={styles.lbValue}>{metricValue(metric, p)}</span>
+                <span className={styles.lbValue}>
+                  {metricValue(t, metric, p)}
+                </span>
               </>
             );
             return (
@@ -223,7 +227,7 @@ function JugadoresTab() {
       )}
 
       {players === null && !error && (
-        <div className={styles.loading}>Cargando…</div>
+        <div className={styles.loading}>{t("common.loading")}</div>
       )}
     </div>
   );
@@ -231,6 +235,7 @@ function JugadoresTab() {
 
 // ─── Heatmap (días con actividad, último año) ─────────────────────────────
 function HeatmapStrip() {
+  const { t } = useTranslation("bgwatch");
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -248,7 +253,7 @@ function HeatmapStrip() {
 
   const max = data.reduce((m, d) => Math.max(m, d.count), 0) || 1;
   return (
-    <div className={styles.heatmap} aria-label="Actividad por día">
+    <div className={styles.heatmap} aria-label={t("comunidad.activityLabel")}>
       {data.map((d) => {
         // 1..4 niveles de intensidad para el color.
         const level = Math.min(4, Math.ceil((d.count / max) * 4)) || 1;
@@ -257,7 +262,10 @@ function HeatmapStrip() {
             key={d.date}
             className={styles.heatCell}
             data-level={level}
-            title={`${d.date}: ${d.count} ${d.count === 1 ? "partida" : "partidas"}`}
+            title={t("comunidad.activityCell", {
+              date: d.date,
+              plays: t("comunidad.playsCount", { count: d.count }),
+            })}
           />
         );
       })}
@@ -267,6 +275,7 @@ function HeatmapStrip() {
 
 // ─── Tab: Actividad ───────────────────────────────────────────────────────
 function ActividadTab() {
+  const { t } = useTranslation("bgwatch");
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -311,16 +320,16 @@ function ActividadTab() {
   const sentinelRef = useInfiniteScroll(onLoadMore, { enabled: page < pages });
 
   if (error) {
-    return <p className={styles.errorMsg}>No se pudo cargar la actividad.</p>;
+    return <p className={styles.errorMsg}>{t("comunidad.activityError")}</p>;
   }
 
   if (!loading && items.length === 0) {
     return (
       <EmptyState
         variant="first"
-        eyebrow="SIN DATOS"
-        title="No hay actividad reciente"
-        text="Cuando los miembros registren partidas, vas a verlas en este feed."
+        eyebrow={t("comunidad.noDataEyebrow")}
+        title={t("comunidad.activityEmptyTitle")}
+        text={t("comunidad.activityEmptyText")}
       />
     );
   }
@@ -342,7 +351,7 @@ function ActividadTab() {
               )}
               <div className={styles.feedBody}>
                 <p className={styles.feedText}>
-                  <strong>{loggerName}</strong> jugó{" "}
+                  <strong>{loggerName}</strong> {t("comunidad.feedPlayed")}{" "}
                   <button
                     type="button"
                     className={styles.feedGameLink}
@@ -350,7 +359,8 @@ function ActividadTab() {
                       navigate(`/bg-watch/comunidad/juego/${it.gameId}`)
                     }
                   >
-                    {it.gameName || `Juego ${it.gameId}`}
+                    {it.gameName ||
+                      t("comunidad.gameFallback", { id: it.gameId })}
                   </button>
                 </p>
                 <span className={styles.feedMeta}>
@@ -370,7 +380,7 @@ function ActividadTab() {
           );
         })}
       </ul>
-      {loading && <div className={styles.loading}>Cargando…</div>}
+      {loading && <div className={styles.loading}>{t("common.loading")}</div>}
       {page < pages && <div ref={sentinelRef} className={styles.sentinel} />}
     </div>
   );
@@ -401,6 +411,7 @@ function EyeIcon() {
 // la selección en vivo. Lee el contexto null-safe: si no hay provider (tests
 // presentacionales) o hay una sola comunidad / subdominio tenant, no se muestra.
 function ScopeBanner() {
+  const { t } = useTranslation("bgwatch");
   const ctx = useContext(CommunityContext);
   if (!ctx || !ctx.loaded) return null;
 
@@ -427,14 +438,20 @@ function ScopeBanner() {
       <EyeIcon />
       {includesBase ? (
         <p className={styles.scopeText}>
-          Estás viendo <strong>toda la comunidad</strong>. Para acotar las
-          estadísticas a una comunidad puntual, destildá <strong>TurnoCero</strong>{" "}
-          en el selector y dejá solo esa.
+          <Trans
+            t={t}
+            i18nKey="comunidad.scope.global"
+            components={{ strong: <strong /> }}
+          />
         </p>
       ) : (
         <p className={styles.scopeText}>
-          Estás viendo las estadísticas de{" "}
-          <strong>{selected.map((c) => c.name).join(" + ")}</strong>.
+          <Trans
+            t={t}
+            i18nKey="comunidad.scope.scoped"
+            values={{ names: selected.map((c) => c.name).join(" + ") }}
+            components={{ strong: <strong /> }}
+          />
         </p>
       )}
     </div>
@@ -443,6 +460,7 @@ function ScopeBanner() {
 
 // ─── Hub ──────────────────────────────────────────────────────────────────
 export default function BgWatchComunidad() {
+  const { t } = useTranslation("bgwatch");
   const [tab, setTab] = useState("juegos");
   const brandName = useBrandName();
 
@@ -452,26 +470,25 @@ export default function BgWatchComunidad() {
         <header className={styles.hero}>
           <div className={styles.eyebrow}>
             <Meeple />
-            BG WATCH · COMUNIDAD
+            {t("comunidad.brand")}
           </div>
-          <h1 className={styles.heroTitle}>La comunidad en juego</h1>
+          <h1 className={styles.heroTitle}>{t("comunidad.heroTitle")}</h1>
           <p className={styles.heroSub}>
-            Lo más jugado, los rankings y la actividad de toda la comunidad de{" "}
-            {brandName}, a partir de las partidas que registran sus miembros.
+            {t("comunidad.heroSub", { brandName })}
           </p>
         </header>
 
         <ScopeBanner />
 
-        <nav className={styles.tabs} aria-label="Secciones">
-          {TABS.map((t) => (
+        <nav className={styles.tabs} aria-label={t("comunidad.sectionsLabel")}>
+          {TAB_KEYS.map((key) => (
             <button
-              key={t.key}
+              key={key}
               type="button"
-              className={`${styles.tab} ${tab === t.key ? styles.tabActive : ""}`}
-              onClick={() => setTab(t.key)}
+              className={`${styles.tab} ${tab === key ? styles.tabActive : ""}`}
+              onClick={() => setTab(key)}
             >
-              {t.label}
+              {t(`comunidad.tabs.${key}`)}
             </button>
           ))}
         </nav>

@@ -1,0 +1,224 @@
+{
+  "common": {
+    "back": "Back",
+    "loading": "Loading…",
+    "bgWatchBrand": "BG WATCH"
+  },
+  "profile": {
+    "eyebrowOwn": "your profile",
+    "eyebrowPublic": "public profile",
+    "viewOnBgg": "View on BoardGameGeek",
+    "viewCommunityInline": "View the community →",
+    "viewCommunity": "View the community",
+    "newPlay": "New play",
+    "newPlayPlus": "+ New play",
+    "deletePlayError": "Couldn't delete the play.",
+    "deleteTitle": "Delete play",
+    "deleteMessage": "Delete the play of \"{{game}}\" from {{date}}? This action can't be undone and deletes the play on BGG.",
+    "deleteConfirm": "Delete",
+    "tabs": {
+      "partidas": "Plays",
+      "coleccion": "Collection",
+      "jugadores": "Players",
+      "ubicaciones": "Locations"
+    }
+  },
+  "landing": {
+    "brand": "BG WATCH",
+    "heroTitle": "Track your plays like never before",
+    "heroSub": "BG Watch is {{brandName}}'s play tracker. Connect your BoardGameGeek account and log, edit and explore everything you've played — without leaving the app.",
+    "communityLink": "See the community stats →",
+    "features": {
+      "plays": {
+        "title": "Log your plays",
+        "body": "Log, edit and delete plays right from {{brandName}}. They sync with your BoardGameGeek account."
+      },
+      "collection": {
+        "title": "Your collection, always at hand",
+        "body": "See the games you own, with ratings, number of plays and thumbnails."
+      },
+      "perGame": {
+        "title": "A per-game view",
+        "body": "Filter your play history by title, with score, position, players and notes for each session."
+      }
+    },
+    "ctaLoggedTitle": "Activate BG Watch now",
+    "ctaLoggedSub": "Go to your profile, enter your BoardGameGeek username and connect your account to start logging plays.",
+    "ctaGoToProfile": "Go to My profile",
+    "ctaFinePrint": "Don't have a BoardGameGeek account yet? ",
+    "ctaCreateBgg": "Create one at BGG.com →",
+    "ctaGuestTitle": "Create your account and start",
+    "ctaGuestSub": "Sign up for free on {{brandName}} and connect your BoardGameGeek account from your profile. It's quick.",
+    "ctaCreateAccount": "Create account",
+    "ctaHaveAccount": "I already have an account",
+    "howItWorksTitle": "How it works",
+    "step1Title": "Connect your account",
+    "step1Body": "Enter your BoardGameGeek username and password. We store the password encrypted (AES-256-GCM) and never send it to the browser.",
+    "step2Title": "We sync your data",
+    "step2Body": "We pull your collection and your plays from BGG. You'll see it all in an interface built for use from your phone, while you play.",
+    "step3Title": "Log new plays",
+    "step3Body": "As soon as the table wraps up, log the play from {{brandName}}. It's saved to BGG automatically.",
+    "footnote": "BoardGameGeek is an external service. BG Watch is {{brandName}}'s integration with its API."
+  },
+  "perGame": {
+    "loadGameError": "Couldn't load the game",
+    "loadPlaysError": "Couldn't load the plays",
+    "gameNotFound": "Game not found",
+    "ellipsis": "…",
+    "playersRange": "{{min}}–{{max}} players",
+    "playersSingle": "{{n}} players",
+    "viewOnBgg": "View on BoardGameGeek ↗",
+    "newPlayOfGame": "+ New play of this game",
+    "stats": {
+      "partidas": "Plays",
+      "winRate": "Win rate",
+      "avgDuration": "Avg. duration",
+      "lastPlay": "Last play",
+      "fromLast": "of last {{n}}",
+      "minutes": "{{n}}m"
+    },
+    "loadingPlays": "Loading plays…",
+    "noPlays": "No plays of this game.",
+    "playsCount_one": "{{count}} play",
+    "playsCount_other": "{{count}} plays",
+    "pageInfo": "page {{page}} of {{total}}",
+    "deleteTitle": "Delete play",
+    "deleteMessage": "Delete the play from {{date}}? This action can't be undone and deletes the play on BGG.",
+    "deleteConfirm": "Delete"
+  },
+  "comunidad": {
+    "brand": "BG WATCH · COMMUNITY",
+    "heroTitle": "The community at play",
+    "heroSub": "The most played, the rankings and the activity of the whole {{brandName}} community, from the plays its members log.",
+    "sectionsLabel": "Sections",
+    "tabs": {
+      "juegos": "Games",
+      "jugadores": "Players",
+      "actividad": "Activity"
+    },
+    "periodLabel": "Period",
+    "mostPlayed": "Most played",
+    "onFire": "On fire 🔥",
+    "gamesError": "Couldn't load the games.",
+    "noDataEyebrow": "NO DATA",
+    "gamesEmptyTitle": "No plays in the community yet",
+    "gamesEmptyText": "Once members log plays, you'll see the most played games here.",
+    "gameFallback": "Game {{id}}",
+    "gameMeta": "{{plays}} · {{players}}",
+    "playsCount_one": "{{count}} play",
+    "playsCount_other": "{{count}} plays",
+    "playersCount_one": "{{count}} player",
+    "playersCount_other": "{{count}} players",
+    "metricLabel": "Metric",
+    "metrics": {
+      "plays": "Plays",
+      "variedad": "Variety",
+      "winrate": "Win-rate",
+      "racha": "Streak"
+    },
+    "metricValue": {
+      "variedad": "{{n}} games",
+      "winrate": "{{n}}%",
+      "racha": "{{n}} wk",
+      "plays": "{{n}} plays"
+    },
+    "rankingError": "Couldn't load the ranking.",
+    "rankingEmptyTitle": "Empty ranking",
+    "rankingEmptyText": "There aren't enough logged plays to build this ranking yet.",
+    "activityLabel": "Activity by day",
+    "activityCell": "{{date}}: {{plays}}",
+    "activityError": "Couldn't load the activity.",
+    "activityEmptyTitle": "No recent activity",
+    "activityEmptyText": "Once members log plays, you'll see them in this feed.",
+    "feedPlayed": "played",
+    "scope": {
+      "global": "You're viewing <strong>the whole community</strong>. To narrow the stats to a specific community, untick <strong>TurnoCero</strong> in the selector and leave only that one.",
+      "scoped": "You're viewing the stats of <strong>{{names}}</strong>."
+    }
+  },
+  "juegoDetail": {
+    "brand": "BG WATCH · COMMUNITY",
+    "loadError": "Couldn't load the game.",
+    "gameFallback": "Game {{id}}",
+    "winRate": "{{n}}%",
+    "duration": "{{n}}′",
+    "stats": {
+      "partidas": "Plays",
+      "jugadores": "Players",
+      "winRate": "Win-rate",
+      "avgDuration": "Avg. duration",
+      "avgScore": "Avg. score"
+    },
+    "whoPlayedMost": "Who played it most",
+    "whoHasIt": "Who has it?",
+    "noOwners": "No member has this game in their collection (or their collections are private).",
+    "ownerNote": "The collection may be incomplete if a profile is private.",
+    "createTable": "Set up a table"
+  },
+  "coleccion": {
+    "refreshLabel": "Refresh collection",
+    "refreshWait": "↻ Wait {{n}}s",
+    "refresh": "↻ Refresh",
+    "loadError": "Couldn't load the collection",
+    "empty": "This user has no games marked as owned on BGG.",
+    "header": "{{n}} games · page {{page}} of {{total}}",
+    "unplayed": "Unplayed",
+    "playsTimes": "{{n}}×",
+    "yourRating": "Your rating",
+    "bggRating": "BGG",
+    "partidas": "Plays",
+    "logPlay": "+ Log play"
+  },
+  "stats": {
+    "partidas": "Plays",
+    "uniqueGames": "Unique games",
+    "topGame": "Most played",
+    "lastPlay": "Last play",
+    "topGamePlays": "{{n}}× plays"
+  },
+  "groupStats": {
+    "toggleLabel": "👥 Stats with this group",
+    "hide": "Hide",
+    "show": "See how they did playing together",
+    "error": "Couldn't load the group stats.",
+    "playsTogether_one": "play together",
+    "playsTogether_other": "plays together",
+    "first": "First: {{date}}",
+    "last": "Last: {{date}}",
+    "wins": "Wins",
+    "groupGames": "Group games",
+    "winsCount_one": "{{count}} win",
+    "winsCount_other": "{{count}} wins",
+    "gameTimes": "{{n}}×",
+    "otherPlays": "Other plays with this group",
+    "noOtherPlays": "This group has no other logged plays.",
+    "rosterFallbackName": "Anonymous"
+  },
+  "h2h": {
+    "loadError": "Couldn't load the head-to-head.",
+    "brand": "BG WATCH · HEAD TO HEAD",
+    "title": "{{a}} vs {{b}}",
+    "none": "They haven't shared any logged play yet.",
+    "sharedCount_one": "{{count}} shared play.",
+    "sharedCount_other": "{{count}} shared plays.",
+    "undecided": "{{n}} undecided",
+    "byGame": "By game",
+    "gameFallback": "Game {{id}}",
+    "gamePlays_one": "({{count}} play)",
+    "gamePlays_other": "({{count}} plays)"
+  },
+  "sessionNotice": {
+    "title": "Your BoardGameGeek session expired",
+    "body": "You probably changed your password on BoardGameGeek. Re-enter your password to log and edit plays again.",
+    "reconnect": "Reconnect"
+  },
+  "guestCtas": {
+    "banner": "Track your plays like <strong>@{{bggUsername}}</strong> with BG Watch.",
+    "registerFree": "Sign up for free",
+    "inlineEyebrow": "ACTIVATE YOUR OWN BG WATCH",
+    "inlineTitle": "Do you have a BoardGameGeek account?",
+    "inlineBody": "Connect it with {{brandName}} and track your plays like this person — free and with nothing to install.",
+    "start": "Get started",
+    "footer": "This is <strong>@{{bggUsername}}</strong>'s BG Watch, a person who plays on {{brandName}}. You can have yours too."
+  }
+}

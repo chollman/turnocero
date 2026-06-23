@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import styles from "./BgWatchSessionNotice.module.css";
 
 const WarnIcon = () => (
@@ -40,20 +41,18 @@ const ArrowIcon = () => (
  * reconectar (ahí está el form que vuelve a poner `invalid = false`).
  */
 export default function BgWatchSessionNotice() {
+  const { t } = useTranslation("bgwatch");
   return (
     <div className={styles.notice} role="alert">
       <span className={styles.icon} aria-hidden="true">
         <WarnIcon />
       </span>
       <div className={styles.copy}>
-        <p className={styles.title}>Tu sesión con BoardGameGeek caducó</p>
-        <p className={styles.body}>
-          Seguramente cambiaste tu contraseña en BoardGameGeek. Reingresá tu
-          password para volver a cargar y editar partidas.
-        </p>
+        <p className={styles.title}>{t("sessionNotice.title")}</p>
+        <p className={styles.body}>{t("sessionNotice.body")}</p>
       </div>
       <Link to="/perfil" className={styles.cta}>
-        Reconectar
+        {t("sessionNotice.reconnect")}
         <ArrowIcon />
       </Link>
     </div>

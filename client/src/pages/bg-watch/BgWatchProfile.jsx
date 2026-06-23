@@ -2,6 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import Avatar from "../../components/shared/Avatar";
 import { useCallback, useState } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
@@ -22,6 +23,7 @@ export default function BgWatchProfile() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation("bgwatch");
 
   // La tab activa se deriva de la URL para que /partidas y /coleccion sean
   // deep-linkeables (caer directo en cada vista). Default = partidas.
@@ -109,19 +111,31 @@ export default function BgWatchProfile() {
   const tabItems = [
     {
       id: "partidas",
-      label: "Partidas",
+      label: t("profile.tabs.partidas"),
       badge: playsMeta ? playsMeta.total : null,
     },
     {
       id: "coleccion",
-      label: "Colección",
+      label: t("profile.tabs.coleccion"),
       badge: collection ? collection.length : null,
     },
     ...(canManagePlayers
-      ? [{ id: "jugadores", label: "Jugadores", badge: playersTotal }]
+      ? [
+          {
+            id: "jugadores",
+            label: t("profile.tabs.jugadores"),
+            badge: playersTotal,
+          },
+        ]
       : []),
     ...(canManagePlayers
-      ? [{ id: "ubicaciones", label: "Ubicaciones", badge: locationsTotal }]
+      ? [
+          {
+            id: "ubicaciones",
+            label: t("profile.tabs.ubicaciones"),
+            badge: locationsTotal,
+          },
+        ]
       : []),
   ];
 
@@ -133,7 +147,7 @@ export default function BgWatchProfile() {
       setDeletingPlay(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      alert(err.response?.data?.message || "No se pudo eliminar la partida.");
+      alert(err.response?.data?.message || t("profile.deletePlayError"));
     } finally {
       setDeleting(false);
     }
@@ -144,7 +158,7 @@ export default function BgWatchProfile() {
       {isGuest && <GuestBanner bggUsername={bggUsername} />}
       <div className={styles.inner}>
         <BackButton onClick={() => navigate(-1)} flush>
-          Volver
+          {t("common.back")}
         </BackButton>
 
         <div className={styles.hero}>
@@ -161,7 +175,10 @@ export default function BgWatchProfile() {
           <div className={styles.heroMain}>
             <div className={styles.eyebrow}>
               <Meeple />
-              BG WATCH · {isOwnProfile ? "tu perfil" : "perfil público"}
+              {t("common.bgWatchBrand")} ·{" "}
+              {isOwnProfile
+                ? t("profile.eyebrowOwn")
+                : t("profile.eyebrowPublic")}
             </div>
             <h1 className={styles.heroTitle}>{bggUsername}</h1>
             <div className={styles.heroLinks}>
@@ -171,7 +188,7 @@ export default function BgWatchProfile() {
                 rel="noopener noreferrer"
                 className={styles.bggLink}
               >
-                Ver en BoardGameGeek
+                {t("profile.viewOnBgg")}
                 <span className={styles.bggLinkIcon}> ↗</span>
               </a>
               {/* "Ver la comunidad" vive dentro del hero en desktop; en mobile
@@ -180,7 +197,7 @@ export default function BgWatchProfile() {
                 to="/bg-watch/comunidad"
                 className={`${styles.bggLink} ${styles.comunidadInline}`}
               >
-                Ver la comunidad →
+                {t("profile.viewCommunityInline")}
               </Link>
               {/* En mobile "Nueva partida" ocupa el lugar que dejó "Ver la
                   comunidad" (en desktop usa la columna de acciones del hero). */}
@@ -190,7 +207,7 @@ export default function BgWatchProfile() {
                   className={`${styles.newPlayBtn} ${styles.newPlayInline}`}
                   onClick={goToNewPlay}
                 >
-                  Nueva partida
+                  {t("profile.newPlay")}
                 </button>
               )}
             </div>
@@ -202,7 +219,7 @@ export default function BgWatchProfile() {
                 className={styles.newPlayBtn}
                 onClick={goToNewPlay}
               >
-                + Nueva partida
+                {t("profile.newPlayPlus")}
               </button>
             </div>
           )}
@@ -213,7 +230,7 @@ export default function BgWatchProfile() {
             esta copia se oculta — el link vive dentro del hero. */}
         <Link to="/bg-watch/comunidad" className={styles.comunidadBtn}>
           <Meeple />
-          Ver la comunidad
+          {t("profile.viewCommunity")}
           <span className={styles.comunidadArrow} aria-hidden="true">
             →
           </span>
@@ -295,14 +312,17 @@ export default function BgWatchProfile() {
 
       <ConfirmActionModal
         isOpen={!!deletingPlay}
-        title="Eliminar partida"
+        title={t("profile.deleteTitle")}
         message={
           deletingPlay
-            ? `¿Eliminar la partida de "${deletingPlay.gameName}" del ${deletingPlay.date || "?"}? Esta acción no se puede deshacer y borra la partida en BGG.`
+            ? t("profile.deleteMessage", {
+                game: deletingPlay.gameName,
+                date: deletingPlay.date || "?",
+              })
             : ""
         }
-        confirmLabel="Eliminar"
-        cancelLabel="Cancelar"
+        confirmLabel={t("profile.deleteConfirm")}
+        cancelLabel={t("common:actions.cancel")}
         variant="danger"
         loading={deleting}
         onConfirm={confirmDelete}
