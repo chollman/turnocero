@@ -402,6 +402,49 @@
   font-weight: 600;
 }
 
+/* Shimmer skeleton shown in a stat cell while the backend answer is pending
+   (replaces the em-dash placeholder). Sized to the value it stands in for so
+   the cell doesn't jump when the real number/text arrives. */
+.bone {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Matches .statValue (the big 30px number). */
+.boneValue {
+  height: 28px;
+  width: 56px;
+}
+
+/* Matches .statValueSm (top game name / last-play date). */
+.boneText {
+  height: 15px;
+  width: 80%;
+  margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    animation: none;
+  }
+}
+
 @media (--phone) {
   /* Handoff "BG Watch Mobile": en mobile la barra se abre en tiles 2×2
      SEPARADOS (gap + esquina redondeada propia + borde de acento por tipo), en

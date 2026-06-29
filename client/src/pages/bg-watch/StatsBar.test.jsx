@@ -8,12 +8,29 @@ describe("<StatsBar>", () => {
     await i18n.changeLanguage("es");
   });
 
-  it("renders all four metric labels with em-dashes when there is no data", () => {
+  it("renders all four metric labels while loading", () => {
     render(<StatsBar collection={null} playsMeta={null} />);
     expect(screen.getByText("Partidas")).toBeInTheDocument();
     expect(screen.getByText(/juegos únicos/i)).toBeInTheDocument();
     expect(screen.getByText(/más jugado/i)).toBeInTheDocument();
     expect(screen.getByText(/última partida/i)).toBeInTheDocument();
+  });
+
+  it("shows skeleton bones (not em-dashes) while the backend response is pending", () => {
+    const { container } = render(<StatsBar collection={null} playsMeta={null} />);
+    // One shimmer bone per metric cell, no placeholder dashes.
+    expect(container.querySelectorAll(".bone")).toHaveLength(4);
+    expect(container.textContent).not.toMatch(/—/);
+  });
+
+  it("swaps the skeleton for the value once that source resolves", () => {
+    // Collection resolved (unique games known) but plays still loading.
+    const { container } = render(
+      <StatsBar collection={[{ id: 7, name: "Catán", numPlays: 2 }]} playsMeta={null} />,
+    );
+    // Unique-games cell shows the count; the plays-driven cells still shimmer.
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(container.querySelectorAll(".bone").length).toBeGreaterThan(0);
   });
 
   it("uses topGame from playsMeta (plays-log aggregation) when present", () => {

@@ -14,6 +14,13 @@ function formatDate(iso) {
 
 export default function StatsBar({ collection, playsMeta }) {
   const { t } = useTranslation("bgwatch");
+
+  // Each source resolves independently (plays log vs. collection), so each card
+  // tracks its own loading state — a `null` prop means the backend hasn't
+  // answered yet, and we show a shimmer skeleton instead of an em-dash.
+  const playsLoading = playsMeta == null;
+  const collectionLoading = collection == null;
+
   const totalPartidas = playsMeta?.total ?? null;
   const juegosUnicos = collection?.length ?? null;
 
@@ -29,6 +36,9 @@ export default function StatsBar({ collection, playsMeta }) {
     );
     if (!topGame || (topGame.numPlays || 0) === 0) topGame = null;
   }
+  // The top game isn't known until we either find one or both sources settle
+  // (the collection is the fallback when the plays log has no winner).
+  const topGameLoading = !topGame && (playsLoading || collectionLoading);
 
   const ultimaPartida = playsMeta?.lastDate || null;
 
@@ -36,21 +46,29 @@ export default function StatsBar({ collection, playsMeta }) {
     <div className={styles.statsBar}>
       <div className={`${styles.statCard} ${styles.statAccent}`}>
         <span className={styles.statLabel}>{t("stats.partidas")}</span>
-        <span className={styles.statValue}>
-          {totalPartidas !== null ? totalPartidas : "—"}
-        </span>
+        {playsLoading ? (
+          <span aria-hidden="true" className={`${styles.bone} ${styles.boneValue}`} />
+        ) : (
+          <span className={styles.statValue}>{totalPartidas ?? "—"}</span>
+        )}
       </div>
       <div className={styles.statCard}>
         <span className={styles.statLabel}>{t("stats.uniqueGames")}</span>
-        <span className={styles.statValue}>
-          {juegosUnicos !== null ? juegosUnicos : "—"}
-        </span>
+        {collectionLoading ? (
+          <span aria-hidden="true" className={`${styles.bone} ${styles.boneValue}`} />
+        ) : (
+          <span className={styles.statValue}>{juegosUnicos ?? "—"}</span>
+        )}
       </div>
       <div className={`${styles.statCard} ${styles.statPurple}`}>
         <span className={styles.statLabel}>{t("stats.topGame")}</span>
-        <span className={styles.statValueSm} title={topGame?.name || ""}>
-          {topGame ? topGame.name : "—"}
-        </span>
+        {topGameLoading ? (
+          <span aria-hidden="true" className={`${styles.bone} ${styles.boneText}`} />
+        ) : (
+          <span className={styles.statValueSm} title={topGame?.name || ""}>
+            {topGame ? topGame.name : "—"}
+          </span>
+        )}
         {topGame && (
           <span className={styles.statHint}>
             {t("stats.topGamePlays", { n: topGame.numPlays })}
@@ -59,9 +77,13 @@ export default function StatsBar({ collection, playsMeta }) {
       </div>
       <div className={`${styles.statCard} ${styles.statGold}`}>
         <span className={styles.statLabel}>{t("stats.lastPlay")}</span>
-        <span className={styles.statValueSm}>
-          {ultimaPartida ? formatDate(ultimaPartida) : "—"}
-        </span>
+        {playsLoading ? (
+          <span aria-hidden="true" className={`${styles.bone} ${styles.boneText}`} />
+        ) : (
+          <span className={styles.statValueSm}>
+            {ultimaPartida ? formatDate(ultimaPartida) : "—"}
+          </span>
+        )}
       </div>
     </div>
   );
