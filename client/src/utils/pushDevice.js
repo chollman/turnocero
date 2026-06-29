@@ -13,12 +13,19 @@ export async function unsubscribeThisDevice() {
     if (
       typeof navigator === "undefined" ||
       !("serviceWorker" in navigator) ||
-      !navigator.serviceWorker?.ready
+      typeof navigator.serviceWorker?.getRegistration !== "function"
     ) {
       return;
     }
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
+    // OJO: NO usar `navigator.serviceWorker.ready` acá. Ese promise espera a que
+    // haya un SW *activo* y, si no hay ninguno registrado (caso típico en dev /
+    // localhost, donde vite-plugin-pwa no registra el SW), queda PENDIENTE para
+    // siempre — colgaba el logout entero porque lo await-eábamos antes de borrar
+    // la sesión. `getRegistration()` resuelve enseguida a la registración o
+    // `undefined`, sin colgarse, y la `pushManager` vive igual en la registración.
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return;
+    const sub = await reg.pushManager?.getSubscription();
     if (!sub) return;
     const { endpoint } = sub;
     await sub.unsubscribe().catch(() => {});

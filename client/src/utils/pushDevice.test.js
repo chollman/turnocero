@@ -8,7 +8,7 @@ function installSW(sub) {
     pushManager: { getSubscription: vi.fn().mockResolvedValue(sub) },
   };
   Object.defineProperty(navigator, "serviceWorker", {
-    value: { ready: Promise.resolve(registration) },
+    value: { getRegistration: vi.fn().mockResolvedValue(registration) },
     configurable: true,
   });
   return registration;
@@ -24,6 +24,18 @@ afterEach(() => {
 
 describe("unsubscribeThisDevice", () => {
   it("no rompe si no hay serviceWorker", async () => {
+    await expect(unsubscribeThisDevice()).resolves.toBeUndefined();
+  });
+
+  // Regresión: en dev/localhost el container de SW existe pero no hay ninguna
+  // registración. Antes usábamos `navigator.serviceWorker.ready`, que queda
+  // pendiente para siempre en ese caso y colgaba el logout entero. Con
+  // `getRegistration()` (resuelve a `undefined`) debe terminar enseguida.
+  it("no se cuelga si hay serviceWorker pero ninguna registración (dev)", async () => {
+    Object.defineProperty(navigator, "serviceWorker", {
+      value: { getRegistration: vi.fn().mockResolvedValue(undefined) },
+      configurable: true,
+    });
     await expect(unsubscribeThisDevice()).resolves.toBeUndefined();
   });
 
