@@ -223,7 +223,6 @@ export default function PlayerPicker({
           onChange={(e) => setQ(e.target.value)}
           maxLength={100}
           aria-label={t("playerPicker.searchAria")}
-          autoFocus
         />
         <button
           type="button"
