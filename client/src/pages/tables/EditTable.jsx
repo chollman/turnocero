@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { API } from "../../api/endpoints";
+import { useTableQuery, tableKeys, updateTable, cancelTable } from "../../queries/tables";
 import { toLocalInputValue } from "../../utils/eventoDate";
 import MesaForm from "./MesaForm";
 
@@ -19,73 +19,64 @@ export default function EditTable() {
   const { addToast } = useNotifications();
   const navigate = useNavigate();
   const { t } = useTranslation("tables");
+  const queryClient = useQueryClient();
 
-  const [initialValues, setInitialValues] = useState(null);
-  const [playersCount, setPlayersCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
+  const { data, isPending, isError } = useTableQuery(id);
+
+  const uid = user._id?.toString();
+  const isHost =
+    !!data &&
+    (data.host?._id === user._id || data.host?._id?.toString() === uid);
+  // Host puede siempre. Admin puede SOLO cuando la mesa ya pasó (override
+  // del freeze — ver feedback del freeze post-fecha).
+  const isPast = !!data?.date && new Date(data.date) < new Date();
+  const canEdit = !!data && (isHost || (user.isAdmin && isPast));
+  const shouldRedirect =
+    !isPending && (isError || (!!data && (!canEdit || data.status === "cancelled")));
+
   useEffect(() => {
-    const ac = new AbortController();
-    const fetchTable = async () => {
-      try {
-        const { data } = await axios.get(API.tables.DETAIL(id), {
-          signal: ac.signal,
-        });
-        if (ac.signal.aborted) return;
-        const uid = user._id?.toString();
-        const isHost =
-          data.host?._id === user._id ||
-          data.host?._id?.toString() === uid;
-        // Host puede siempre. Admin puede SOLO cuando la mesa ya pasó
-        // (override del freeze — ver feedback del freeze post-fecha).
-        const isPast = data.date && new Date(data.date).getTime() < Date.now();
-        const canEdit = isHost || (user.isAdmin && isPast);
-        if (!canEdit || data.status === "cancelled") {
-          navigate("/mesas");
-          return;
-        }
-        // location puede llegar como string legacy o subdoc.
-        const loc =
-          typeof data.location === "string"
-            ? { texto: data.location, lat: null, lng: null }
-            : {
-                texto: data.location?.texto || "",
-                lat: data.location?.lat ?? null,
-                lng: data.location?.lng ?? null,
-              };
-        setInitialValues({
-          boardGame: data.boardGame,
-          bggData: {
-            id: data.bggId,
-            name: data.boardGame,
-            thumbnail: data.bggThumbnail,
-            image: data.bggImage,
-            year: data.bggYear,
-          },
-          // server guarda spots libres (sin host); UI cuenta total → +1.
-          // toLocalInputValue convierte UTC del server a hora local que
-          // consume <DateTimePicker>.
-          date: toLocalInputValue(data.date),
-          maxPlayers: data.maxPlayers + 1,
-          location: loc,
-          description: data.description || "",
-          rules: data.rules || "",
-          tags: data.tags || [],
-          privacy: data.privacy || "public",
-          tutorialMode: data.tutorialMode || "auto",
-          tutorialVideoId: data.tutorialVideoId || null,
-          bgaUrl: data.bgaUrl || null,
-        });
-        setPlayersCount(data.players?.length || 0);
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        navigate("/mesas");
-      }
+    if (shouldRedirect) navigate("/mesas");
+  }, [shouldRedirect, navigate]);
+
+  const initialValues = useMemo(() => {
+    if (!data || !canEdit || data.status === "cancelled") return null;
+    // location puede llegar como string legacy o subdoc.
+    const loc =
+      typeof data.location === "string"
+        ? { texto: data.location, lat: null, lng: null }
+        : {
+            texto: data.location?.texto || "",
+            lat: data.location?.lat ?? null,
+            lng: data.location?.lng ?? null,
+          };
+    return {
+      boardGame: data.boardGame,
+      bggData: {
+        id: data.bggId,
+        name: data.boardGame,
+        thumbnail: data.bggThumbnail,
+        image: data.bggImage,
+        year: data.bggYear,
+      },
+      // server guarda spots libres (sin host); UI cuenta total → +1.
+      // toLocalInputValue convierte UTC del server a hora local que
+      // consume <DateTimePicker>.
+      date: toLocalInputValue(data.date),
+      maxPlayers: data.maxPlayers + 1,
+      location: loc,
+      description: data.description || "",
+      rules: data.rules || "",
+      tags: data.tags || [],
+      privacy: data.privacy || "public",
+      tutorialMode: data.tutorialMode || "auto",
+      tutorialVideoId: data.tutorialVideoId || null,
+      bgaUrl: data.bgaUrl || null,
     };
-    fetchTable();
-    return () => ac.abort();
-  }, [id, user._id, user.isAdmin, navigate]);
+  }, [data, canEdit]);
+  const playersCount = data?.players?.length || 0;
 
   const goBack = () => navigate(`/mesas/${id}`);
 
@@ -93,7 +84,7 @@ export default function EditTable() {
     setServerError("");
     setSubmitting(true);
     try {
-      await axios.put(API.tables.DETAIL(id), {
+      const { data: updated } = await updateTable(id, {
         date: payload.date,
         // UI cuenta al host; server espera spots libres → -1.
         maxPlayers: Math.max(1, Number(payload.maxPlayers) - 1),
@@ -106,6 +97,7 @@ export default function EditTable() {
         tutorialVideoId: payload.tutorialVideoId,
         bgaUrl: payload.bgaUrl,
       });
+      queryClient.setQueryData(tableKeys.detail(id), updated);
       navigate(`/mesas/${id}`);
     } catch (err) {
       const msg =
@@ -122,7 +114,7 @@ export default function EditTable() {
       return;
     setSubmitting(true);
     try {
-      await axios.delete(API.tables.DETAIL(id));
+      await cancelTable(id);
       navigate("/mesas");
     } catch (err) {
       const msg =

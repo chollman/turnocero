@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -8,6 +9,20 @@ import TableTutorials from "./TableTutorials";
 function setupYoutube(items) {
   server.use(
     http.get("/api/youtube/como-se-juega", () => HttpResponse.json({ items })),
+  );
+}
+
+function renderTutorials(props) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <TableTutorials {...props} />
+    </QueryClientProvider>,
   );
 }
 
@@ -41,13 +56,13 @@ beforeEach(() => {
 
 describe("<TableTutorials>", () => {
   it("no renderiza nada cuando boardGame está vacío o ausente", () => {
-    const { container: c1 } = render(<TableTutorials boardGame="" />);
+    const { container: c1 } = renderTutorials({ boardGame: "" });
     expect(c1.firstChild).toBeNull();
 
-    const { container: c2 } = render(<TableTutorials boardGame={undefined} />);
+    const { container: c2 } = renderTutorials({ boardGame: undefined });
     expect(c2.firstChild).toBeNull();
 
-    const { container: c3 } = render(<TableTutorials boardGame="   " />);
+    const { container: c3 } = renderTutorials({ boardGame: "   " });
     expect(c3.firstChild).toBeNull();
   });
 
@@ -56,7 +71,7 @@ describe("<TableTutorials>", () => {
     server.use(
       http.get("/api/youtube/como-se-juega", () => new Promise(() => {})),
     );
-    const { container } = render(<TableTutorials boardGame="Catan" />);
+    const { container } = renderTutorials({ boardGame: "Catan" });
     // 3 skeletons + el header de sección visible inmediato.
     expect(screen.getByText(/Andá preparado/i)).toBeInTheDocument();
     expect(screen.getByText(/Aprendé cómo se juega/i)).toBeInTheDocument();
@@ -71,7 +86,7 @@ describe("<TableTutorials>", () => {
 
   it("renderiza 3 cards con links correctos a YouTube", async () => {
     setupYoutube(sample);
-    render(<TableTutorials boardGame="Catan" />);
+    renderTutorials({ boardGame: "Catan" });
 
     await waitFor(() => {
       expect(
@@ -108,7 +123,7 @@ describe("<TableTutorials>", () => {
         duration: "1:00",
       },
     ]);
-    render(<TableTutorials boardGame="Whatever" />);
+    renderTutorials({ boardGame: "Whatever" });
     await waitFor(() => {
       expect(screen.getByText("Edge case")).toBeInTheDocument();
     });
@@ -121,7 +136,7 @@ describe("<TableTutorials>", () => {
 
   it("no renderiza nada cuando el server devuelve items vacíos", async () => {
     setupYoutube([]);
-    const { container } = render(<TableTutorials boardGame="Catan" />);
+    const { container } = renderTutorials({ boardGame: "Catan" });
     // Inicialmente loading (renderiza section).
     await waitFor(() => {
       expect(container.firstChild).toBeNull();
@@ -134,7 +149,7 @@ describe("<TableTutorials>", () => {
         HttpResponse.json({ message: "boom" }, { status: 500 }),
       ),
     );
-    const { container } = render(<TableTutorials boardGame="Catan" />);
+    const { container } = renderTutorials({ boardGame: "Catan" });
     await waitFor(() => {
       expect(container.firstChild).toBeNull();
     });
@@ -149,7 +164,7 @@ describe("<TableTutorials>", () => {
         return HttpResponse.json({ items: [] });
       }),
     );
-    render(<TableTutorials boardGame="Wingspan: European Expansion" />);
+    renderTutorials({ boardGame: "Wingspan: European Expansion" });
     await waitFor(() => {
       expect(received).toBe("Wingspan: European Expansion");
     });
@@ -165,7 +180,7 @@ describe("<TableTutorials>", () => {
         duration: "",
       },
     ]);
-    const { container } = render(<TableTutorials boardGame="Catan" />);
+    const { container } = renderTutorials({ boardGame: "Catan" });
     await waitFor(() => {
       expect(screen.getByText("Sin duración")).toBeInTheDocument();
     });
@@ -186,16 +201,18 @@ describe("<TableTutorials> · tutorialMode", () => {
   });
 
   it("mode='none' nunca renderiza nada (incluso con boardGame)", () => {
-    const { container } = render(
-      <TableTutorials boardGame="Catan" tutorialMode="none" />,
-    );
+    const { container } = renderTutorials({
+      boardGame: "Catan",
+      tutorialMode: "none",
+    });
     expect(container.firstChild).toBeNull();
   });
 
   it("mode='none' tampoco renderiza si boardGame es vacío", () => {
-    const { container } = render(
-      <TableTutorials boardGame="" tutorialMode="none" />,
-    );
+    const { container } = renderTutorials({
+      boardGame: "",
+      tutorialMode: "none",
+    });
     expect(container.firstChild).toBeNull();
   });
 
@@ -209,16 +226,17 @@ describe("<TableTutorials> · tutorialMode", () => {
         duration: "5:00",
       },
     ]);
-    render(<TableTutorials boardGame="Catan" />);
+    renderTutorials({ boardGame: "Catan" });
     await waitFor(() => {
       expect(screen.getByText("Auto fallback")).toBeInTheDocument();
     });
   });
 
   it("mode='manual' sin tutorialVideoId no renderiza nada", () => {
-    const { container } = render(
-      <TableTutorials boardGame="Catan" tutorialMode="manual" />,
-    );
+    const { container } = renderTutorials({
+      boardGame: "Catan",
+      tutorialMode: "manual",
+    });
     expect(container.firstChild).toBeNull();
   });
 
@@ -235,13 +253,11 @@ describe("<TableTutorials> · tutorialMode", () => {
       ),
     );
 
-    render(
-      <TableTutorials
-        boardGame="Catan"
-        tutorialMode="manual"
-        tutorialVideoId="dQw4w9WgXcQ"
-      />,
-    );
+    renderTutorials({
+      boardGame: "Catan",
+      tutorialMode: "manual",
+      tutorialVideoId: "dQw4w9WgXcQ",
+    });
 
     await waitFor(() => {
       expect(screen.getByText("Tutorial elegido por el host")).toBeInTheDocument();
@@ -267,13 +283,11 @@ describe("<TableTutorials> · tutorialMode", () => {
         HttpResponse.json({ videoId: "", title: "", channel: "" }),
       ),
     );
-    const { container } = render(
-      <TableTutorials
-        boardGame="Catan"
-        tutorialMode="manual"
-        tutorialVideoId="dQw4w9WgXcQ"
-      />,
-    );
+    const { container } = renderTutorials({
+      boardGame: "Catan",
+      tutorialMode: "manual",
+      tutorialVideoId: "dQw4w9WgXcQ",
+    });
     await waitFor(() => {
       expect(container.firstChild).toBeNull();
     });
@@ -292,13 +306,11 @@ describe("<TableTutorials> · tutorialMode", () => {
       ),
     );
 
-    render(
-      <TableTutorials
-        boardGame="Catan"
-        tutorialMode="manual"
-        tutorialVideoId="dQw4w9WgXcQ"
-      />,
-    );
+    renderTutorials({
+      boardGame: "Catan",
+      tutorialMode: "manual",
+      tutorialVideoId: "dQw4w9WgXcQ",
+    });
 
     await waitFor(() => {
       expect(screen.getByText("Tutorial recomendado")).toBeInTheDocument();

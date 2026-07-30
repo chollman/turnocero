@@ -1,8 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
-import { useEffect, useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useTableTutorialsQuery } from "../../queries/youtube";
 import { youtubeWatchUrl } from "../../utils/youtube";
 import styles from "./TableTutorials.module.css";
 
@@ -25,69 +23,12 @@ export default function TableTutorials({
   // preservar el comportamiento original.
   const mode = tutorialMode || "auto";
 
-  const [items, setItems] = useState(null); // null = loading, [] = vacío/error, [...] = ok
-  const [errored, setErrored] = useState(false);
-
-  useEffect(() => {
-    if (mode === "none") {
-      setItems([]);
-      return undefined;
-    }
-    if (mode === "manual" && !tutorialVideoId) {
-      setItems([]);
-      return undefined;
-    }
-    if (mode === "auto" && (!boardGame || !boardGame.trim())) {
-      setItems([]);
-      return undefined;
-    }
-
-    const controller = new AbortController();
-    setItems(null);
-    setErrored(false);
-
-    const request =
-      mode === "manual"
-        ? axios.get(API.youtube.VIDEO(tutorialVideoId), {
-            signal: controller.signal,
-          })
-        : axios.get(API.youtube.COMO_SE_JUEGA, {
-            params: { juego: boardGame },
-            signal: controller.signal,
-          });
-
-    request
-      .then((res) => {
-        if (mode === "manual") {
-          // El endpoint /video devuelve un objeto suelto; envolvemos en array
-          // de 1 elemento para reutilizar el render del grid.
-          const v = res.data;
-          if (v && v.videoId) {
-            setItems([
-              {
-                videoId: v.videoId,
-                title: v.title || "",
-                channel: v.channel || "",
-                thumbnail:
-                  v.thumbnail ||
-                  `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`,
-                duration: v.duration || "",
-              },
-            ]);
-          } else {
-            setItems([]);
-          }
-        } else {
-          setItems(res.data?.items || []);
-        }
-      })
-      .catch((err) => {
-        if (axios.isCancel(err) || err.name === "CanceledError") return;
-        setErrored(true);
-        setItems([]);
-      });
-    return () => controller.abort();
-  }, [mode, boardGame, tutorialVideoId]);
+  // items === undefined mientras carga; [] = vacío/error; [...] = ok.
+  const { data: items, isError: errored } = useTableTutorialsQuery(
+    mode,
+    boardGame,
+    tutorialVideoId,
+  );
 
   if (mode === "none") return null;
   if (mode === "manual" && !tutorialVideoId) return null;
@@ -119,7 +60,7 @@ export default function TableTutorials({
       <div
         className={`${styles.grid} ${isSingle ? styles.gridSingle : ""}`.trim()}
       >
-        {items === null
+        {items === undefined
           ? Array.from({ length: skeletonCount }).map((_, i) => (
               <div
                 key={`skel-${i}`}

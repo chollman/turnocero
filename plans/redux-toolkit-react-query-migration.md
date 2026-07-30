@@ -171,6 +171,16 @@ El bloque más grande en volumen de archivos, pero el de menor riesgo conceptual
 
 **Criterio de salida por dominio:** CRUD completo, paginación, filtros/búsqueda con debounce y estados vacíos del dominio migrado funcionan idéntico o mejor + checklist de verificación post-fase, antes de pasar al siguiente dominio.
 
+**Progreso por dominio:**
+
+- ✅ **mesas** (11 archivos: Dashboard, TableCard, CreateTable, EditTable, MesaForm, TableDetail, TableChat, TableComments, TableGallery, TableRatings, TableTutorials). `queries/tables.js` (lecturas + 17 mutaciones planas) + `queries/bgg.js` (autocomplete BGG compartido entre MesaForm y el flujo "mesa dentro de un evento" de CreateTable, reemplaza dos bloques casi idénticos de debounce+cache-Map+AbortController manual) + `queries/youtube.js` (`useTableTutorialsQuery`, normaliza modo manual/auto al mismo shape — TableTutorials quedó sin ningún `useState`/`useEffect`/axios propio, el archivo más simplificado de los 11). Patrón cache-only (Fases 3/5) reutilizado en `TableChat.jsx` para los mensajes (boot fetch + socket propio, cache-only). El resto de las secciones (Comments/Ratings) usan `useQuery` real (no cache-only) porque tienen su propio GET idempotente sin socket. `TableDetail.jsx` ganó un `blockedPrivate` derivado explícito para preservar el "no renderizar mientras navega" que antes lograba el `return` temprano del efecto viejo (con Query, `data` llega igual aunque el server permita verla — el bloqueo es una regla de negocio del cliente, no del server). Geocode y el detalle del juego elegido (`GET /bgg/game/:id`) se dejaron como axios directo a propósito — no se benefician de cache (un solo uso, no compartido). Sin Redux — otra vez, cero estado que fuera genuinamente cross-cutting. Cerrado 2026-07-30.
+- 🔲 torneos
+- 🔲 eventos
+- 🔲 compartidas
+- 🔲 bg-watch
+- 🔲 usuarios
+- 🔲 mathtrade / comunidades-admin (sin orden fijo todavía)
+
 ---
 
 ## 🔲 Fase 7 — AuthContext (el más riesgoso, al final a propósito)

@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
-import { API } from "../../api/endpoints";
+import {
+  useTableRatingsQuery,
+  tableKeys,
+  submitTableRating,
+} from "../../queries/tables";
 import styles from "./TableDetail.module.css";
+
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query no tiene datos.
+const EMPTY_RATINGS = [];
 
 // Sección "Valoraciones" — listado de ratings + form para que un
 // participante deje su valoración (1-5 estrellas + comentario opcional).
@@ -28,9 +36,11 @@ export default function TableRatings({
   className = "",
 }) {
   const { t } = useTranslation("tables");
-  const [ratings, setRatings] = useState([]);
-  const [avg, setAvg] = useState(null);
-  const [count, setCount] = useState(0);
+  const queryClient = useQueryClient();
+  const { data } = useTableRatingsQuery(tableId);
+  const ratings = data?.ratings ?? EMPTY_RATINGS;
+  const avg = data?.avg ?? null;
+  const count = data?.count ?? 0;
   const [myScore, setMyScore] = useState(0);
   const [myComment, setMyComment] = useState("");
   const [hoverScore, setHoverScore] = useState(0);
@@ -43,33 +53,17 @@ export default function TableRatings({
     onSummaryChange?.({ avg, count });
   }, [avg, count, onSummaryChange]);
 
+  // Hidrata "mi" rating (score + comment) cuando llegan/cambian los ratings.
   useEffect(() => {
-    let cancelled = false;
-    axios
-      .get(API.tables.RATINGS(tableId))
-      .then(({ data }) => {
-        if (cancelled) return;
-        setRatings(data.ratings);
-        setAvg(data.avg);
-        setCount(data.count);
-        const mine =
-          user &&
-          data.ratings.find(
-            (r) =>
-              (r.rater?._id || r.rater)?.toString() === user._id.toString(),
-          );
-        if (mine) {
-          setMyScore(mine.score);
-          setMyComment(mine.comment || "");
-        }
-      })
-      .catch(() => {
-        /* ratings opcional — la sección sigue siendo usable vacía */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [tableId, user]);
+    if (!user) return;
+    const mine = ratings.find(
+      (r) => (r.rater?._id || r.rater)?.toString() === user._id.toString(),
+    );
+    if (mine) {
+      setMyScore(mine.score);
+      setMyComment(mine.comment || "");
+    }
+  }, [ratings, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,18 +71,20 @@ export default function TableRatings({
     setSubmitting(true);
     setError("");
     try {
-      const { data } = await axios.post(API.tables.RATINGS(tableId), {
+      const { data: res } = await submitTableRating(tableId, {
         score: myScore,
         comment: myComment,
       });
-      setRatings((prev) => {
-        const withoutMine = prev.filter(
+      queryClient.setQueryData(tableKeys.ratings(tableId), (prev) => {
+        const withoutMine = (prev?.ratings ?? []).filter(
           (r) => (r.rater?._id || r.rater)?.toString() !== user._id.toString(),
         );
-        return [data.rating, ...withoutMine];
+        return {
+          ratings: [res.rating, ...withoutMine],
+          avg: res.avg,
+          count: res.count,
+        };
       });
-      setAvg(data.avg);
-      setCount(data.count);
     } catch (err) {
       setError(getErrorMessage(err, t("ratings.errorSubmit")));
     } finally {

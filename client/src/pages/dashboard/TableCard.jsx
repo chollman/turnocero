@@ -2,9 +2,13 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
-import { API } from "../../api/endpoints";
+import {
+  joinTable,
+  leaveTable,
+  cancelJoinRequest,
+  cancelTable,
+} from "../../queries/tables";
 import MesaTile from "../../components/shared/MesaTile";
 import SeatTrack from "../../components/shared/SeatTrack";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
@@ -300,7 +304,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError("");
     try {
-      const { data } = await axios.post(API.tables.JOIN(table._id));
+      const { data } = await joinTable(table._id);
       onUpdate(data.table);
       setFlashing(true);
       setTimeout(() => setFlashing(false), 500);
@@ -316,7 +320,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError("");
     try {
-      const { data } = await axios.post(API.tables.LEAVE(table._id));
+      const { data } = await leaveTable(table._id);
       onUpdate(data);
     } catch (err) {
       setError(err.response?.data?.message || t("dashboard:card.errorLeave"));
@@ -330,7 +334,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError("");
     try {
-      const { data } = await axios.delete(API.tables.REQUEST(table._id));
+      const { data } = await cancelJoinRequest(table._id);
       onUpdate(data.table);
     } catch (err) {
       setError(
@@ -348,7 +352,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError("");
     try {
-      await axios.delete(API.tables.DETAIL(table._id));
+      await cancelTable(table._id);
       onCancel(table._id);
     } catch (err) {
       setError(err.response?.data?.message || t("dashboard:card.errorCancel"));

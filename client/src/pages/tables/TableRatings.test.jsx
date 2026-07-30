@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
-import { RouterOnly } from "../../test/wrappers/AllProviders";
+import { AllProviders } from "../../test/wrappers/AllProviders";
 
 import TableRatings from "./TableRatings";
 
@@ -27,7 +27,7 @@ function setupRatings(payload = { ratings: [], avg: null, count: 0 }) {
 function renderRatings(props = {}) {
   return render(
     <TableRatings tableId="t1" user={user} canRate={false} {...props} />,
-    { wrapper: RouterOnly },
+    { wrapper: AllProviders },
   );
 }
 

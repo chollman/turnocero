@@ -4,6 +4,7 @@ import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
+import { useBggSearchQuery } from "../../queries/bgg";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { fromLocalInputValue } from "../../utils/eventoDate";
 import { parseYouTubeVideoId } from "../../utils/youtube";
@@ -166,6 +167,10 @@ const STEPS = [
 
 const PILL_PLAYERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query BGG no tiene datos.
+const EMPTY_SUGGESTIONS = [];
+
 // ── Component ────────────────────────────────────────────────────────
 
 // Wizard de creación / edición de mesas. Layout: 4 secciones (Juego /
@@ -272,15 +277,14 @@ export default function MesaForm({
 
   // ── BGG autocomplete ──────────────────────────────────────────────
   const debouncedSearch = useDebouncedValue(boardGameInput, 400);
-  const [suggestions, setSuggestions] = useState([]);
-  const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [noResults, setNoResults] = useState(false);
+  // Cubre el breve lapso entre elegir una sugerencia y que llegue el detalle
+  // completo del juego (GET /bgg/game/:id) — desacoplado del `searching` de
+  // la lista de sugerencias, que viene de `useBggSearchQuery`.
+  const [selectingGame, setSelectingGame] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [localError, setLocalError] = useState("");
   const searchRef = useRef(null);
-  const abortRef = useRef(null);
-  const searchCache = useRef(new Map());
 
   // Refs a las 4 secciones (juego/cuando/donde/detalles) para que el
   // stepper pueda scrollear a cada una con un efecto smooth. Mismo orden
@@ -292,52 +296,28 @@ export default function MesaForm({
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // En editMode el juego es read-only — no buscamos sugerencias. Una vez
+  // que hay `bggData` (juego ya elegido) tampoco: tipear después limpia
+  // la selección (ver handleGameInputChange) y recién ahí vuelve a buscar.
+  const bggSearchEnabled = !editMode && !bggData;
+  const { data: suggestions = EMPTY_SUGGESTIONS, isFetching: searching } =
+    useBggSearchQuery(debouncedSearch, { enabled: bggSearchEnabled });
+  const noResults =
+    bggSearchEnabled &&
+    !searching &&
+    debouncedSearch.trim().length >= 3 &&
+    suggestions.length === 0;
+  const isSearchBusy = searching || selectingGame;
+
+  // Reabre el dropdown cuando llega una nueva tanda de resultados (nueva
+  // búsqueda) — no en cada render, para no pisar un cierre manual del user
+  // (click afuera / focus perdido) mientras los resultados no cambiaron.
   useEffect(() => {
-    // En editMode el juego es read-only — no buscamos sugerencias.
-    if (editMode) return undefined;
-    if (debouncedSearch.length < 3 || bggData) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      setSearching(false);
-      setNoResults(false);
-      return undefined;
-    }
-    const q = debouncedSearch.toLowerCase();
-    const cached = searchCache.current.get(q);
-    if (cached) {
-      setSuggestions(cached);
-      setShowDropdown(cached.length > 0);
-      setNoResults(cached.length === 0);
-      setSearching(false);
-      return undefined;
-    }
-    setSearching(true);
-    setNoResults(false);
-    setShowDropdown(false);
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-    const signal = abortRef.current.signal;
-    (async () => {
-      try {
-        const res = await axios.get(API.bgg.SEARCH, {
-          params: { q: debouncedSearch },
-          signal,
-        });
-        if (signal.aborted) return;
-        searchCache.current.set(q, res.data);
-        setSuggestions(res.data);
-        if (res.data.length > 0) setShowDropdown(true);
-        else setNoResults(true);
-      } catch (err) {
-        if (!axios.isCancel(err)) setSuggestions([]);
-      } finally {
-        if (!signal.aborted) setSearching(false);
-      }
-    })();
-    return () => {
-      if (abortRef.current) abortRef.current.abort();
-    };
-  }, [debouncedSearch, bggData, editMode]);
+    if (!bggSearchEnabled || searching) return;
+    setShowDropdown(
+      debouncedSearch.trim().length >= 3 && suggestions.length > 0,
+    );
+  }, [bggSearchEnabled, searching, suggestions, debouncedSearch]);
 
   // Click outside cierra el dropdown.
   useEffect(() => {
@@ -357,7 +337,7 @@ export default function MesaForm({
 
   const handleSelectGame = async (game) => {
     setShowDropdown(false);
-    setSearching(true);
+    setSelectingGame(true);
     try {
       const res = await axios.get(API.bgg.GAME(game.id));
       setBggData(res.data);
@@ -372,7 +352,7 @@ export default function MesaForm({
       });
       setBoardGameInput(game.name);
     } finally {
-      setSearching(false);
+      setSelectingGame(false);
     }
   };
 
@@ -663,17 +643,17 @@ export default function MesaForm({
                     placeholder={t("form.gamePlaceholder")}
                     autoComplete="off"
                   />
-                  {searching && (
+                  {isSearchBusy && (
                     <span className={styles.fieldHelp}>
                       {t("form.searching")}
                     </span>
                   )}
-                  {noResults && !searching && (
+                  {noResults && !isSearchBusy && (
                     <span className={styles.fieldHelp}>
                       {t("form.noResults")}
                     </span>
                   )}
-                  {!searching && !noResults && !bggData && (
+                  {!isSearchBusy && !noResults && !bggData && (
                     <span className={styles.fieldHelp}>{t("form.gameHelp")}</span>
                   )}
                   {showDropdown && suggestions.length > 0 && (

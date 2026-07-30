@@ -11,6 +11,8 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
+import { useBggSearchQuery } from "../../queries/bgg";
+import { createTable } from "../../queries/tables";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import InfoTooltip from "../../components/shared/InfoTooltip";
@@ -35,6 +37,10 @@ function toLocalTimeInput(d) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query BGG no tiene datos.
+const EMPTY_SUGGESTIONS = [];
 
 // Dispatcher: el flow standalone (sin eventoId) usa el wizard `<MesaForm>`
 // nuevo (handoff-driven, 4 pasos + live preview). El flow "mesa dentro de
@@ -66,7 +72,7 @@ function CreateMesaStandalone() {
     setServerError("");
     setSubmitting(true);
     try {
-      const { data } = await axios.post(API.tables.LIST, {
+      const { data } = await createTable({
         boardGame: payload.boardGame,
         bggId: payload.bggId,
         bggThumbnail: payload.bggThumbnail,
@@ -130,15 +136,14 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
   const [boardGameInput, setBoardGameInput] = useState("");
   const debouncedBoardGameInput = useDebouncedValue(boardGameInput, 400);
   const [boardGameSelected, setBoardGameSelected] = useState(null);
-  const [suggestions, setSuggestions] = useState([]);
-  const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [noResults, setNoResults] = useState(false);
+  // Cubre el breve lapso entre elegir una sugerencia y que llegue el
+  // detalle completo del juego — desacoplado del `searching` de la lista
+  // de sugerencias, que viene de `useBggSearchQuery`.
+  const [selectingGame, setSelectingGame] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const searchRef = useRef(null);
-  const abortRef = useRef(null);
-  const searchCache = useRef(new Map());
   const navigate = useNavigate();
   const location = useLocation();
   // `eventoId` ahora viene como prop desde el dispatcher (CreateTable arriba).
@@ -236,57 +241,24 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
     if (!Number.isNaN(d.getTime())) setTimeOfDay(toLocalTimeInput(d));
   }, [eventDate]);
 
+  const bggSearchEnabled = !boardGameSelected;
+  const { data: suggestions = EMPTY_SUGGESTIONS, isFetching: searching } =
+    useBggSearchQuery(debouncedBoardGameInput, { enabled: bggSearchEnabled });
+  const noResults =
+    bggSearchEnabled &&
+    !searching &&
+    debouncedBoardGameInput.trim().length >= 3 &&
+    suggestions.length === 0;
+  const isSearchBusy = searching || selectingGame;
+
+  // Reabre el dropdown cuando llega una nueva tanda de resultados (nueva
+  // búsqueda) — no en cada render, para no pisar un cierre manual del user.
   useEffect(() => {
-    if (debouncedBoardGameInput.length < 3 || boardGameSelected) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      setSearching(false);
-      setNoResults(false);
-      return;
-    }
-
-    const q = debouncedBoardGameInput.toLowerCase();
-
-    const cached = searchCache.current.get(q);
-    if (cached) {
-      setSuggestions(cached);
-      setShowDropdown(cached.length > 0);
-      setNoResults(cached.length === 0);
-      setSearching(false);
-      return;
-    }
-
-    setSearching(true);
-    setNoResults(false);
-    setShowDropdown(false);
-
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-    const signal = abortRef.current.signal;
-    (async () => {
-      try {
-        const res = await axios.get(API.bgg.SEARCH, {
-          params: { q: debouncedBoardGameInput },
-          signal,
-        });
-        if (signal.aborted) return;
-        searchCache.current.set(q, res.data);
-        setSuggestions(res.data);
-        if (res.data.length > 0) {
-          setShowDropdown(true);
-        } else {
-          setNoResults(true);
-        }
-      } catch (err) {
-        if (!axios.isCancel(err)) setSuggestions([]);
-      } finally {
-        if (!signal.aborted) setSearching(false);
-      }
-    })();
-    return () => {
-      if (abortRef.current) abortRef.current.abort();
-    };
-  }, [debouncedBoardGameInput, boardGameSelected]);
+    if (!bggSearchEnabled || searching) return;
+    setShowDropdown(
+      debouncedBoardGameInput.trim().length >= 3 && suggestions.length > 0,
+    );
+  }, [bggSearchEnabled, searching, suggestions, debouncedBoardGameInput]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -349,7 +321,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
 
   const handleSelectGame = async (game) => {
     setShowDropdown(false);
-    setSearching(true);
+    setSelectingGame(true);
     try {
       const res = await axios.get(API.bgg.GAME(game.id));
       setBoardGameSelected(res.data);
@@ -364,7 +336,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
       });
       setBoardGameInput(game.name);
     } finally {
-      setSearching(false);
+      setSelectingGame(false);
     }
   };
 
@@ -590,12 +562,12 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                   }
                   autoComplete="off"
                 />
-                {searching && (
+                {isSearchBusy && (
                   <div className={styles.searchHint}>
                     {t("create.searching")}
                   </div>
                 )}
-                {noResults && (
+                {noResults && !isSearchBusy && (
                   <div className={styles.searchHint}>
                     {t("create.noResults")}
                   </div>

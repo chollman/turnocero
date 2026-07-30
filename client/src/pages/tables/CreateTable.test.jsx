@@ -7,8 +7,18 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -61,9 +71,11 @@ beforeEach(() => {
 
 function renderPage() {
   return render(
-    <MemoryRouter>
-      <CreateTable />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <CreateTable />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -311,9 +323,11 @@ describe("<CreateTable> — Ubicación (?evento=<id> sigue el path compacto)", (
       ),
     );
     render(
-      <MemoryRouter initialEntries={["/mesas/crear?evento=ev123"]}>
-        <CreateTable />
-      </MemoryRouter>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <MemoryRouter initialEntries={["/mesas/crear?evento=ev123"]}>
+          <CreateTable />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     // La sección entera (label + input + hint) se omite — la ubicación se
     // hereda del evento server-side, no hay nada que mostrar.
@@ -328,17 +342,19 @@ describe("<CreateTable> — Ubicación (?evento=<id> sigue el path compacto)", (
       ),
     );
     render(
-      <MemoryRouter
-        initialEntries={[
-          {
-            pathname: "/mesas/crear",
-            search: "?evento=ev123",
-            state: { eventDate: "2030-06-15T16:00:00.000Z" },
-          },
-        ]}
-      >
-        <CreateTable />
-      </MemoryRouter>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: "/mesas/crear",
+              search: "?evento=ev123",
+              state: { eventDate: "2030-06-15T16:00:00.000Z" },
+            },
+          ]}
+        >
+          <CreateTable />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     // No hay "Fecha y hora" — solo "Hora *"
     expect(screen.queryByLabelText(/fecha y hora/i)).not.toBeInTheDocument();
@@ -349,17 +365,19 @@ describe("<CreateTable> — Ubicación (?evento=<id> sigue el path compacto)", (
 describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
   function renderWithEvento() {
     return render(
-      <MemoryRouter
-        initialEntries={[
-          {
-            pathname: "/mesas/crear",
-            search: "?evento=ev123",
-            state: { eventDate: "2030-06-15T16:00:00.000Z" },
-          },
-        ]}
-      >
-        <CreateTable />
-      </MemoryRouter>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: "/mesas/crear",
+              search: "?evento=ev123",
+              state: { eventDate: "2030-06-15T16:00:00.000Z" },
+            },
+          ]}
+        >
+          <CreateTable />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
   }
 

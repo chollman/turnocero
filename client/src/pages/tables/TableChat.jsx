@@ -1,15 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { io } from "socket.io-client";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { getLocale } from "../../utils/locale";
 import { API } from "../../api/endpoints";
+import { useTableMessagesQuery, tableKeys, sendTableMessage } from "../../queries/tables";
 import styles from "./TableDetail.module.css";
+
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query (cache-only) todavía no tiene datos.
+const EMPTY_MESSAGES = [];
 
 const formatTime = (dateStr) =>
   new Date(dateStr).toLocaleTimeString(getLocale(), {
@@ -54,12 +60,26 @@ export default function TableChat({
   className = "",
 }) {
   const { t } = useTranslation("tables");
-  const [messages, setMessages] = useState([]);
+  const queryClient = useQueryClient();
+  // Cache-only (ver Fases 3/5): la query no fetchea sola — el boot fetch de
+  // abajo y el socket escriben directo a la cache vía el shim `setMessages`.
+  const { data: messages = EMPTY_MESSAGES } = useTableMessagesQuery(tableId);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const messageListRef = useRef(null);
   const socketRef = useRef(null);
+
+  // Shim: el resto del archivo sigue llamando setMessages exactamente como
+  // antes (updater funcional o valor directo, igual que useState) — ahora
+  // escribe al cache de TanStack Query en vez de a un useState local.
+  const setMessages = useCallback(
+    (updater) =>
+      queryClient.setQueryData(tableKeys.messages(tableId), (prev) =>
+        typeof updater === "function" ? updater(prev ?? []) : updater,
+      ),
+    [queryClient, tableId],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +94,7 @@ export default function TableChat({
     return () => {
       cancelled = true;
     };
-  }, [tableId]);
+  }, [tableId, setMessages]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -100,7 +120,7 @@ export default function TableChat({
       socket.emit("leave:table", tableId);
       socket.disconnect();
     };
-  }, [tableId, user]);
+  }, [tableId, user, setMessages]);
 
   // Auto-scroll al fondo cuando llegan mensajes nuevos. El contenedor sólo
   // hace scroll cuando supera max-height (definido en el CSS), así que en
@@ -118,9 +138,7 @@ export default function TableChat({
     setError("");
     setInput("");
     try {
-      const { data } = await axios.post(API.tables.MESSAGES(tableId), {
-        content,
-      });
+      const { data } = await sendTableMessage(tableId, content);
       setMessages((prev) =>
         prev.some((m) => m._id === data._id) ? prev : [...prev, data],
       );

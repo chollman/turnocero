@@ -2,9 +2,9 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
-import { API } from "../../api/endpoints";
+import { useTablesQuery, tableKeys } from "../../queries/tables";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import { formatDate } from "../../utils/locale";
@@ -50,6 +50,10 @@ function buildAllFilters(t) {
 const AUTH_FILTERS = ["mine", "host", "joined"];
 
 const MAX_RADIUS_KM = 100;
+
+// Referencia estable — evita crear un array nuevo en cada render mientras la
+// query no tiene datos, lo que invalidaría los useMemo río abajo.
+const EMPTY_TABLES = [];
 
 const GridIcon = () => (
   <svg
@@ -128,20 +132,9 @@ function buildPredicate(filterId, user) {
 export default function Dashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const allFilters = useMemo(() => buildAllFilters(t), [t]);
   const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng);
-  const [tables, setTables] = useState([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pages: 1,
-    total: 0,
-    // El server cuenta aparte las mesas futuras (date >= now) — usamos esto
-    // en el eyebrow ("X mesas activas") porque las pasadas son histórico,
-    // no capacidad activa.
-    upcomingTotal: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   // Persistimos el filter en localStorage — alineado con Eventos. Si el chip
   // guardado deja de ser visible (logout con filter="mine"), un effect abajo
   // lo resetea a "all".
@@ -154,7 +147,6 @@ export default function Dashboard() {
   const [radiusKm, setRadiusKm] = useState(0);
   const debouncedRadius = useDebouncedValue(radiusKm, 300);
   const [page, setPage] = useState(1);
-  const [refetchKey, setRefetchKey] = useState(0);
   const [viewMode, setViewMode] = useLocalStorageState(
     "turnocero_mesas_view",
     "grid",
@@ -181,67 +173,70 @@ export default function Dashboard() {
   //   y refinamos client-side.
   // - El resto usan /api/tables.
   const useMineEndpoint = ["mine", "host", "joined"].includes(filter);
+  const effectiveRadiusKm = hasDireccion ? debouncedRadius : 0;
+  // No tiene sentido pegarle a /mine sin auth.
+  const skipQuery = useMineEndpoint && !user;
+  const currentListKey = useMemo(
+    () =>
+      tableKeys.list({
+        endpoint: useMineEndpoint ? "mine" : "list",
+        page,
+        search: debouncedSearch || "",
+        radiusKm: effectiveRadiusKm || 0,
+      }),
+    [useMineEndpoint, page, debouncedSearch, effectiveRadiusKm],
+  );
 
-  useEffect(() => {
-    if (useMineEndpoint && !user) {
-      // No tiene sentido pegarle a /mine sin auth.
-      setTables([]);
-      setPagination({ page: 1, pages: 1, total: 0, upcomingTotal: 0 });
-      setLoading(false);
-      return undefined;
-    }
-    const ac = new AbortController();
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const url = useMineEndpoint ? API.tables.MINE : API.tables.LIST;
-        const params = { page, limit: 12 };
-        if (debouncedSearch) params.search = debouncedSearch;
-        if (hasDireccion && debouncedRadius > 0)
-          params.maxDistanceKm = debouncedRadius;
-        const { data } = await axios.get(url, {
-          params,
-          signal: ac.signal,
-        });
-        if (ac.signal.aborted) return;
-        setTables(data.tables);
-        setPagination({
-          page: data.page,
-          pages: data.pages,
-          total: data.total,
-          // /api/tables/mine no devuelve upcomingTotal (es otro endpoint que
-          // no filtra por fecha) — fallback al `total` que sí trae.
-          upcomingTotal: data.upcomingTotal ?? data.total,
-        });
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        setError(t("dashboard:list.loadError"));
-      } finally {
-        if (!ac.signal.aborted) setLoading(false);
-      }
-    };
-    load();
-    return () => ac.abort();
-  }, [
+  const {
+    data: tablesData,
+    isPending,
+    error: queryError,
+    refetch,
+  } = useTablesQuery({
     useMineEndpoint,
-    user,
     page,
-    debouncedSearch,
-    debouncedRadius,
-    hasDireccion,
-    refetchKey,
-    t,
-  ]);
+    search: debouncedSearch,
+    radiusKm: effectiveRadiusKm,
+    enabled: !skipQuery,
+  });
+
+  const tables = useMemo(
+    () => (skipQuery ? EMPTY_TABLES : (tablesData?.tables ?? EMPTY_TABLES)),
+    [tablesData, skipQuery],
+  );
+  const pagination = useMemo(
+    () => ({
+      page: tablesData?.page ?? 1,
+      pages: tablesData?.pages ?? 1,
+      total: tablesData?.total ?? 0,
+      // /api/tables/mine no devuelve upcomingTotal (es otro endpoint que
+      // no filtra por fecha) — fallback al `total` que sí trae.
+      upcomingTotal: tablesData?.upcomingTotal ?? tablesData?.total ?? 0,
+    }),
+    [tablesData],
+  );
+  const loading = skipQuery ? false : isPending;
+  const error = queryError ? t("dashboard:list.loadError") : "";
 
   const handleUpdate = (updatedTable) => {
-    setTables((prev) =>
-      prev.map((t) => (t._id === updatedTable._id ? updatedTable : t)),
+    queryClient.setQueryData(currentListKey, (prev) =>
+      prev
+        ? {
+            ...prev,
+            tables: prev.tables.map((tbl) =>
+              tbl._id === updatedTable._id ? updatedTable : tbl,
+            ),
+          }
+        : prev,
     );
   };
 
   const handleCancel = (tableId) => {
-    setTables((prev) => prev.filter((t) => t._id !== tableId));
+    queryClient.setQueryData(currentListKey, (prev) =>
+      prev
+        ? { ...prev, tables: prev.tables.filter((tbl) => tbl._id !== tableId) }
+        : prev,
+    );
   };
 
   // Aplicar filtro client-side (los filtros que no rompen pagination —
@@ -398,7 +393,7 @@ export default function Dashboard() {
           <button
             type="button"
             className={styles.retryBtn}
-            onClick={() => setRefetchKey((k) => k + 1)}
+            onClick={() => refetch()}
           >
             {t("dashboard:list.retry")}
           </button>

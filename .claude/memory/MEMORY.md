@@ -92,6 +92,6 @@
 - [DiceLoader en buscadores](feedback_dice_search_loader.md) — dado d6 animado es EL loader de dropdowns de búsqueda
 - [Web Push (PWA)](project_web_push.md) — detalle completo en CLAUDE.md "Web Push notifications"
 - [Sticky gap + clear appFrame](feedback_sticky_appframe_gap.md) — gap sticky lo da `top` no margin-top; clearance solo desktop
-- [Migración RTK + TanStack Query](project_rtk_react_query_migration.md) — plan en `plans/redux-toolkit-react-query-migration.md`; Fase 0-5 cerradas 2026-07-30
+- [Migración RTK + TanStack Query](project_rtk_react_query_migration.md) — plan en `plans/redux-toolkit-react-query-migration.md`; Fases 0-5 cerradas + Fase 6 en curso (mesas listo) 2026-07-30
 - [TanStack Query test timing](feedback_tanstack_query_test_timing.md) — setQueryData notifica por microtask, tests post-acción necesitan await waitFor()
 - [QueryClient test isolation](feedback_query_client_test_isolation.md) — tests que renderizan <App/> 2+ veces necesitan queryClient.clear() en beforeEach

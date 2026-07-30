@@ -3,10 +3,20 @@ import BackButton from "../../components/shared/BackButton";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { API } from "../../api/endpoints";
+import {
+  useTableQuery,
+  tableKeys,
+  joinTable,
+  leaveTable,
+  cancelJoinRequest,
+  cancelTable,
+  followTable,
+  acceptJoinRequest,
+  rejectJoinRequest,
+} from "../../queries/tables";
 import MesaTile from "../../components/shared/MesaTile";
 import TableMap from "../../components/shared/TableMap";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
@@ -155,10 +165,8 @@ export default function TableDetail() {
   const { setActiveTable, addToast } = useNotifications();
   const navigate = useNavigate();
   const { t } = useTranslation("tables");
+  const queryClient = useQueryClient();
 
-  const [table, setTable] = useState(null);
-  const [loadingTable, setLoadingTable] = useState(true);
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [requestError, setRequestError] = useState("");
   const [requestLoading, setRequestLoading] = useState(null);
 
@@ -198,41 +206,36 @@ export default function TableDetail() {
     return () => setActiveTable(null);
   }, [id, setActiveTable]);
 
+  const {
+    data: table,
+    isPending: loadingTable,
+    error: fetchError,
+  } = useTableQuery(id);
+
+  // Mesa privada + el viewer no es host/player/admin: el server SÍ deja ver
+  // el detalle a cualquier user logueado (canViewTable), pero acá lo
+  // restringimos más — sólo participantes/admin. `blockedPrivate` evita
+  // que se llegue a renderizar el detalle mientras el navigate surte efecto.
+  const blockedPrivate =
+    !!table &&
+    table.privacy === "private" &&
+    !isParticipant(table) &&
+    !user?.isAdmin;
+
   useEffect(() => {
-    const ac = new AbortController();
-    const fetchTable = async () => {
-      try {
-        const { data } = await axios.get(API.tables.DETAIL(id), {
-          signal: ac.signal,
-        });
-        if (ac.signal.aborted) return;
-        if (
-          data.privacy === "private" &&
-          !isParticipant(data) &&
-          !user?.isAdmin
-        ) {
-          navigate("/", { replace: true });
-          return;
-        }
-        setTable(data);
-        setPendingRequests(data.pendingRequests || []);
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        if (err.response?.status === 403) {
-          setAccessError(t("detail.accessPrivate"));
-        } else {
-          navigate("/", { replace: true });
-        }
-      } finally {
-        if (!ac.signal.aborted) setLoadingTable(false);
-      }
-    };
-    fetchTable();
-    return () => ac.abort();
-    // Intencional: `user`/`isParticipant` cambian con la sesión pero NO
-    // queremos refetchear cuando cambia el user — la mesa es la misma.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    if (blockedPrivate) navigate("/", { replace: true });
+  }, [blockedPrivate, navigate]);
+
+  useEffect(() => {
+    if (!fetchError) return;
+    if (fetchError.response?.status === 403) {
+      setAccessError(t("detail.accessPrivate"));
+    } else {
+      navigate("/", { replace: true });
+    }
+  }, [fetchError, navigate, t]);
+
+  const pendingRequests = table?.pendingRequests || [];
 
   // -- Handlers ---------------------------------------------------------
 
@@ -240,13 +243,11 @@ export default function TableDetail() {
     setRequestLoading(userId + action);
     setRequestError("");
     try {
-      const { data } = await axios.post(
+      const { data } =
         action === "accept"
-          ? API.tables.REQUEST_ACCEPT(id, userId)
-          : API.tables.REQUEST_REJECT(id, userId),
-      );
-      setTable(data);
-      setPendingRequests(data.pendingRequests || []);
+          ? await acceptJoinRequest(id, userId)
+          : await rejectJoinRequest(id, userId);
+      queryClient.setQueryData(tableKeys.detail(id), data);
     } catch (err) {
       setRequestError(
         err.response?.data?.message || t("detail.errorRequest"),
@@ -269,12 +270,18 @@ export default function TableDetail() {
     const newFollowers = isFollowing
       ? currentFollowers.filter((f) => f.toString() !== user._id.toString())
       : [...currentFollowers, user._id];
-    setTable((prev) => ({ ...prev, followers: newFollowers }));
+    queryClient.setQueryData(tableKeys.detail(id), (prev) =>
+      prev ? { ...prev, followers: newFollowers } : prev,
+    );
     try {
-      const { data } = await axios.post(API.tables.FOLLOW(id));
-      setTable((prev) => ({ ...prev, followers: data.followers }));
+      const { data } = await followTable(id);
+      queryClient.setQueryData(tableKeys.detail(id), (prev) =>
+        prev ? { ...prev, followers: data.followers } : prev,
+      );
     } catch {
-      setTable((prev) => ({ ...prev, followers: currentFollowers }));
+      queryClient.setQueryData(tableKeys.detail(id), (prev) =>
+        prev ? { ...prev, followers: currentFollowers } : prev,
+      );
       addToast({
         type: "error",
         message: t("detail.errorFollow"),
@@ -291,9 +298,8 @@ export default function TableDetail() {
     }
     setJoinLoading(true);
     try {
-      const { data } = await axios.post(API.tables.JOIN(id));
-      setTable(data.table);
-      setPendingRequests(data.table.pendingRequests || []);
+      const { data } = await joinTable(id);
+      queryClient.setQueryData(tableKeys.detail(id), data.table);
     } catch (err) {
       addToast({
         type: "error",
@@ -307,7 +313,7 @@ export default function TableDetail() {
   const handleLeave = async () => {
     setLeaveLoading(true);
     try {
-      await axios.post(API.tables.LEAVE(id));
+      await leaveTable(id);
       navigate("/");
     } catch (err) {
       addToast({
@@ -321,7 +327,7 @@ export default function TableDetail() {
   const handleCancelTable = async () => {
     setCancelTableLoading(true);
     try {
-      await axios.delete(API.tables.DETAIL(id));
+      await cancelTable(id);
       navigate("/");
     } catch (err) {
       addToast({
@@ -335,9 +341,8 @@ export default function TableDetail() {
   const handleCancelJoinRequest = async () => {
     setJoinLoading(true);
     try {
-      const { data } = await axios.delete(API.tables.REQUEST(id));
-      setTable(data.table);
-      setPendingRequests(data.table.pendingRequests || []);
+      const { data } = await cancelJoinRequest(id);
+      queryClient.setQueryData(tableKeys.detail(id), data.table);
     } catch (err) {
       addToast({
         type: "error",
@@ -348,9 +353,14 @@ export default function TableDetail() {
     }
   };
 
-  const handleImagesChange = useCallback((nextImages) => {
-    setTable((prev) => ({ ...prev, images: nextImages }));
-  }, []);
+  const handleImagesChange = useCallback(
+    (nextImages) => {
+      queryClient.setQueryData(tableKeys.detail(id), (prev) =>
+        prev ? { ...prev, images: nextImages } : prev,
+      );
+    },
+    [queryClient, id],
+  );
 
   // -- Derived ----------------------------------------------------------
 
@@ -410,7 +420,7 @@ export default function TableDetail() {
     );
   }
 
-  if (!table) return null;
+  if (!table || blockedPrivate) return null;
 
   const hostInfo = getUserDisplay(table.host);
   const isViewingAsAdmin =

@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { getErrorMessage } from "../../utils/getErrorMessage";
-import { API } from "../../api/endpoints";
+import { uploadTableImage, deleteTableImage } from "../../queries/tables";
 import styles from "./TableDetail.module.css";
 
 const PlusIcon = ({ size = 28 }) => (
@@ -112,9 +111,7 @@ export default function TableGallery({
     const formData = new FormData();
     formData.append("image", file);
     try {
-      const { data } = await axios.post(API.tables.IMAGES(tableId), formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await uploadTableImage(tableId, formData);
       onImagesChange?.(data);
     } catch (err) {
       setError(getErrorMessage(err, t("gallery.errorUpload")));
@@ -127,7 +124,7 @@ export default function TableGallery({
     if (!window.confirm(t("gallery.confirmDelete"))) return;
     setError("");
     try {
-      await axios.delete(API.tables.IMAGE_DETAIL(tableId, imageId));
+      await deleteTableImage(tableId, imageId);
       onImagesChange?.(images.filter((img) => img._id !== imageId));
     } catch (err) {
       setError(getErrorMessage(err, t("gallery.errorDelete")));

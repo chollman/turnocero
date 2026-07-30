@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
@@ -54,12 +64,14 @@ function makeTable(overrides = {}) {
 function renderEdit({ user = { _id: "host1" }, id = "t1" } = {}) {
   useAuth.mockReturnValue({ user });
   return render(
-    <MemoryRouter initialEntries={[`/mesas/${id}/editar`]}>
-      <Routes>
-        <Route path="/mesas/:id/editar" element={<EditTable />} />
-        <Route path="/" element={<div>home</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={[`/mesas/${id}/editar`]}>
+        <Routes>
+          <Route path="/mesas/:id/editar" element={<EditTable />} />
+          <Route path="/" element={<div>home</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

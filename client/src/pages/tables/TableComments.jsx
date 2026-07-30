@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import Avatar from "../../components/shared/Avatar";
 import CommentLikeButton from "../../components/shared/CommentLikeButton";
 import LikersModal from "../../components/shared/LikersModal";
@@ -10,12 +10,24 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import { getLocale } from "../../utils/locale";
 import { patchCommentInTree, toggleLikePatch } from "../../utils/commentLikes";
 import { API } from "../../api/endpoints";
+import {
+  useTableCommentsQuery,
+  tableKeys,
+  addTableComment,
+  editTableComment,
+  deleteTableComment,
+  toggleTableCommentLike,
+} from "../../queries/tables";
 import styles from "./TableDetail.module.css";
 
 // Mobile breakpoint para el placeholder del textarea — el sectionHead
 // "Comentarios" se oculta en mobile (tab bar identifica la sección)
 // y por eso el placeholder largo "Escribí un comentario…" queda redundante.
 const MOBILE_BREAKPOINT = 980;
+
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query no tiene datos.
+const EMPTY_COMMENTS = [];
 
 const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString(getLocale(), {
@@ -56,7 +68,9 @@ export default function TableComments({
   className = "",
 }) {
   const { t } = useTranslation("tables");
-  const [comments, setComments] = useState([]); // top-level, cada uno con .replies
+  const queryClient = useQueryClient();
+  // top-level, cada uno con .replies
+  const { data: comments = EMPTY_COMMENTS } = useTableCommentsQuery(tableId);
   const [commentInput, setCommentInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -85,21 +99,6 @@ export default function TableComments({
     onCountChange?.(countAll(comments));
   }, [comments, onCountChange]);
 
-  useEffect(() => {
-    let cancelled = false;
-    axios
-      .get(API.tables.COMMENTS(tableId))
-      .then(({ data }) => {
-        if (!cancelled) setComments(data);
-      })
-      .catch(() => {
-        if (!cancelled) setComments([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [tableId]);
-
   const handleAdd = async (e) => {
     e.preventDefault();
     const content = commentInput.trim();
@@ -107,10 +106,11 @@ export default function TableComments({
     setSubmitting(true);
     setError("");
     try {
-      const { data } = await axios.post(API.tables.COMMENTS(tableId), {
-        content,
-      });
-      setComments((prev) => [...prev, { ...data, replies: [] }]);
+      const { data } = await addTableComment(tableId, { content });
+      queryClient.setQueryData(tableKeys.comments(tableId), (prev) => [
+        ...(prev ?? []),
+        { ...data, replies: [] },
+      ]);
       setCommentInput("");
     } catch (err) {
       setError(getErrorMessage(err, t("comments.errorComment")));
@@ -132,13 +132,13 @@ export default function TableComments({
     setReplySubmitting(true);
     setError("");
     try {
-      const { data } = await axios.post(API.tables.COMMENTS(tableId), {
+      const { data } = await addTableComment(tableId, {
         content,
         parent: parentClickedId,
       });
       // El server aplana al raíz → data.parent es el comentario de nivel superior.
-      setComments((cs) =>
-        cs.map((c) =>
+      queryClient.setQueryData(tableKeys.comments(tableId), (prev) =>
+        (prev ?? []).map((c) =>
           c._id === data.parent
             ? { ...c, replies: [...(c.replies || []), data] }
             : c,
@@ -158,12 +158,9 @@ export default function TableComments({
     if (!content) return;
     setError("");
     try {
-      const { data } = await axios.put(
-        API.tables.COMMENT_DETAIL(tableId, commentId),
-        { content },
-      );
-      setComments((prev) =>
-        prev.map((c) => {
+      const { data } = await editTableComment(tableId, commentId, content);
+      queryClient.setQueryData(tableKeys.comments(tableId), (prev) =>
+        (prev ?? []).map((c) => {
           if (c._id === commentId) return { ...data, replies: c.replies || [] };
           if (c.replies?.some((r) => r._id === commentId)) {
             return {
@@ -185,14 +182,16 @@ export default function TableComments({
     if (!window.confirm(t("comments.confirmDelete"))) return;
     setError("");
     try {
-      await axios.delete(API.tables.COMMENT_DETAIL(tableId, commentId));
+      await deleteTableComment(tableId, commentId);
       const isTop = comments.some((c) => c._id === commentId);
       if (isTop) {
         // Comentario raíz → se borra con sus respuestas (cascada en el server).
-        setComments((prev) => prev.filter((c) => c._id !== commentId));
+        queryClient.setQueryData(tableKeys.comments(tableId), (prev) =>
+          (prev ?? []).filter((c) => c._id !== commentId),
+        );
       } else {
-        setComments((prev) =>
-          prev.map((c) => ({
+        queryClient.setQueryData(tableKeys.comments(tableId), (prev) =>
+          (prev ?? []).map((c) => ({
             ...c,
             replies: (c.replies || []).filter((r) => r._id !== commentId),
           })),
@@ -213,13 +212,15 @@ export default function TableComments({
       liked: comment.liked,
       likeCount: comment.likeCount ?? 0,
     };
-    setComments((cs) =>
-      patchCommentInTree(cs, comment._id, toggleLikePatch(comment)),
+    queryClient.setQueryData(tableKeys.comments(tableId), (prev) =>
+      patchCommentInTree(prev ?? [], comment._id, toggleLikePatch(comment)),
     );
     try {
-      await axios.post(API.tables.COMMENT_LIKE(tableId, comment._id));
+      await toggleTableCommentLike(tableId, comment._id);
     } catch {
-      setComments((cs) => patchCommentInTree(cs, comment._id, original));
+      queryClient.setQueryData(tableKeys.comments(tableId), (prev) =>
+        patchCommentInTree(prev ?? [], comment._id, original),
+      );
     }
   };
 
