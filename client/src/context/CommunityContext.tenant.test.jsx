@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 // Modo tenant: el subdominio resuelve a "patagonia". Se mockea detectTenant
 // (que CommunityContext lee UNA vez al cargar el módulo) en un archivo aparte
@@ -45,9 +55,11 @@ function Probe() {
 
 const renderProvider = () =>
   render(
-    <CommunityProvider>
-      <Probe />
-    </CommunityProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <CommunityProvider>
+        <Probe />
+      </CommunityProvider>
+    </QueryClientProvider>,
   );
 
 beforeEach(() => vi.clearAllMocks());

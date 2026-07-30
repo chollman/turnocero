@@ -2,18 +2,29 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useLayoutEffect,
   useCallback,
   useMemo,
 } from "react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
 import { API } from "../api/endpoints";
 import { buildSkinCss } from "../utils/skin";
 import { detectTenant } from "../utils/tenant";
+import {
+  useMyCommunityQuery,
+  useTenantCommunityQuery,
+  communityKeys,
+} from "../queries/community";
 
 const SKIN_STORAGE_KEY = "turnocero_skin";
+
+// Referencias estables para que los useMemo de abajo (que dependen de
+// memberships/viewing) no se invaliden en cada render mientras la query
+// todavía no tiene datos (un `?? []` literal crea un array nuevo cada vez).
+const EMPTY_MEMBERSHIPS = [];
+const EMPTY_VIEWING = [];
 
 // Slug del subdominio de comunidad, resuelto UNA vez (no cambia en runtime).
 const TENANT_SLUG = detectTenant()?.slug || null;
@@ -45,15 +56,12 @@ export const CommunityContext = createContext(null);
 // (nombres/logos/sections) vía GET /api/comunidades/mias.
 export function CommunityProvider({ children }) {
   const { user } = useAuth();
-  const [memberships, setMemberships] = useState([]); // [{ community, role, joinedAt }]
-  const [viewing, setViewing] = useState([]); // ids (string)
-  const [skin, setSkin] = useState(null); // id (string)
-  const [loaded, setLoaded] = useState(false);
+  const queryClient = useQueryClient();
   // Se incrementa SOLO cuando el usuario cambia su `viewing` (los checks del
   // selector). Alimenta el `key` de las rutas en App.jsx para remontar la
   // página visible y re-fetchear su contenido con el nuevo scope, en tiempo
   // real. No se toca en la carga inicial ni al cambiar el skin (el skin no
-  // afecta qué contenido se ve).
+  // afecta qué contenido se ve). Puramente de cliente — no va a la query.
   const [viewingVersion, setViewingVersion] = useState(0);
 
   // ── Modo tenant (subdominio de comunidad) ────────────────────────────────
@@ -62,52 +70,25 @@ export function CommunityProvider({ children }) {
   // acotamos TODO a ella. `GET /:slug` es público (optionalAuth). Solo entramos
   // en modo tenant si la comunidad tiene `subdomainEnabled` (el server scopea
   // bajo esa misma condición — así cliente y server quedan en sync).
-  const [tenantCommunity, setTenantCommunity] = useState(null);
-
-  useEffect(() => {
-    if (!TENANT_SLUG) return undefined;
-    const ac = new AbortController();
-    axios
-      .get(API.comunidades.DETAIL(TENANT_SLUG), { signal: ac.signal })
-      .then(({ data }) => {
-        setTenantCommunity(data?.subdomainEnabled ? data : null);
-      })
-      .catch((err) => {
-        if (!axios.isCancel(err)) setTenantCommunity(null);
-      });
-    return () => ac.abort();
-  }, []);
-
+  const { data: tenantCommunity = null } = useTenantCommunityQuery(TENANT_SLUG);
   const isTenant = !!tenantCommunity;
 
   const userId = user?._id || null;
 
-  const load = useCallback(async () => {
-    if (!userId) {
-      setMemberships([]);
-      setViewing([]);
-      setSkin(null);
-      setLoaded(true);
-      return;
-    }
-    try {
-      const { data } = await axios.get(API.comunidades.MIAS);
-      setMemberships(data.memberships || []);
-      setViewing((data.viewing || []).map(String));
-      setSkin(data.skin ? String(data.skin) : null);
-    } catch {
-      // Sección comunidades deshabilitada o error de red → modo solo-base.
-      setMemberships([]);
-      setViewing([]);
-      setSkin(null);
-    } finally {
-      setLoaded(true);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const {
+    data: myCommunity,
+    isPending: myCommunityPending,
+    refetch: reloadMyCommunity,
+  } = useMyCommunityQuery(userId);
+  const memberships = myCommunity?.memberships ?? EMPTY_MEMBERSHIPS;
+  const viewing = myCommunity?.viewing ?? EMPTY_VIEWING;
+  const skin = myCommunity?.skin ?? null;
+  // Igual que el `load()` original: no hay guest (userId null) el estado
+  // "asienta" de inmediato (misma forma que el finally del try/catch viejo).
+  // `isPending` (no `isFetching`) porque `reload()` es un refresh silencioso
+  // en segundo plano (p.ej. tras aceptar una solicitud de comunidad por
+  // socket) — no debe hacer parpadear SectionGate a "cargando" de nuevo.
+  const loaded = !userId || !myCommunityPending;
 
   // La comunidad-skin resuelta (objeto completo) desde las memberships.
   const skinCommunity = useMemo(() => {
@@ -191,12 +172,18 @@ export function CommunityProvider({ children }) {
     return map;
   }, [memberships, isTenant, tenantCommunity]);
 
-  const savePrefs = useCallback(async (patch) => {
-    const { data } = await axios.put(API.comunidades.PREFERENCIAS, patch);
-    setViewing((data.viewing || []).map(String));
-    setSkin(data.skin ? String(data.skin) : null);
-    return data;
-  }, []);
+  const savePrefs = useCallback(
+    async (patch) => {
+      const { data } = await axios.put(API.comunidades.PREFERENCIAS, patch);
+      queryClient.setQueryData(communityKeys.mias(userId), (prev) => ({
+        memberships: prev?.memberships ?? [],
+        viewing: (data.viewing || []).map(String),
+        skin: data.skin ? String(data.skin) : null,
+      }));
+      return data;
+    },
+    [queryClient, userId],
+  );
 
   const setViewingPref = useCallback(
     async (ids) => {
@@ -219,18 +206,18 @@ export function CommunityProvider({ children }) {
         API.comunidades.JOIN(slug),
         code ? { code } : {},
       );
-      await load();
+      await reloadMyCommunity();
       return data; // { status: 'joined' | 'pending' }
     },
-    [load],
+    [reloadMyCommunity],
   );
 
   const leaveCommunity = useCallback(
     async (slug) => {
       await axios.delete(API.comunidades.LEAVE(slug));
-      await load();
+      await reloadMyCommunity();
     },
-    [load],
+    [reloadMyCommunity],
   );
 
   // Gating de sección por comunidad-skin: una sección está habilitada salvo que
@@ -286,7 +273,7 @@ export function CommunityProvider({ children }) {
       setSkinPref,
       joinCommunity,
       leaveCommunity,
-      reload: load,
+      reload: reloadMyCommunity,
       isSectionEnabledInSkin,
     }),
     [
@@ -305,7 +292,7 @@ export function CommunityProvider({ children }) {
       setSkinPref,
       joinCommunity,
       leaveCommunity,
-      load,
+      reloadMyCommunity,
       isSectionEnabledInSkin,
     ],
   );

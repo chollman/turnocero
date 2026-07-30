@@ -8,9 +8,11 @@ import {
   useRef,
 } from "react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
 import { useNotifications } from "./NotificationContext";
 import { API } from "../api/endpoints";
+import { useDmConversationsQuery, dmKeys } from "../queries/dm";
 
 const ChatContext = createContext(null);
 
@@ -20,13 +22,16 @@ export function ChatProvider({ children }) {
   const { user } = useAuth();
   const { addDmListener, addToast, markReadDm, dmUnreadTotal } =
     useNotifications();
+  const queryClient = useQueryClient();
 
   // conversations: { [userId]: { user: {_id, username}, messages: [], minimized: false, loaded: false } }
   // El conteo de no-leídos vive en NotificationContext (fuente única). Antes
   // este context mantenía un `conv.unread` paralelo que podía desincronizarse
   // del listado de /notificaciones.
-  const [conversations, setConversations] = useState({});
-  // openOrder: array of userIds in opening order (left to right on screen)
+  const { data: conversations = {} } = useDmConversationsQuery(user?._id);
+  // openOrder: array of userIds in opening order (left to right on screen).
+  // Puramente de cliente (qué ventanas están abiertas y en qué orden) — no
+  // va a la query.
   const [openOrder, setOpenOrder] = useState([]);
   // Ref to avoid stale closures in the dm listener
   const openOrderRef = useRef([]);
@@ -35,6 +40,27 @@ export function ChatProvider({ children }) {
   }, [openOrder]);
   // Tracks which conversations have been loaded to avoid duplicate API calls
   const loadedRef = useRef({});
+
+  // userIdRef: mismo patrón que NotificationContext — para que setConversations
+  // (definida abajo) escriba siempre a la query key del user actual sin tener
+  // que estar en las deps de cada callback que la usa.
+  const userIdRef = useRef(null);
+  useEffect(() => {
+    userIdRef.current = user?._id ?? null;
+  }, [user]);
+
+  // Shim: el resto del archivo sigue llamando setConversations exactamente
+  // como antes — updater funcional en la mayoría de los casos, valor directo
+  // en el boot fetch y en el reset de logout (igual que acepta useState) —
+  // ahora escribe al cache de TanStack Query en vez de a useState.
+  const setConversations = useCallback(
+    (updater) =>
+      queryClient.setQueryData(
+        dmKeys.conversations(userIdRef.current),
+        (prev) => (typeof updater === "function" ? updater(prev ?? {}) : updater),
+      ),
+    [queryClient],
+  );
 
   // Load conversation list on mount; reset entirely on logout
   useEffect(() => {
@@ -60,7 +86,7 @@ export function ChatProvider({ children }) {
         setConversations(next);
       })
       .catch(() => {});
-  }, [user]);
+  }, [user, setConversations]);
 
   // Register DM message handler with NotificationContext.
   // El conteo de no-leídos lo maneja NotificationContext (fuente única). Acá
@@ -109,7 +135,7 @@ export function ChatProvider({ children }) {
       }
     });
     return cleanup;
-  }, [user, addDmListener, addToast, markReadDm]);
+  }, [user, addDmListener, addToast, markReadDm, setConversations]);
 
   const openChat = useCallback(
     (contactUser) => {
@@ -157,7 +183,7 @@ export function ChatProvider({ children }) {
       }
       markReadDm(id);
     },
-    [markReadDm],
+    [markReadDm, setConversations],
   );
 
   const closeChat = useCallback((userId) => {
@@ -181,21 +207,24 @@ export function ChatProvider({ children }) {
       if (!prev[id]) return prev;
       return { ...prev, [id]: { ...prev[id], minimized: !prev[id].minimized } };
     });
-  }, []);
+  }, [setConversations]);
 
-  const sendMessage = useCallback(async (userId, content) => {
-    const id = userId.toString();
-    const { data: msg } = await axios.post(API.dm.SEND(id), { content });
-    setConversations((prev) => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        messages: [...(prev[id]?.messages || []), msg],
-        lastMessage: msg,
-      },
-    }));
-    return msg;
-  }, []);
+  const sendMessage = useCallback(
+    async (userId, content) => {
+      const id = userId.toString();
+      const { data: msg } = await axios.post(API.dm.SEND(id), { content });
+      setConversations((prev) => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          messages: [...(prev[id]?.messages || []), msg],
+          lastMessage: msg,
+        },
+      }));
+      return msg;
+    },
+    [setConversations],
+  );
 
   // dmUnreadTotal viene de NotificationContext (fuente única). Re-exportamos
   // para los consumidores (Navbar, ChatLauncher) sin romper su contrato.

@@ -1,11 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
 
 vi.mock("./AuthContext", () => ({ useAuth: vi.fn() }));
 import { useAuth } from "./AuthContext";
 import { CommunityProvider, useCommunity } from "./CommunityContext";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const base = {
   _id: "base1",
@@ -50,9 +60,11 @@ function Probe() {
 
 const renderProvider = () =>
   render(
-    <CommunityProvider>
-      <Probe />
-    </CommunityProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <CommunityProvider>
+        <Probe />
+      </CommunityProvider>
+    </QueryClientProvider>,
   );
 
 beforeEach(() => vi.clearAllMocks());

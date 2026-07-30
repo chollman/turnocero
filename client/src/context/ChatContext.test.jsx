@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const useAuthMock = vi.fn();
 const useNotificationsMock = vi.fn();
@@ -55,9 +65,11 @@ function Probe() {
 
 function renderApp() {
   return render(
-    <ChatProvider>
-      <Probe />
-    </ChatProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <ChatProvider>
+        <Probe />
+      </ChatProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -171,11 +183,17 @@ describe("ChatContext", () => {
   it("minimizeChat toggles the minimized flag", async () => {
     renderApp();
     await act(async () => screen.getByText("open-u1").click());
-    expect(screen.getByTestId("minimized-u1").textContent).toBe("false");
+    await waitFor(() =>
+      expect(screen.getByTestId("minimized-u1").textContent).toBe("false"),
+    );
     await act(async () => screen.getByText("minimize-u1").click());
-    expect(screen.getByTestId("minimized-u1").textContent).toBe("true");
+    await waitFor(() =>
+      expect(screen.getByTestId("minimized-u1").textContent).toBe("true"),
+    );
     await act(async () => screen.getByText("minimize-u1").click());
-    expect(screen.getByTestId("minimized-u1").textContent).toBe("false");
+    await waitFor(() =>
+      expect(screen.getByTestId("minimized-u1").textContent).toBe("false"),
+    );
   });
 
   it("clearConversationUnread delega a markReadDm de NotificationContext", async () => {

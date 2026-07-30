@@ -142,12 +142,22 @@ Client: 299 test files / 2969 tests verdes. Verificado a mano en dev: toggle de 
 
 ---
 
-## 🔲 Fase 5 — CommunityContext y ChatContext (híbridos)
+## ✅ Fase 5 — CommunityContext y ChatContext (híbridos)
 
 - **Community**: membresías/directorio/skin activa → TanStack Query; la selección en curso del picker de "Publicar en" (`CommunitySelect`) antes de confirmar → estado local del componente (ni Redux ni Context, no es global).
 - **Chat**: `chatUiSlice` para ventanas abiertas/minimizadas (máx. 3, puramente cliente); historial de mensajes por conversación → `useQuery` + actualización de cache en el listener de `dm:message`.
 
 **Criterio de salida:** directorio de comunidades, member list, skin en subdominio, y las 3 ventanas de chat (abrir/cerrar/minimizar/mensaje en vivo) funcionan idéntico o mejor + checklist de verificación post-fase.
+
+**Cerrada 2026-07-30.** Ajuste sobre el plan original: **no se creó ningún `chatUiSlice` de Redux** — mismo criterio que la Fase 3 (NotificationContext): `openOrder`/`minimized` ya son reactivos vía Context y tienen un solo dueño natural (`ChatContext`), no hay necesidad real de Redux ahí. `conversations` (mensajes/lastMessage) se migró con el mismo patrón cache-only "Query as a store" que `notifications` en Fase 3 (`enabled:false`, sin queryFn real, shim `setConversations` que soporta updater funcional Y valor directo — igual que `clearAll` en Fase 3, el boot fetch y el reset de logout pasan un objeto crudo, no un updater). `openOrder` queda como `useState` local sin cambios.
+
+`CommunityContext` quedó con **dos queries independientes**: `useMyCommunityQuery` (memberships/viewing/skin, `GET /mias`) y `useTenantCommunityQuery` (comunidad del subdominio, `GET /:slug`, `staleTime: Infinity` porque el slug no cambia en runtime). `viewingVersion` (el contador que fuerza remount de rutas al cambiar "viewing") quedó como `useState` local — puramente de cliente, un solo dueño. Ningún mutation (`savePrefs`/`joinCommunity`/`leaveCommunity`) se envolvió en `useMutation` — verificado que `useViewingControls.js` y los consumidores (`Comunidades.jsx`) ya manejan su propio `busy`/error local alrededor del `await`, mismo criterio que Fases 3-4.
+
+**`loaded` de CommunityContext usa `isPending`, NO `isFetching`** (a diferencia de SiteConfig en la Fase 4) — el `load()` original nunca reseteaba a `false` antes de un `reload()`, era un refresh silencioso en segundo plano (p. ej. tras aceptar una solicitud de comunidad por socket) que no debía hacer parpadear `SectionGate`. Cada context tuvo que evaluarse por separado: incluso dos "boot fetch con reload" aparentemente similares (SiteConfig vs Community) tenían semánticas de UX distintas en el código original.
+
+Gotcha de lint nuevo: `data?.memberships ?? []` crea un array nuevo en cada render mientras la query no tiene datos, invalidando los `useMemo` que dependen de `memberships` en cada render — se resolvió con constantes módulo-level `EMPTY_MEMBERSHIPS`/`EMPTY_VIEWING` en vez de literales `[]` en el fallback.
+
+Client: 299 test files / 2969 tests verdes (11 CommunityContext + 12 ChatContext, mismo ajuste de `waitFor` de la Fase 3 donde una aserción síncrona seguía a una acción que escribía a la query). Verificado a mano en dev: `/comunidades` y `/mensajes` sin errores de consola con datos reales; React Query Devtools confirmó los 5 dominios (`notifications`, `dm`, `site-config`, `community/tenant`, `community/mias`) correctamente registrados con la key y el estado `disabled` esperado. No se pudo probar el flujo completo de 2 ventanas de chat en vivo (la cuenta de prueba disponible no tiene amigos) — cubierto en cambio por los 12 tests de `ChatContext.test.jsx` que ejercitan sockets/apertura/minimizado/mensajes con mocks realistas.
 
 ---
 

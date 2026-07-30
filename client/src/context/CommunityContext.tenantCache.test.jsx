@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // CACHED_TENANT_BRAND se lee UNA vez al cargar el módulo CommunityContext, desde
 // el skin de localStorage. vi.hoisted corre ANTES de los imports, así sembramos
@@ -39,10 +40,15 @@ beforeEach(() => {
 
 describe("CommunityContext — cached tenant brand name (anti-FOUC)", () => {
   it("uses the cached community brand name before the tenant fetch resolves", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     render(
-      <CommunityProvider>
-        <Probe />
-      </CommunityProvider>,
+      <QueryClientProvider client={queryClient}>
+        <CommunityProvider>
+          <Probe />
+        </CommunityProvider>
+      </QueryClientProvider>,
     );
     // Render síncrono inicial: el tenant todavía no cargó (isTenant=false), pero
     // el nombre cacheado evita mostrar "TurnoCero".
