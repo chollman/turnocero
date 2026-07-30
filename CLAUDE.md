@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Constitution
+
+**[CONSTITUTION.md](CONSTITUTION.md)** holds the non-negotiable rules for this repo — testing,
+i18n, theming, shared components, server architecture, data correctness, and security boundaries.
+Read it before making any change; it applies regardless of which feature you're touching, and it
+wins over convenience or a "just this once" shortcut. This file (`CLAUDE.md`) covers *how the app
+is built*; `CONSTITUTION.md` covers *what must always hold true*.
+
 ## Claude Memory Setup (per machine)
 
 Claude's persistent memory for this project lives in `.claude/memory/` inside this repo and is versioned with git.
