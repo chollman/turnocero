@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
 
@@ -7,6 +8,16 @@ const useAuthMock = vi.fn();
 vi.mock("./AuthContext", () => ({ useAuth: () => useAuthMock() }));
 
 import { SiteConfigProvider, useSiteConfig } from "./SiteConfigContext";
+
+// Fresh QueryClient por render, sin retries (evita backoff en mocks de error).
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 function Probe() {
   const {
@@ -38,9 +49,11 @@ function Probe() {
 
 function renderProvider() {
   return render(
-    <SiteConfigProvider>
-      <Probe />
-    </SiteConfigProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <SiteConfigProvider>
+        <Probe />
+      </SiteConfigProvider>
+    </QueryClientProvider>,
   );
 }
 

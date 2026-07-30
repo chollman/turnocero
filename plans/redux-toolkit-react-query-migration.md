@@ -121,7 +121,7 @@ El más valioso para aprender porque ya tiene forma de reducer (1096 líneas) �
 
 ---
 
-## 🔲 Fase 4 — SiteConfigContext (casi 100% server state)
+## ✅ Fase 4 — SiteConfigContext (casi 100% server state)
 
 El caso más simple de "esto en realidad no necesitaba Redux":
 
@@ -131,6 +131,14 @@ El caso más simple de "esto en realidad no necesitaba Redux":
 - Sin slice de Redux para esto — cero client state real acá.
 
 **Criterio de salida:** todos los toggles de `/panel-admin` y el gating de secciones (`SectionGate`, admin-only vs público) funcionan idéntico + checklist de verificación post-fase.
+
+**Cerrada 2026-07-30.** `SiteConfigContext.jsx` se mantuvo como orquestador (26 consumidores — mismo criterio que NotificationContext: cambiar el storage interno, no la API pública). `updateConfig` **no** se envolvió en `useMutation` — `PanelAdmin.jsx` ya maneja su propio `busyKey`/`error` local alrededor del `await`, ningún componente necesita `isPending` de la mutación en sí (mismo criterio de la Fase 3: no agregar `useMutation` sin necesidad real de UI).
+
+**El desafío real fue replicar el flujo optimista de `retryConnection`.** El original hacía `setLoaded(false); setBackendDown(false)` al arrancar CUALQUIER (re)fetch, así que al click en "Reintentar" la pantalla 500 desaparecía inmediatamente y volvía el splash mientras reintentaba. Con `useQuery`, `isPending` no sirve para esto — una vez que la query se asienta la primera vez (éxito o error), `isPending` queda en `false` para siempre, incluyendo durante un `refetch()` posterior (React Query solo mueve `isFetching`, mantiene el `error`/`data` viejo visible mientras refetchea). Se resolvió derivando `loaded = !isFetching` (cubre carga inicial Y reintentos) y `backendDown = !isFetching && !!error && isBackendDown(error)` (el `!isFetching` es necesario porque si no, el reintento seguiría mostrando el 500 viejo hasta que resuelva).
+
+**Bug de aislamiento de tests descubierto (no de mi código, preexistente pero recién expuesto):** `App.test.jsx` renderiza `<App/>` completo 3 veces en el mismo archivo usando el `queryClient` **singleton** de producción (correcto para la app real, que monta una sola vez). Sin limpiar el cache entre tests, `staleTime: Infinity` en site-config hacía que el test de "pantalla 500" reusara los datos ya cacheados por los tests anteriores (exitosos) en vez de pegarle al mock de error de ESE test — timeout esperando un 500 que nunca aparecía. Fix: `queryClient.clear()` en el `beforeEach` de `App.test.jsx`. Este patrón aplica a cualquier test futuro que renderice `<App/>` completo más de una vez en el mismo archivo.
+
+Client: 299 test files / 2969 tests verdes. Verificado a mano en dev: toggle de "Noticias" en `/panel-admin` (PATCH exitoso, switch cambia de label) confirmado con "Ver como usuario" (el link desaparece del sidebar); pantalla 500 real (server parado) sin errores de consola; "Reintentar" con el server ya arriba recupera la app sin reload de página.
 
 ---
 

@@ -1,14 +1,9 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import { createContext, useContext, useCallback, useMemo } from "react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
 import { API } from "../api/endpoints";
+import { useSiteConfigQuery, siteConfigKeys } from "../queries/siteConfig";
 
 const SECTION_KEYS = [
   "mesas",
@@ -51,46 +46,28 @@ const SiteConfigContext = createContext(null);
 // server está vivo (solo rechazó la request) y NO se trata como caída.
 const isBackendDown = (err) => !err?.response || err.response.status >= 500;
 
-// Cota superior para que un backend colgado (responde lento o nunca) no deje el
-// splash girando para siempre: a los 8s el request aborta y dispara backendDown.
-const BOOT_TIMEOUT_MS = 8000;
-
 export function SiteConfigProvider({ children }) {
   const { user } = useAuth();
-  const [sections, setSections] = useState(defaultSections);
-  const [updatedAt, setUpdatedAt] = useState(null);
-  const [updatedBy, setUpdatedBy] = useState(null);
-  const [loaded, setLoaded] = useState(false);
-  const [backendDown, setBackendDown] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
+  const queryClient = useQueryClient();
+  const { data, error, isFetching, refetch } = useSiteConfigQuery();
+  const sections = data?.sections ?? defaultSections();
+  const updatedAt = data?.updatedAt ?? null;
+  const updatedBy = data?.updatedBy ?? null;
+
+  // `isFetching` cubre tanto la carga inicial como un refetch manual (retry) —
+  // así loaded/backendDown se resetean optimistamente durante CUALQUIER
+  // (re)intento, igual que el useState+useEffect que reemplazan (que hacía
+  // setLoaded(false); setBackendDown(false) al arrancar cada fetch). React
+  // Query mantiene el `error` viejo visible mientras refetchea, por eso
+  // backendDown también chequea `!isFetching` — si no, el reintento seguiría
+  // mostrando la pantalla 500 vieja hasta que resuelva.
+  const loaded = !isFetching;
+  const backendDown = !isFetching && !!error && isBackendDown(error);
 
   // Reintenta el health-check de boot (botón "Reintentar" de la pantalla 500).
-  // Re-dispara el effect, que vuelve a poner loaded=false (splash) y reevalúa.
-  const retryConnection = useCallback(() => setReloadKey((k) => k + 1), []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoaded(false);
-    setBackendDown(false);
-    axios
-      .get(API.siteConfig, { timeout: BOOT_TIMEOUT_MS })
-      .then(({ data }) => {
-        if (cancelled) return;
-        setSections(data.sections || defaultSections());
-        setUpdatedAt(data.updatedAt || null);
-        setUpdatedBy(data.updatedBy || null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (isBackendDown(err)) setBackendDown(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadKey]);
+  const retryConnection = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   // El user efectivo de AuthContext ya respeta viewAsUser (si admin con viewAsUser ON,
   // user.isAdmin === false). isSectionEnabled lo respeta automáticamente.
@@ -102,18 +79,28 @@ export function SiteConfigProvider({ children }) {
     [sections, user],
   );
 
-  const applyServerConfig = useCallback((payload) => {
-    if (!payload) return;
-    if (payload.sections) setSections(payload.sections);
-    if (payload.updatedAt) setUpdatedAt(payload.updatedAt);
-    if (payload.updatedBy !== undefined) setUpdatedBy(payload.updatedBy);
-  }, []);
+  // Recibe el config empujado por socket (site-config:updated) o el resultado
+  // de updateConfig — escribe directo al cache de TanStack Query.
+  const applyServerConfig = useCallback(
+    (payload) => {
+      if (!payload) return;
+      queryClient.setQueryData(siteConfigKeys.all, (prev) => ({
+        sections: payload.sections ?? prev?.sections,
+        updatedAt: payload.updatedAt ?? prev?.updatedAt,
+        updatedBy:
+          payload.updatedBy !== undefined ? payload.updatedBy : prev?.updatedBy,
+      }));
+    },
+    [queryClient],
+  );
 
   const updateConfig = useCallback(
     async (patch) => {
-      const { data } = await axios.patch(API.siteConfig, { sections: patch });
-      applyServerConfig(data);
-      return data;
+      const { data: res } = await axios.patch(API.siteConfig, {
+        sections: patch,
+      });
+      applyServerConfig(res);
+      return res;
     },
     [applyServerConfig],
   );

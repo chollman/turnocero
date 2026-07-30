@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
 import { server } from "./test/server";
+import { queryClient } from "./queries/queryClient";
 
 // App importa muchos providers (Theme, Auth, SiteConfig, Notification, Chat) +
 // BrowserRouter. Por defecto AuthContext intenta `GET /api/auth/me` y el resto
@@ -21,6 +22,13 @@ import App from "./App";
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
+  // App.jsx usa el queryClient singleton de producción (una sola instancia
+  // para la vida de la app, correcto ahí) — pero este archivo renderiza
+  // <App/> más de una vez en el mismo run, y sin limpiar el cache entre
+  // tests, `staleTime: Infinity` en site-config hace que el 2do/3er render
+  // reuse los datos cacheados por el primero en vez de pegarle al mock
+  // nuevo de ese test.
+  queryClient.clear();
 });
 
 describe("App", () => {
