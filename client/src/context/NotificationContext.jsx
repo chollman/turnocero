@@ -8,10 +8,12 @@ import {
   useMemo,
 } from "react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
 import { useSiteConfig } from "./SiteConfigContext";
 import { CommunityContext } from "./CommunityContext";
 import { API } from "../api/endpoints";
+import { useNotificationsQuery, notificationsKeys } from "../queries/notifications";
 import {
   EVENT_SECTION,
   PERSONAL_EVENTS,
@@ -43,7 +45,8 @@ export function NotificationProvider({ children }) {
   // `reloadCommunity` queda undefined (el listener no-opea).
   const communityCtx = useContext(CommunityContext);
   const reloadCommunity = communityCtx?.reload;
-  const [notifications, setNotifications] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: notifications = [] } = useNotificationsQuery(user?._id);
   const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
   const activeEventoRef = useRef(null);
@@ -65,6 +68,15 @@ export function NotificationProvider({ children }) {
   const authedRef = useRef(false);
   useEffect(() => {
     authedRef.current = !!user;
+  }, [user]);
+
+  // Id del user actual, para que `setNotifications` (más abajo) escriba
+  // siempre a la query key correcta sin tener que estar en las deps de los
+  // 9 callbacks markRead*/dismiss/clearAll (que usan useCallback([]) —
+  // mismo patrón que authedRef, evita closures viejas tras login/logout).
+  const userIdRef = useRef(null);
+  useEffect(() => {
+    userIdRef.current = user?._id ?? null;
   }, [user]);
 
   // Id de la comunidad del subdominio (modo tenant), o null en el sitio normal.
@@ -98,26 +110,51 @@ export function NotificationProvider({ children }) {
     [],
   );
 
-  // Load from server when user is available; reset entirely on logout.
+  // Los toasts son puramente locales — se limpian en logout. La lista de
+  // notificaciones la resetea sola useNotificationsQuery (keyed por
+  // user?._id — al desloguear, la key pasa a `list(null)`, que nunca se
+  // fetcheó, así que `notifications` cae solo a [] sin reset manual).
   useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-      setToasts([]);
-      return;
-    }
+    if (!user) setToasts([]);
+  }, [user]);
+
+  // Shim: todo el código de abajo (y notificationReducers.js + los 13 hooks
+  // de notificationListeners/) sigue llamando setNotifications exactamente
+  // como antes de esta migración — updater funcional en casi todos lados,
+  // pero `clearAll` pasa un array directo ([]), igual que acepta useState —
+  // ahora escribe al cache de TanStack Query en vez de a useState. userIdRef
+  // (no `user` directo) para que esto sea estable y no dispare closures
+  // viejas en los callbacks de más abajo que usan useCallback([]).
+  const setNotifications = useCallback(
+    (updater) =>
+      queryClient.setQueryData(
+        notificationsKeys.list(userIdRef.current),
+        (prev) => (typeof updater === "function" ? updater(prev ?? []) : updater),
+      ),
+    [queryClient],
+  );
+
+  // Boot fetch: carga inicial cuando hay sesión. A partir de acá la lista
+  // se mantiene al día en vivo por los socket listeners (misma
+  // `setNotifications`) — no por poll/refetch. El merge usa la forma
+  // funcional del shim (lee el cache más reciente de forma atómica al
+  // escribir), así que un evento que llegó mientras el GET estaba in-flight
+  // no se pierde y tampoco se pisa un markRead/dismiss posterior con el
+  // resultado (viejo) de este fetch — ver nota en queries/notifications.js.
+  useEffect(() => {
+    if (!user) return;
     let cancelled = false;
     axios
       .get(API.notifications.LIST)
       .then(({ data }) => {
         if (cancelled) return;
-        // Merge con local state que llegó via socket mientras el GET estaba in-flight.
         setNotifications((local) => mergeNotifs(data, local));
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, setNotifications]);
 
   // ── Socket + listeners por dominio ──────────────────────────────────
   // useNotificationSocket maneja lifecycle (connect/disconnect on user).
@@ -200,7 +237,7 @@ export function NotificationProvider({ children }) {
     );
     if (authedRef.current)
       axios.patch(API.notifications.READ, { tableId }).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   const markReadFriend = useCallback((fromUserId) => {
     setNotifications((prev) =>
@@ -208,7 +245,7 @@ export function NotificationProvider({ children }) {
     );
     if (authedRef.current)
       axios.patch(API.notifications.READ, { fromUserId }).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   const markReadTorneo = useCallback((torneoId) => {
     setNotifications((prev) =>
@@ -216,7 +253,7 @@ export function NotificationProvider({ children }) {
     );
     if (authedRef.current)
       axios.patch(API.notifications.READ, { torneoId }).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   const markReadCompartida = useCallback((compartidaId) => {
     setNotifications((prev) =>
@@ -224,7 +261,7 @@ export function NotificationProvider({ children }) {
     );
     if (authedRef.current)
       axios.patch(API.notifications.READ, { compartidaId }).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   const markReadEvento = useCallback((eventoId) => {
     setNotifications((prev) =>
@@ -232,7 +269,7 @@ export function NotificationProvider({ children }) {
     );
     if (authedRef.current)
       axios.patch(API.notifications.READ, { eventoId }).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   const markReadCommunity = useCallback((communityId) => {
     setNotifications((prev) =>
@@ -240,7 +277,7 @@ export function NotificationProvider({ children }) {
     );
     if (authedRef.current)
       axios.patch(API.notifications.READ, { communityId }).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   const markReadDm = useCallback((fromUserId) => {
     setNotifications((prev) =>
@@ -249,19 +286,19 @@ export function NotificationProvider({ children }) {
         (n) => n.type === "dm" && n.fromUserId === fromUserId,
       ),
     );
-  }, []);
+  }, [setNotifications]);
 
   const markReadAdminChat = useCallback(() => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.type === "admin_chat"),
     );
     if (authedRef.current) axios.patch(API.adminChat.READ).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   const clearAll = useCallback(() => {
     setNotifications([]);
     if (authedRef.current) axios.delete(API.notifications.CLEAR).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   // Descartar una notif puntual (botón X de cada fila). Optimista: la saca
   // del listado y dispara el DELETE; si el server falla, la restaura y avisa
@@ -283,13 +320,13 @@ export function NotificationProvider({ children }) {
         }),
       );
     });
-  }, []);
+  }, [setNotifications]);
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     if (authedRef.current)
       axios.patch(API.notifications.READ, {}).catch(() => {});
-  }, []);
+  }, [setNotifications]);
 
   // Tras cargar una partida compartida (como aparece / con correcciones) el
   // server ya marcó la notif `bgg_play_shared` como leída + cargada (no la
@@ -298,7 +335,7 @@ export function NotificationProvider({ children }) {
   const markSharedPlayLoaded = useCallback((notifId) => {
     if (!notifId) return;
     setNotifications((prev) => markPlayLoadedById(prev, notifId));
-  }, []);
+  }, [setNotifications]);
 
   const loadOlder = useCallback(async () => {
     const oldest = notifications.reduce((min, n) => {
@@ -315,7 +352,7 @@ export function NotificationProvider({ children }) {
     } catch {
       return { count: 0 };
     }
-  }, [notifications]);
+  }, [notifications, setNotifications]);
 
   // ── Active resource tracking ─────────────────────────────────────────
   // Cuando el user abre la pantalla de un recurso, dejamos de notificar

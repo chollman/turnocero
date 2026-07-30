@@ -1,8 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useEffect } from "react";
 import { render, screen, waitFor, act } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
+
+// Fresh QueryClient per render — notifications ahora viven en su cache, así
+// que cualquier render de <NotificationProvider> necesita un provider.
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 // Mock socket.io-client so we capture the event handlers and can fire them at will.
 const socketEvents = new Map();
@@ -91,11 +103,15 @@ function Probe() {
 }
 
 function renderApp() {
-  return render(
-    <NotificationProvider>
-      <Probe />
-    </NotificationProvider>,
+  const queryClient = makeQueryClient();
+  const utils = render(
+    <QueryClientProvider client={queryClient}>
+      <NotificationProvider>
+        <Probe />
+      </NotificationProvider>
+    </QueryClientProvider>,
   );
+  return { ...utils, queryClient };
 }
 
 beforeEach(() => {
@@ -252,7 +268,9 @@ describe("NotificationContext", () => {
     );
     expect(screen.getByTestId("unread").textContent).toBe("1");
     act(() => screen.getByText("mark-read-t1").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   it("markAllRead marks every notification as read", async () => {
@@ -274,7 +292,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("unread").textContent).toBe("2"),
     );
     act(() => screen.getByText("mark-all-read").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   it("clearAll empties notifications and DELETEs from API", async () => {
@@ -290,7 +310,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("count").textContent).toBe("1"),
     );
     act(() => screen.getByText("clear-all").click());
-    expect(screen.getByTestId("count").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("0"),
+    );
   });
 
   it("dismiss removes one notification optimistically and DELETEs /:id", async () => {
@@ -319,7 +341,9 @@ describe("NotificationContext", () => {
     await act(async () => {
       screen.getByText("dismiss-first-notif").click();
     });
-    expect(screen.getByTestId("count").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("0"),
+    );
     await waitFor(() => expect(deletedId).toBe("abc"));
   });
 
@@ -385,7 +409,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("unread").textContent).toBe("3"),
     );
     act(() => screen.getByText("active-t1").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   it("setAdminChatActive(true) marks admin chat as read", async () => {
@@ -401,17 +427,21 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("admin-unread").textContent).toBe("5"),
     );
     act(() => screen.getByText("admin-active-on").click());
-    expect(screen.getByTestId("admin-unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("admin-unread").textContent).toBe("0"),
+    );
   });
 
   it("disconnects the socket when user logs out (component re-render)", async () => {
-    const { rerender } = renderApp();
+    const { rerender, queryClient } = renderApp();
     await waitFor(() => expect(socketOnMock).toHaveBeenCalled());
     useAuthMock.mockReturnValue({ user: null, refreshUser: vi.fn() });
     rerender(
-      <NotificationProvider>
-        <Probe />
-      </NotificationProvider>,
+      <QueryClientProvider client={queryClient}>
+        <NotificationProvider>
+          <Probe />
+        </NotificationProvider>
+      </QueryClientProvider>,
     );
     expect(socketDisconnectMock).toHaveBeenCalled();
   });
@@ -481,10 +511,12 @@ describe("NotificationContext", () => {
       return null;
     }
     render(
-      <NotificationProvider>
-        <Probe />
-        <FriendProbe />
-      </NotificationProvider>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <NotificationProvider>
+          <Probe />
+          <FriendProbe />
+        </NotificationProvider>
+      </QueryClientProvider>,
     );
     fireSocketEvent("friend:accepted", {
       fromUserId: "u2",
@@ -592,7 +624,9 @@ describe("NotificationContext", () => {
     expect(parseInt(screen.getByTestId("unread").textContent)).toBe(5);
     // Marcar leída
     act(() => screen.getByText("mark-read-t1").click());
-    expect(parseInt(screen.getByTestId("unread").textContent)).toBe(0);
+    await waitFor(() =>
+      expect(parseInt(screen.getByTestId("unread").textContent)).toBe(0),
+    );
     // Nuevo evento con count=1 absoluto (server re-creó el upsert porque la
     // notif vieja había sido marcada leída → $inc desde 0).
     fireSocketEvent("chat:notification", {
@@ -744,7 +778,7 @@ describe("NotificationContext", () => {
     expect(screen.getByTestId("count").textContent).toBe("0");
   });
 
-  it("markReadEvento marks notifs of that evento as read", () => {
+  it("markReadEvento marks notifs of that evento as read", async () => {
     renderApp();
     fireSocketEvent("evento:notification", {
       type: "confirmed",
@@ -753,10 +787,12 @@ describe("NotificationContext", () => {
     });
     expect(parseInt(screen.getByTestId("unread").textContent)).toBe(1);
     act(() => screen.getByText("mark-evento-ev1").click());
-    expect(parseInt(screen.getByTestId("unread").textContent)).toBe(0);
+    await waitFor(() =>
+      expect(parseInt(screen.getByTestId("unread").textContent)).toBe(0),
+    );
   });
 
-  it("setActiveEvento marks notifs of that evento as read", () => {
+  it("setActiveEvento marks notifs of that evento as read", async () => {
     renderApp();
     fireSocketEvent("evento:notification", {
       type: "reminder",
@@ -765,10 +801,12 @@ describe("NotificationContext", () => {
     });
     expect(parseInt(screen.getByTestId("unread").textContent)).toBe(1);
     act(() => screen.getByText("active-evento-ev1").click());
-    expect(parseInt(screen.getByTestId("unread").textContent)).toBe(0);
+    await waitFor(() =>
+      expect(parseInt(screen.getByTestId("unread").textContent)).toBe(0),
+    );
   });
 
-  it("setActiveEvento suprime toasts del evento activo (notif persistente igual se guarda)", () => {
+  it("setActiveEvento suprime toasts del evento activo (notif persistente igual se guarda)", async () => {
     renderApp();
     // Usuario está viendo el detalle del evento ev1.
     act(() => screen.getByText("active-evento-ev1").click());
@@ -778,7 +816,9 @@ describe("NotificationContext", () => {
       eventoId: "ev1",
       eventoTitle: "X",
     });
-    expect(screen.getByTestId("count").textContent).toBe("1");
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("1"),
+    );
     expect(screen.getByTestId("toasts").textContent).toBe("0");
   });
 
@@ -845,13 +885,15 @@ describe("NotificationContext", () => {
     expect(parseInt(screen.getByTestId("unread").textContent)).toBe(2);
   });
 
-  it("admin:message adds admin_chat notification and does NOT count in unreadCount bell badge", () => {
+  it("admin:message adds admin_chat notification and does NOT count in unreadCount bell badge", async () => {
     renderApp();
     fireSocketEvent("admin:message", {
       from: { username: "superadmin" },
       content: "hola equipo",
     });
-    expect(screen.getByTestId("count").textContent).toBe("1");
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("1"),
+    );
     expect(screen.getByTestId("admin-unread").textContent).toBe("1");
     // Bell badge should NOT include admin_chat
     expect(screen.getByTestId("unread").textContent).toBe("0");
@@ -869,13 +911,15 @@ describe("NotificationContext", () => {
     expect(applyServerConfig).toHaveBeenCalledWith(cfg);
   });
 
-  it("dm:message does NOT contribute to bell unreadCount", () => {
+  it("dm:message does NOT contribute to bell unreadCount", async () => {
     renderApp();
     fireSocketEvent("dm:message", {
       from: { _id: "u2", username: "bob" },
       content: "hey",
     });
-    expect(screen.getByTestId("count").textContent).toBe("1");
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("1"),
+    );
     expect(screen.getByTestId("unread").textContent).toBe("0");
   });
 
@@ -900,7 +944,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("unread").textContent).toBe("1"),
     );
     act(() => screen.getByText("mark-friend-u1").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   it("markReadTorneo marks torneo notifications as read", async () => {
@@ -922,7 +968,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("unread").textContent).toBe("1"),
     );
     act(() => screen.getByText("mark-torneo-tn1").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   it("markReadCompartida marks compartida notifications as read", async () => {
@@ -944,7 +992,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("unread").textContent).toBe("1"),
     );
     act(() => screen.getByText("mark-comp-c1").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   it("markReadDm marks dm notifications as read (but still excluded from bell)", async () => {
@@ -984,7 +1034,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("unread").textContent).toBe("1"),
     );
     act(() => screen.getByText("active-tn1").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   it("setActiveCompartida marks compartida notifications as read", async () => {
@@ -1006,7 +1058,9 @@ describe("NotificationContext", () => {
       expect(screen.getByTestId("unread").textContent).toBe("1"),
     );
     act(() => screen.getByText("active-c1").click());
-    expect(screen.getByTestId("unread").textContent).toBe("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("0"),
+    );
   });
 
   // ── Regresión: deeplink público no patea al login a un anónimo ────────
@@ -1067,9 +1121,11 @@ describe("NotificationContext", () => {
       return null;
     }
     const { unmount } = render(
-      <NotificationProvider>
-        <DmProbe />
-      </NotificationProvider>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <NotificationProvider>
+          <DmProbe />
+        </NotificationProvider>
+      </QueryClientProvider>,
     );
     const msg = {
       from: { _id: "u5", username: "erin" },
@@ -1093,10 +1149,12 @@ describe("NotificationContext", () => {
       return null;
     }
     render(
-      <NotificationProvider>
-        <Probe />
-        <FriendProbe />
-      </NotificationProvider>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <NotificationProvider>
+          <Probe />
+          <FriendProbe />
+        </NotificationProvider>
+      </QueryClientProvider>,
     );
     act(() => screen.getByText("notify-friend").click());
     expect(listener).toHaveBeenCalled();
@@ -1143,9 +1201,11 @@ describe("NotificationContext", () => {
       return null;
     }
     render(
-      <NotificationProvider>
-        <LoaderProbe />
-      </NotificationProvider>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <NotificationProvider>
+          <LoaderProbe />
+        </NotificationProvider>
+      </QueryClientProvider>,
     );
     await waitFor(() => expect(loadOlderHolder.fn).not.toBeNull());
     await act(async () => {
@@ -1166,13 +1226,15 @@ describe("NotificationContext", () => {
 describe("NotificationContext — tenant realtime scoping", () => {
   function renderTenant(tenantId = "tenant-1") {
     return render(
-      <CommunityContext.Provider
-        value={{ isTenant: true, tenant: { _id: tenantId } }}
-      >
-        <NotificationProvider>
-          <Probe />
-        </NotificationProvider>
-      </CommunityContext.Provider>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <CommunityContext.Provider
+          value={{ isTenant: true, tenant: { _id: tenantId } }}
+        >
+          <NotificationProvider>
+            <Probe />
+          </NotificationProvider>
+        </CommunityContext.Provider>
+      </QueryClientProvider>,
     );
   }
 

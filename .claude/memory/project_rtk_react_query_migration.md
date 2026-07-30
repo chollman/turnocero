@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 53ce6a90-e61b-40eb-982f-94260843ba8f
-  modified: 2026-07-30T14:22:26.793Z
+  modified: 2026-07-30T16:10:16.045Z
 ---
 
 Migración incremental de `client/src/context/*` a **Redux Toolkit** (estado de cliente) + **TanStack Query** (estado de servidor), documentada fase por fase en [plans/redux-toolkit-react-query-migration.md](plans/redux-toolkit-react-query-migration.md).
@@ -22,7 +22,7 @@ Migración incremental de `client/src/context/*` a **Redux Toolkit** (estado de 
 - ✅ Fase 0 — Setup (`@reduxjs/toolkit`, `react-redux`, `@tanstack/react-query` instalados; `client/src/store/store.js`+`hooks.js`; `client/src/queries/queryClient.js`; providers envueltos en `App.jsx`; devtools en dev). Cerrada 2026-07-29.
 - ✅ Fase 1 — POC Redux Toolkit puro (Theme + Language). `store/slices/{theme,language}Slice.js` (createSlice + `createListenerMiddleware` para side effects) + hooks públicos en `hooks/{useTheme,useLanguage}.js`; `ThemeContext.jsx`/`LanguageContext.jsx` eliminados. Cerrada 2026-07-30.
 - ✅ Fase 2 — POC TanStack Query puro (Noticias). `queries/noticias.js`: `useNoticiasQuery` terminó siendo `useInfiniteQuery` (portada usa "cargar más" acumulativo, no page number) + `useNoticiaQuery`/`useRelatedNoticiasQuery` (query dependiente)/3 mutaciones con `invalidateQueries`. `AllProviders.jsx` gana un `QueryClient` nuevo por render (`retry:false`) — patrón de referencia para cualquier test que use `useQuery`. Cerrada 2026-07-30.
-- 🔲 Fase 3 — NotificationContext (sockets)
+- ✅ Fase 3 — NotificationContext (sockets). El plan original sobreestimaba el trabajo: NO se creó ningún slice de Redux (las refs `activeTableRef`/etc. no son state reactivo, no van a Redux) y `notificationReducers.js` (1096 líneas) + los 13 hooks de `notificationListeners/` no se tocaron — todos llaman `setNotifications((prev) => …)`, alcanzó con redefinir esa función en `NotificationContext.jsx` para que escriba a `queryClient.setQueryData` en vez de `useState`. `queries/notifications.js#useNotificationsQuery` es cache-only (`enabled:false`, sin queryFn real, "Query as a store") — el boot fetch volvió a un `useEffect` explícito porque un queryFn que fetchea+mergea tiene una race real (commit tardío pisa un markRead/socket más nuevo); el fix es mergear con la forma funcional de `setQueryData`, no leyendo `getQueryData` aparte. Gotcha de testing: `setQueryData` notifica por microtask, no sincrónico en `act(() => click())` — cualquier test post-acción necesita `await waitFor()`. Cerrada 2026-07-30 — detalle completo en el plan.
 - 🔲 Fase 4 — SiteConfigContext
 - 🔲 Fase 5 — CommunityContext + ChatContext
 - 🔲 Fase 6 — Migración masiva de los 102 axios ad hoc

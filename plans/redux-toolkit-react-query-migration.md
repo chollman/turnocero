@@ -91,7 +91,7 @@ Objetivo: aprender `useQuery`/cache/invalidación en el caso más simple del pro
 
 ---
 
-## 🔲 Fase 3 — NotificationContext (el caso más complejo, con sockets)
+## ✅ Fase 3 — NotificationContext (el caso más complejo, con sockets)
 
 El más valioso para aprender porque ya tiene forma de reducer (1096 líneas) — la pregunta real es cuánto de eso desaparece al usar TanStack Query correctamente:
 
@@ -104,6 +104,20 @@ El más valioso para aprender porque ya tiene forma de reducer (1096 líneas) �
 - Tests: el archivo de regresión de doble-conteo (`NotificationContext.test.jsx`) se porta a tests de query + mutation; el contrato server (`notifId`+`count`+`timestamp`) no cambia.
 
 **Criterio de salida:** `notificationReducers.js` se reduce drásticamente o desaparece; comportamiento (badge, toasts, dedup) idéntico o mejor, verificado a mano en el browser con 2 sesiones simultáneas + checklist de verificación post-fase.
+
+**Cerrada 2026-07-30.** El plan original sobreestimaba cuánto había que reescribir — leer el código real cambió el diseño en 3 puntos:
+
+1. **`activeTableRef`/`activeEventoRef`/`adminChatActiveRef`/`authedRef`/`tenantIdRef` NO fueron a Redux.** Son refs internos (no state reactivo, ningún componente los lee) usados solo para gating dentro de closures — moverlos a Redux hubiera sido puro over-engineering. Quedaron exactamente como estaban.
+2. **`notificationReducers.js` (1096 líneas) y los 13 hooks de `notificationListeners/` NO se tocaron — cero cambios.** Todos llaman `setNotifications((prev) => …)` con la convención funcional de React; alcanzó con redefinir qué hace `setNotifications` en `NotificationContext.jsx` (ahora escribe a `queryClient.setQueryData` en vez de a `useState`) para que los 30+ `applyXNotif` y el resto del árbol de listeners siguieran funcionando sin una sola línea tocada. Gotcha real: `clearAll` llama `setNotifications([])` con un valor directo (no updater), no solo la forma funcional — el shim soporta ambas, como `useState`.
+3. **No se creó `notificationUiSlice` de Redux — no hizo falta ningún slice nuevo esta fase.** El único estado de cliente real (toasts) ya vivía en `useState` local del Context y se dejó así (fuera de alcance, ver nota abajo); las refs no necesitan Redux por el punto 1.
+
+**Diseño de `queries/notifications.js`:** `useNotificationsQuery(userId)` es **cache-only** (`enabled: false`, sin `queryFn` real) — funciona puramente como suscripción reactiva al cache ("Query as a store", patrón documentado de TanStack Query), no como fetcher. La carga inicial (`GET /api/notifications`) volvió a vivir como un `useEffect` explícito en `NotificationContext.jsx` (casi idéntico al original), porque intentar que el `queryFn` hiciera el fetch + merge introdujo una **race real**: el `queryFn` leía `queryClient.getQueryData()` como paso separado antes de retornar el merge, y ese commit tardío podía pisar con datos viejos un `markRead`/socket que había llegado mientras el fetch estaba en vuelo (reprodujo como 17 tests fallando con contadores stale). El fix: el merge del boot fetch usa la forma **funcional** de `setQueryData(key, (prev) => mergeNotifs(data, prev))` — lee el cache más reciente de forma atómica al escribir, no una copia vieja. Mismo mecanismo que ya usaban los sockets, solo que ahora el boot fetch lo comparte.
+
+**Gotcha de testing (aplica a cualquier test futuro que interactúe con notificaciones):** `queryClient.setQueryData` notifica a los observers vía scheduler de microtask, no sincrónico dentro de un `act(() => click())`. Cualquier test que haga clic en algo que dispare `markRead*`/`setActiveX`/`dismiss`/etc. necesita `await waitFor(() => expect(...))` después, no un `expect` sincrónico inmediato — bajo el viejo `useState` esto flusheaba sincrónico dentro de `act()`, con Query no. 16 de los 64 tests de `NotificationContext.test.jsx` necesitaron este ajuste (mismo comportamiento verificado, solo el *cómo esperarlo* en el test cambió).
+
+**No se usó `useMutation`** para `markRead*`/`dismiss`/`clearAll`/`markAllRead` — son escrituras optimistas fire-and-forget donde ningún componente lee `isPending`/`isError` (excepto `dismiss`, que ya tenía su propio rollback manual, preservado tal cual). Envolver en `useMutation` sería ceremonia sin cambio de comportamiento; se documenta acá para que quede claro que fue una decisión, no un olvido.
+
+**Verificado:** 64/64 tests de `NotificationContext.test.jsx` + suite completa 299 files/2969 tests. A mano en el browser con 2 pestañas (misma cuenta, simulando multi-dispositivo): mensaje de admin chat enviado desde una pestaña llegó a la otra sin error; "Marcar como leída" en `/notificaciones` actualizó el contador (13→12, sin leer 6→5) **instantáneamente, sin reload**; React Query Devtools confirmó la query `["notifications","list","<userId>"]` con `disabled: true` como estaba diseñado. Consola limpia en todo momento.
 
 ---
 
