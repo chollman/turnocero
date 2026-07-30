@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import { AllProviders } from "../../test/wrappers/AllProviders";
 import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
@@ -31,19 +30,13 @@ function makeNoticia(overrides = {}) {
 }
 
 function renderPage() {
-  return render(
-    <HelmetProvider>
-      <MemoryRouter>
-        <Noticias />
-      </MemoryRouter>
-    </HelmetProvider>,
-  );
+  return render(<Noticias />, { wrapper: AllProviders });
 }
 
-function jsonList(noticias, { pages = 1 } = {}) {
+function jsonList(noticias, { pages = 1, page = 1 } = {}) {
   return HttpResponse.json({
     noticias,
-    page: 1,
+    page,
     pages,
     total: noticias.length,
   });
@@ -193,9 +186,11 @@ describe("<Noticias> (portada editorial)", () => {
         );
         return page === 2
           ? jsonList([makeNoticia({ _id: "p2", title: "De la página 2" })], {
+              page: 2,
               pages: 2,
             })
           : jsonList([makeNoticia({ _id: "p1", title: "De la página 1" })], {
+              page: 1,
               pages: 2,
             });
       }),

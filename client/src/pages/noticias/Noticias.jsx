@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
@@ -7,7 +6,7 @@ import { getLocale } from "../../utils/locale";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
-import { API } from "../../api/endpoints";
+import { useNoticiasQuery } from "../../queries/noticias";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
 import EmptyState from "../../components/shared/EmptyState";
@@ -153,44 +152,23 @@ export default function Noticias() {
   const brandName = useBrandName();
   const isAdmin = user?.isAdmin;
 
-  const [noticias, setNoticias] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [tab, setTab] = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const search = useDebouncedValue(searchInput, 350);
 
-  const load = useCallback(
-    async (pageNum, replace) => {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
-      try {
-        const params = { page: pageNum, limit: 10 };
-        if (tab !== "all") params.category = tab;
-        if (search.trim()) params.search = search.trim();
-        const { data } = await axios.get(API.noticias.LIST, { params });
-        setNoticias((prev) =>
-          replace ? data.noticias : [...prev, ...data.noticias],
-        );
-        setTotalPages(data.pages);
-        setTotal(data.total);
-        setPage(pageNum);
-      } catch {
-        /* el toast global cubre el error */
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [tab, search],
-  );
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage,
+    fetchNextPage,
+  } = useNoticiasQuery({ category: tab, search });
 
-  useEffect(() => {
-    load(1, true);
-  }, [load]);
+  const noticias = useMemo(
+    () => data?.pages.flatMap((p) => p.noticias) ?? [],
+    [data],
+  );
+  const total = data?.pages[0]?.total ?? 0;
 
   const today = new Date().toLocaleDateString(getLocale(), {
     weekday: "long",
@@ -403,10 +381,10 @@ export default function Noticias() {
                   </div>
                 )}
 
-                {page < totalPages && (
+                {hasNextPage && (
                   <button
                     className={styles.loadMore}
-                    onClick={() => load(page + 1, false)}
+                    onClick={() => fetchNextPage()}
                     disabled={loadingMore}
                   >
                     {loadingMore

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
-import { HelmetProvider } from "react-helmet-async";
+import { Routes, Route } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import { AllProviders } from "../../test/wrappers/AllProviders";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
@@ -42,14 +42,12 @@ function setupNoticia(noticia, { related = [] } = {}) {
 function renderDetail({ user = null, id = "n1" } = {}) {
   useAuth.mockReturnValue({ user });
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[`/noticias/${id}`]}>
-        <Routes>
-          <Route path="/noticias/:id" element={<NoticiaDetail />} />
-          <Route path="/noticias" element={<div>noticias-list</div>} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <AllProviders initialEntries={[`/noticias/${id}`]}>
+      <Routes>
+        <Route path="/noticias/:id" element={<NoticiaDetail />} />
+        <Route path="/noticias" element={<div>noticias-list</div>} />
+      </Routes>
+    </AllProviders>,
   );
 }
 

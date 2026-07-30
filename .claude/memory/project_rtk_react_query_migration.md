@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 53ce6a90-e61b-40eb-982f-94260843ba8f
-  modified: 2026-07-30T12:11:50.171Z
+  modified: 2026-07-30T14:22:26.793Z
 ---
 
 Migración incremental de `client/src/context/*` a **Redux Toolkit** (estado de cliente) + **TanStack Query** (estado de servidor), documentada fase por fase en [plans/redux-toolkit-react-query-migration.md](plans/redux-toolkit-react-query-migration.md).
@@ -21,7 +21,7 @@ Migración incremental de `client/src/context/*` a **Redux Toolkit** (estado de 
 **Estado de fases** (actualizar acá al cerrar cada una — ver detalle y fecha de cierre en el plan):
 - ✅ Fase 0 — Setup (`@reduxjs/toolkit`, `react-redux`, `@tanstack/react-query` instalados; `client/src/store/store.js`+`hooks.js`; `client/src/queries/queryClient.js`; providers envueltos en `App.jsx`; devtools en dev). Cerrada 2026-07-29.
 - ✅ Fase 1 — POC Redux Toolkit puro (Theme + Language). `store/slices/{theme,language}Slice.js` (createSlice + `createListenerMiddleware` para side effects) + hooks públicos en `hooks/{useTheme,useLanguage}.js`; `ThemeContext.jsx`/`LanguageContext.jsx` eliminados. Cerrada 2026-07-30.
-- 🔲 Fase 2 — POC TanStack Query puro (Noticias)
+- ✅ Fase 2 — POC TanStack Query puro (Noticias). `queries/noticias.js`: `useNoticiasQuery` terminó siendo `useInfiniteQuery` (portada usa "cargar más" acumulativo, no page number) + `useNoticiaQuery`/`useRelatedNoticiasQuery` (query dependiente)/3 mutaciones con `invalidateQueries`. `AllProviders.jsx` gana un `QueryClient` nuevo por render (`retry:false`) — patrón de referencia para cualquier test que use `useQuery`. Cerrada 2026-07-30.
 - 🔲 Fase 3 — NotificationContext (sockets)
 - 🔲 Fase 4 — SiteConfigContext
 - 🔲 Fase 5 — CommunityContext + ChatContext

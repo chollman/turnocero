@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
-import { HelmetProvider } from "react-helmet-async";
+import { Routes, Route } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import { AllProviders } from "../../test/wrappers/AllProviders";
 
 const addToast = vi.fn();
 
@@ -23,14 +23,12 @@ import NoticiaForm from "./NoticiaForm";
 
 function renderForm(props = {}) {
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={["/noticias/crear"]}>
-        <Routes>
-          <Route path="/noticias/crear" element={<NoticiaForm {...props} />} />
-          <Route path="/noticias/:id" element={<div>detalle</div>} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <AllProviders initialEntries={["/noticias/crear"]}>
+      <Routes>
+        <Route path="/noticias/crear" element={<NoticiaForm {...props} />} />
+        <Route path="/noticias/:id" element={<div>detalle</div>} />
+      </Routes>
+    </AllProviders>,
   );
 }
 

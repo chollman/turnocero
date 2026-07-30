@@ -76,7 +76,7 @@ Objetivo: aprender el patrón `createSlice` en el caso más chico posible (2 y 1
 
 ---
 
-## 🔲 Fase 2 — POC #2: TanStack Query puro (una página de solo lectura)
+## ✅ Fase 2 — POC #2: TanStack Query puro (una página de solo lectura)
 
 Objetivo: aprender `useQuery`/cache/invalidación en el caso más simple del proyecto — **Noticias** (`GET /api/noticias`, paginado, público, sin sockets, sin mutación compleja).
 
@@ -86,6 +86,8 @@ Objetivo: aprender `useQuery`/cache/invalidación en el caso más simple del pro
 - Tests: mock de MSW ya existe (`src/test/server.js`); agregar un wrapper `<QueryClientProvider>` a `AllProviders` para que los tests de componentes sigan funcionando igual.
 
 **Criterio de salida:** Noticias funciona idéntico o mejor en el browser, con menos código y sin `AbortController` manual + checklist de verificación post-fase. Este es el patrón de referencia para la Fase 6.
+
+**Cerrada 2026-07-30.** Ajuste sobre el plan original: la portada usa "cargar más" acumulativo (no un selector de página), así que `useNoticiasQuery` terminó siendo `useInfiniteQuery` (no `useQuery({page})`) — mapea 1:1 con el patrón existente y es más idiomático que forzar `useQuery` + estado manual de acumulación. `client/src/queries/noticias.js` expone `useNoticiasQuery` (infinite), `useNoticiaQuery(id)`, `useRelatedNoticiasQuery` (query dependiente, `enabled` hasta que resuelve la principal — "seguí leyendo") y las 3 mutaciones (create/update/delete) con `invalidateQueries` sobre la key raíz `['noticias']`. `AllProviders.jsx` ahora crea un `QueryClient` nuevo por render (`retry:false` en tests, evita que un mock de error cuelgue el test en backoff) — necesario para que cualquier test que renderice algo con `useQuery` funcione. 3 archivos de test existentes (`Noticias`, `NoticiaDetail`, `NoticiaForm`) se migraron de `MemoryRouter`+`HelmetProvider` sueltos a `AllProviders`, sin cambiar ninguna aserción. Client: 299 test files / 2969 tests verdes. Verificado a mano en dev: lista, detalle, lightbox, y un ciclo completo de edición (PUT exitoso → `invalidateQueries` → refetch automático de detalle + relacionadas → vuelta al detalle actualizado), consola limpia en todo momento.
 
 ---
 

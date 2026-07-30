@@ -1,12 +1,15 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useTranslation, Trans } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
+import {
+  useCreateNoticiaMutation,
+  useUpdateNoticiaMutation,
+} from "../../queries/noticias";
 import BackButton from "../../components/shared/BackButton";
 import RichTextEditor from "../../components/shared/RichTextEditor";
 import CommunitySelect from "../../components/shared/CommunitySelect";
@@ -164,7 +167,10 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
   const [preview, setPreview] = useState(initial?.image?.url || null);
   const [removeImage, setRemoveImage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+
+  const createNoticia = useCreateNoticiaMutation();
+  const updateNoticia = useUpdateNoticiaMutation(id);
+  const submitting = isEdit ? updateNoticia.isPending : createNoticia.isPending;
 
   const handleFile = (f) => {
     setFile(f);
@@ -202,7 +208,6 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
       });
       return;
     }
-    setSubmitting(true);
     try {
       const fd = new FormData();
       fd.append("title", title.trim());
@@ -231,13 +236,9 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
       if (isEdit && removeImage) fd.append("removeImage", "true");
       if (!isEdit && community) fd.append("community", community);
 
-      const { data } = isEdit
-        ? await axios.put(API.noticias.UPDATE(id), fd, {
-            headers: { "Content-Type": "multipart/form-data" },
-          })
-        : await axios.post(API.noticias.CREATE, fd, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
+      const data = isEdit
+        ? await updateNoticia.mutateAsync(fd)
+        : await createNoticia.mutateAsync(fd);
 
       addToast({
         type: "success",
@@ -258,8 +259,6 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
         message:
           err.response?.data?.message || t("noticias:form.saveErrorMessage"),
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 

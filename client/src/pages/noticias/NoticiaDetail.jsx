@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useTranslation, Trans } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -8,7 +7,11 @@ import { useBrandName } from "../../hooks/useBrandName";
 import { useShortLink } from "../../hooks/useShortLink";
 import { getShortUrl } from "../../utils/shortlink";
 import { buildNoticiaShare } from "../../utils/share";
-import { API } from "../../api/endpoints";
+import {
+  useNoticiaQuery,
+  useRelatedNoticiasQuery,
+  useDeleteNoticiaMutation,
+} from "../../queries/noticias";
 import BackButton from "../../components/shared/BackButton";
 import Modal from "../../components/shared/Modal";
 import ArticleView from "./ArticleView";
@@ -46,46 +49,22 @@ export default function NoticiaDetail() {
   const brandName = useBrandName();
   const isAdmin = user?.isAdmin;
 
-  const [noticia, setNoticia] = useState(null);
-  const [related, setRelated] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const [copied, setCopied] = useState(false);
   const { shortUrl } = useShortLink({ type: "noticia", ref: id, eager: true });
 
-  useEffect(() => {
-    const ac = new AbortController();
-    setLoading(true);
-    setNotFound(false);
-    axios
-      .get(API.noticias.DETAIL(id), { signal: ac.signal })
-      .then(({ data }) => {
-        if (ac.signal.aborted) return;
-        setNoticia(data);
-        // "Seguí leyendo": otras noticias, misma categoría primero.
-        const params = new URLSearchParams({ limit: "6" });
-        if (data.category && data.category !== "general")
-          params.set("category", data.category);
-        return axios.get(`${API.noticias.LIST}?${params}`, {
-          signal: ac.signal,
-        });
-      })
-      .then((res) => {
-        if (!res || ac.signal.aborted) return;
-        setRelated(
-          (res.data.noticias || []).filter((n) => n._id !== id).slice(0, 2),
-        );
-      })
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        if (err.response?.status === 404) setNotFound(true);
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setLoading(false);
-      });
-    return () => ac.abort();
-  }, [id]);
+  const {
+    data: noticia,
+    isPending: loading,
+    error,
+  } = useNoticiaQuery(id);
+  const notFound = error?.response?.status === 404;
+  const { data: related = [] } = useRelatedNoticiasQuery({
+    category: noticia?.category,
+    excludeId: id,
+    enabled: !!noticia,
+  });
+  const deleteNoticia = useDeleteNoticiaMutation();
 
   const handleCopy = async () => {
     const u =
@@ -102,7 +81,7 @@ export default function NoticiaDetail() {
   const handleDelete = async () => {
     if (!window.confirm(t("noticias:detail.deleteConfirm"))) return;
     try {
-      await axios.delete(API.noticias.DELETE(id));
+      await deleteNoticia.mutateAsync(id);
       navigate("/noticias");
     } catch {
       /* el toast global cubre el error */
