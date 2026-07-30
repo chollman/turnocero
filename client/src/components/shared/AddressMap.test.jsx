@@ -43,11 +43,11 @@ vi.mock("@vis.gl/react-google-maps", () => {
   return { APIProvider, Map, AdvancedMarker, useMap };
 });
 
-// Mock ThemeContext.
-vi.mock("../../context/ThemeContext", () => ({ useTheme: vi.fn() }));
+// Mock useTheme.
+vi.mock("../../hooks/useTheme", () => ({ useTheme: vi.fn() }));
 
 import AddressMap from "./AddressMap";
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "../../hooks/useTheme";
 
 beforeEach(() => {
   useTheme.mockReturnValue({ theme: "dark", setTheme: vi.fn() });

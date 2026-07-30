@@ -3,15 +3,15 @@ import { useEffect, useState } from "react";
 import { Provider as ReduxProvider } from "react-redux";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { I18nextProvider } from "react-i18next";
 import { store } from "./store/store";
 import { queryClient } from "./queries/queryClient";
+import i18n from "./i18n";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SiteConfigProvider, useSiteConfig } from "./context/SiteConfigContext";
 import { CommunityProvider, useCommunity } from "./context/CommunityContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ChatProvider } from "./context/ChatContext";
-import { ThemeProvider } from "./context/ThemeContext";
-import { LanguageProvider } from "./context/LanguageContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // Client ID de Google Identity Services. Si no está configurado, el provider
@@ -810,36 +810,35 @@ export default function App() {
   return (
     // ReduxProvider + QueryClientProvider envuelven todo por fuera de los
     // Context providers existentes (plan de migración en
-    // plans/redux-toolkit-react-query-migration.md, Fase 0) — conviven sin
-    // reemplazar nada hasta que cada pieza de estado se porte fase a fase.
+    // plans/redux-toolkit-react-query-migration.md). Theme e idioma ya viven
+    // en Redux (Fase 1) — I18nextProvider queda como plumbing de la librería,
+    // sin relación con el estado "idioma actual" (que ahora es del store).
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
-        {/* Opt-in a los future flags de React Router v7 para silenciar los warnings
-        de v6. El único splat route (path="*") navega a una ruta absoluta ("/"),
-        así que v7_relativeSplatPath no cambia comportamiento. */}
-        <BrowserRouter
-          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        >
-          <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-            <LanguageProvider>
-              <ThemeProvider>
-                <AuthProvider>
-                  <SiteConfigProvider>
-                    <CommunityProvider>
-                      <NotificationProvider>
-                        <ChatProvider>
-                          <ErrorBoundary>
-                            <AppShell />
-                          </ErrorBoundary>
-                        </ChatProvider>
-                      </NotificationProvider>
-                    </CommunityProvider>
-                  </SiteConfigProvider>
-                </AuthProvider>
-              </ThemeProvider>
-            </LanguageProvider>
-          </GoogleOAuthProvider>
-        </BrowserRouter>
+        <I18nextProvider i18n={i18n}>
+          {/* Opt-in a los future flags de React Router v7 para silenciar los warnings
+          de v6. El único splat route (path="*") navega a una ruta absoluta ("/"),
+          así que v7_relativeSplatPath no cambia comportamiento. */}
+          <BrowserRouter
+            future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+          >
+            <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+              <AuthProvider>
+                <SiteConfigProvider>
+                  <CommunityProvider>
+                    <NotificationProvider>
+                      <ChatProvider>
+                        <ErrorBoundary>
+                          <AppShell />
+                        </ErrorBoundary>
+                      </ChatProvider>
+                    </NotificationProvider>
+                  </CommunityProvider>
+                </SiteConfigProvider>
+              </AuthProvider>
+            </GoogleOAuthProvider>
+          </BrowserRouter>
+        </I18nextProvider>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </ReduxProvider>

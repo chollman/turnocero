@@ -60,7 +60,7 @@ Esta tabla es el entregable de la Fase 1 y determina el resto del plan — no se
 
 ---
 
-## 🔲 Fase 1 — POC #1: Redux Toolkit puro (Theme + Language)
+## ✅ Fase 1 — POC #1: Redux Toolkit puro (Theme + Language)
 
 Objetivo: aprender el patrón `createSlice` en el caso más chico posible (2 y 1 consumidores) antes de tocar algo con superficie real.
 
@@ -71,6 +71,8 @@ Objetivo: aprender el patrón `createSlice` en el caso más chico posible (2 y 1
 - Tests: portar `ThemeContext.test.jsx`/`LanguageContext.test.jsx` a `themeSlice.test.js`/`languageSlice.test.js` (reducers puros, fáciles de testear sin render).
 
 **Criterio de salida:** `ThemeContext.jsx`/`LanguageContext.jsx` eliminados, cero regresiones, primer PR de referencia para el resto de las fases + checklist de verificación post-fase.
+
+**Cerrada 2026-07-30.** `client/src/store/slices/{theme,language}Slice.js` (createSlice + `createListenerMiddleware` para el side-effect de `data-theme`/`lang`/localStorage/axios header/`i18n.changeLanguage`, antes en el `useEffect` del Context) + hooks públicos en `client/src/hooks/{useTheme,useLanguage}.js` (mismo shape de retorno que antes). Ajuste sobre el plan original: los 2+1 consumidores (`UserProfile.jsx`, `AddressMap.jsx`) sí tocaron 1 línea de import cada uno (nueva ruta `hooks/useTheme` en vez de `context/ThemeContext`) — "no cambia ninguna línea" era optimista; en la práctica fue un cambio de ruta de import, no de lógica. También se actualizó `test/wrappers/AllProviders.jsx` (ya no monta `<ThemeProvider>`, monta `<ReduxProvider store={store}>`) y `App.jsx` ganó un `<I18nextProvider>` explícito (antes lo aportaba `LanguageProvider`; ahora es plumbing de la librería, separado del estado "idioma" que vive en Redux). Client: 299 test files / 2969 tests verdes. Verificado a mano en dev: toggle de tema y de idioma (es→en tradujo todo el sidebar/perfil en vivo), persistencia tras reload sin FOUC, consola limpia en todos los pasos.
 
 ---
 

@@ -92,4 +92,4 @@
 - [DiceLoader en buscadores](feedback_dice_search_loader.md) — dado d6 animado es EL loader de dropdowns de búsqueda
 - [Web Push (PWA)](project_web_push.md) — detalle completo en CLAUDE.md "Web Push notifications"
 - [Sticky gap + clear appFrame](feedback_sticky_appframe_gap.md) — gap sticky lo da `top` no margin-top; clearance solo desktop
-- [Migración RTK + TanStack Query](project_rtk_react_query_migration.md) — plan en `plans/redux-toolkit-react-query-migration.md`; Fase 0 cerrada 2026-07-29
+- [Migración RTK + TanStack Query](project_rtk_react_query_migration.md) — plan en `plans/redux-toolkit-react-query-migration.md`; Fase 0-1 cerradas 2026-07-30

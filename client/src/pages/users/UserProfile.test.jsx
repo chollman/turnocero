@@ -25,8 +25,8 @@ vi.mock("../../components/shared/PlaceAutocomplete", () => ({
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
-vi.mock("../../context/ThemeContext", () => ({ useTheme: vi.fn() }));
-vi.mock("../../context/LanguageContext", () => ({ useLanguage: vi.fn() }));
+vi.mock("../../hooks/useTheme", () => ({ useTheme: vi.fn() }));
+vi.mock("../../hooks/useLanguage", () => ({ useLanguage: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
   useNotifications: vi.fn(),
 }));
@@ -62,8 +62,8 @@ vi.mock("./CommunityPrefs", () => ({
 import UserProfile from "./UserProfile";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
-import { useTheme } from "../../context/ThemeContext";
-import { useLanguage } from "../../context/LanguageContext";
+import { useTheme } from "../../hooks/useTheme";
+import { useLanguage } from "../../hooks/useLanguage";
 import { useNotifications } from "../../context/NotificationContext";
 import usePushNotifications from "../../hooks/usePushNotifications";
 

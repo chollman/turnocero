@@ -1,13 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit';
-
-// Placeholder reducer so combineReducers doesn't warn on an empty store.
-// Removed once Fase 1 adds the first real slice (theme/language).
-const placeholderReducer = (state = {}) => state;
+import themeReducer, { themeListenerMiddleware } from './slices/themeSlice';
+import languageReducer, { languageListenerMiddleware } from './slices/languageSlice';
 
 export const store = configureStore({
   reducer: {
-    app: placeholderReducer,
+    theme: themeReducer,
+    language: languageReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware()
+      .prepend(themeListenerMiddleware.middleware)
+      .prepend(languageListenerMiddleware.middleware),
   // Vite doesn't define process.env.NODE_ENV the way RTK's default check
   // expects, so drive devtools visibility from import.meta.env explicitly.
   devTools: import.meta.env.DEV,

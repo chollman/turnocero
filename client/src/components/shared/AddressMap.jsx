@@ -6,7 +6,7 @@ import {
   useMap,
 } from "@vis.gl/react-google-maps";
 import { Trans, useTranslation } from "react-i18next";
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "../../hooks/useTheme";
 import styles from "./AddressMap.module.css";
 
 // Default center: Obelisco, CABA.
