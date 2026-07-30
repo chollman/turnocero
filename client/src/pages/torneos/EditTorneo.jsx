@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import { useTorneoQuery, updateTorneo, torneoKeys } from "../../queries/torneos";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import BackButton from "../../components/shared/BackButton";
@@ -16,8 +16,8 @@ export default function EditTorneo() {
   const { id } = useParams();
   const navigate = useNavigate();
   const brandName = useBrandName();
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const queryClient = useQueryClient();
+  const { data, isPending: loading, isError: notFound } = useTorneoQuery(id);
   const [title, setTitle] = useState("");
   const [description, setDesc] = useState("");
   const [game, setGame] = useState("");
@@ -36,33 +36,20 @@ export default function EditTorneo() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const ac = new AbortController();
-    axios
-      .get(API.torneos.DETAIL(id), { signal: ac.signal })
-      .then(({ data }) => {
-        if (ac.signal.aborted) return;
-        setTitle(data.title || "");
-        setDesc(data.description || "");
-        setGame(data.game || "");
-        setMax(data.maxParticipants ?? "");
-        setFecha(data.fecha ? toLocalInputValue(data.fecha) : "");
-        setInscMode(data.inscriptionMode || "open");
-        setTorneoFormat(data.format);
-        setTorneoStatus(data.status);
-        setTableSize(data.tableSize ?? 4);
-        setGamesPerGroup(data.gamesPerGroup ?? 3);
-        setQualif(data.qualifiersPerGroup ?? 2);
-        setCurrentImage(data.image?.url || null);
-      })
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        setNotFound(true);
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setLoading(false);
-      });
-    return () => ac.abort();
-  }, [id]);
+    if (!data) return;
+    setTitle(data.title || "");
+    setDesc(data.description || "");
+    setGame(data.game || "");
+    setMax(data.maxParticipants ?? "");
+    setFecha(data.fecha ? toLocalInputValue(data.fecha) : "");
+    setInscMode(data.inscriptionMode || "open");
+    setTorneoFormat(data.format);
+    setTorneoStatus(data.status);
+    setTableSize(data.tableSize ?? 4);
+    setGamesPerGroup(data.gamesPerGroup ?? 3);
+    setQualif(data.qualifiersPerGroup ?? 2);
+    setCurrentImage(data.image?.url || null);
+  }, [data]);
 
   const handleFile = (f) => {
     setFile(f);
@@ -88,9 +75,8 @@ export default function EditTorneo() {
         fd.append("qualifiersPerGroup", String(qualifiersPerGroup));
       }
       if (file) fd.append("image", file);
-      await axios.put(API.torneos.DETAIL(id), fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data: updated } = await updateTorneo(id, fd);
+      queryClient.setQueryData(torneoKeys.detail(id), updated);
       navigate(`/torneos/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || t("form.saveError"));

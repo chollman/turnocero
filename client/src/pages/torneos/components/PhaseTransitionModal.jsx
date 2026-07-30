@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import ModalPortal from "../../../components/shared/ModalPortal";
-import { API } from "../../../api/endpoints";
+import {
+  useTorneoNextPhasePreviewQuery,
+  generateNextPhase,
+} from "../../../queries/torneos";
 import styles from "../TorneoDetail.module.css";
 
 export default function PhaseTransitionModal({
@@ -11,33 +13,24 @@ export default function PhaseTransitionModal({
   onGenerated,
 }) {
   const { t } = useTranslation("torneos");
-  const [preview, setPreview] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: preview,
+    isPending: loading,
+    isError: previewErrored,
+  } = useTorneoNextPhasePreviewQuery(torneoId);
   const [submitting, setSub] = useState(false);
-  const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [overrideTableSize, setOverride] = useState(null);
-
-  useEffect(() => {
-    axios
-      .get(API.torneos.NEXT_PHASE_PREVIEW(torneoId))
-      .then(({ data }) => setPreview(data))
-      .catch((err) =>
-        setError(err.response?.data?.message || t("phase.errorPreview")),
-      )
-      .finally(() => setLoading(false));
-  }, [torneoId, t]);
+  const error = previewErrored ? t("phase.errorPreview") : submitError;
 
   const submit = async (tableSize) => {
     setSub(true);
-    setError("");
+    setSubmitError("");
     try {
-      await axios.post(
-        API.torneos.NEXT_PHASE(torneoId),
-        tableSize ? { tableSize } : {},
-      );
+      await generateNextPhase(torneoId, tableSize ? { tableSize } : {});
       onGenerated();
     } catch (err) {
-      setError(err.response?.data?.message || t("phase.errorGenerate"));
+      setSubmitError(err.response?.data?.message || t("phase.errorGenerate"));
     } finally {
       setSub(false);
     }

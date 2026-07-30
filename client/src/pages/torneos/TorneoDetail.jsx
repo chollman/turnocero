@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import {
+  useTorneoQuery,
+  useTorneoMatchesQuery,
+  useTorneoStandingsQuery,
+  torneoKeys,
+  recordMatchResult,
+  undoMatchResult,
+} from "../../queries/torneos";
 import UserRef from "../../components/shared/UserRef";
 import AdminPanel from "./components/AdminPanel";
 import RegistrationsList from "./components/RegistrationsList";
@@ -52,6 +59,11 @@ const TAB_LABEL = {
   participants: "detail.tabParticipants",
 };
 
+// Referencias estables — evitan un array nuevo en cada render mientras las
+// queries no tienen datos.
+const EMPTY_MATCHES = [];
+const EMPTY_STANDINGS = [];
+
 export default function TorneoDetail() {
   const { t } = useTranslation("torneos");
   const { id } = useParams();
@@ -60,77 +72,60 @@ export default function TorneoDetail() {
   const { setActiveTorneo } = useNotifications();
   const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setActiveTorneo(id);
   }, [id, setActiveTorneo]);
 
-  const [torneo, setTorneo] = useState(null);
-  const [matches, setMatches] = useState([]);
-  const [standings, setStandings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
   const [recordingMatch, setRecording] = useState(null);
   const [reorderingSeeds, setReordering] = useState(false);
   const [addingParticipants, setAddingParticipants] = useState(false);
 
-  const loadAll = useCallback(
-    async (signal) => {
-      try {
-        const t = await axios.get(API.torneos.DETAIL(id), { signal });
-        if (signal?.aborted) return;
-        const torneoData = t.data;
-        setTorneo(torneoData);
+  const {
+    data: torneo,
+    isPending: loadingTorneo,
+    isError,
+  } = useTorneoQuery(id);
+  // Formato "groups" no usa /matches ni /standings — GroupsView carga
+  // /groups por su cuenta con su propia query.
+  const isGroups = torneo?.format === "groups";
+  const matchesEnabled = !!torneo && !isGroups;
+  const {
+    data: matches = EMPTY_MATCHES,
+    isPending: matchesPending,
+  } = useTorneoMatchesQuery(id, { enabled: matchesEnabled });
+  const {
+    data: standings = EMPTY_STANDINGS,
+    isPending: standingsPending,
+  } = useTorneoStandingsQuery(id, { enabled: matchesEnabled });
+  const loading =
+    loadingTorneo || (matchesEnabled && (matchesPending || standingsPending));
 
-        // For groups format we don't need /matches or /standings; the GroupsView
-        // loads /groups separately.
-        if (torneoData.format !== "groups") {
-          const [m, s] = await Promise.all([
-            axios.get(API.torneos.MATCHES(id), { signal }),
-            axios.get(API.torneos.STANDINGS(id), { signal }).catch((err) => {
-              if (axios.isCancel(err)) throw err;
-              return { data: { standings: [] } };
-            }),
-          ]);
-          if (signal?.aborted) return;
-          setMatches(m.data || []);
-          setStandings(s.data?.standings || []);
-        } else {
-          setMatches([]);
-          setStandings([]);
-        }
-        const defaultTab = TABS_BY_FORMAT[torneoData.format]?.[0];
-        setActiveTab((prev) => prev || defaultTab);
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        if (err.response?.status === 404) setNotFound(true);
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
-    [id],
-  );
-
+  // Seedea el tab activo una sola vez, al formato del torneo recién cargado.
   useEffect(() => {
-    const ac = new AbortController();
-    loadAll(ac.signal);
-    return () => ac.abort();
-  }, [loadAll]);
+    if (torneo && activeTab === null) {
+      setActiveTab(TABS_BY_FORMAT[torneo.format]?.[0] || null);
+    }
+  }, [torneo, activeTab]);
 
-  const refresh = () => loadAll();
+  const refresh = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: torneoKeys.detail(id) }),
+    [queryClient, id],
+  );
 
   const handleRecord = async (payload) => {
     if (!recordingMatch) return;
-    await axios.post(API.torneos.MATCH_RESULT(id, recordingMatch._id), payload);
+    await recordMatchResult(id, recordingMatch._id, payload);
     setRecording(null);
-    await loadAll();
+    await refresh();
   };
 
   const handleUndoResult = async (match) => {
     try {
-      await axios.delete(API.torneos.MATCH_RESULT(id, match._id));
-      await loadAll();
+      await undoMatchResult(id, match._id);
+      await refresh();
     } catch (err) {
       alert(err.response?.data?.message || t("detail.undoError"));
     }
@@ -146,7 +141,7 @@ export default function TorneoDetail() {
     );
   }
 
-  if (notFound || !torneo) {
+  if (isError || !torneo) {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
@@ -244,7 +239,9 @@ export default function TorneoDetail() {
         {showAdminUI && (
           <AdminPanel
             torneo={torneo}
-            onChange={(updated) => setTorneo(updated)}
+            onChange={(updated) =>
+              queryClient.setQueryData(torneoKeys.detail(id), updated)
+            }
             onReorderSeeds={() => setReordering(true)}
             onAddParticipants={() => setAddingParticipants(true)}
             onDelete={() => navigate("/torneos")}
@@ -258,7 +255,9 @@ export default function TorneoDetail() {
             </h3>
             <RegistrationsList
               torneo={torneo}
-              onChange={(updated) => setTorneo(updated)}
+              onChange={(updated) =>
+              queryClient.setQueryData(torneoKeys.detail(id), updated)
+            }
             />
           </section>
         )}
@@ -309,7 +308,9 @@ export default function TorneoDetail() {
             <ParticipantsList
               torneo={torneo}
               isAdmin={showAdminUI}
-              onChange={(updated) => setTorneo(updated)}
+              onChange={(updated) =>
+              queryClient.setQueryData(torneoKeys.detail(id), updated)
+            }
             />
           )}
         </section>
@@ -329,7 +330,7 @@ export default function TorneoDetail() {
           torneo={torneo}
           onClose={() => setReordering(false)}
           onSaved={(updated) => {
-            setTorneo(updated);
+            queryClient.setQueryData(torneoKeys.detail(id), updated);
             setReordering(false);
           }}
         />
@@ -339,7 +340,9 @@ export default function TorneoDetail() {
         <AddParticipantModal
           torneo={torneo}
           onClose={() => setAddingParticipants(false)}
-          onChange={(updated) => setTorneo(updated)}
+          onChange={(updated) =>
+            queryClient.setQueryData(torneoKeys.detail(id), updated)
+          }
         />
       )}
     </div>

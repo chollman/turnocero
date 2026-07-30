@@ -1,8 +1,11 @@
 import { useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { API } from "../../../api/endpoints";
+import {
+  changeTorneoStatus,
+  deleteTorneo,
+  resetTorneo,
+} from "../../../queries/torneos";
 import styles from "../TorneoDetail.module.css";
 
 const NEXT_LABEL = {
@@ -38,9 +41,7 @@ export default function AdminPanel({
     setBusy(true);
     setError("");
     try {
-      const { data } = await axios.patch(API.torneos.STATUS(torneo._id), {
-        status,
-      });
+      const { data } = await changeTorneoStatus(torneo._id, status);
       onChange(data);
     } catch (err) {
       setError(err.response?.data?.message || t("adminPanel.errorStatus"));
@@ -55,7 +56,7 @@ export default function AdminPanel({
     setBusy(true);
     setError("");
     try {
-      await axios.delete(API.torneos.DETAIL(torneo._id));
+      await deleteTorneo(torneo._id);
       onDelete();
     } catch (err) {
       setError(err.response?.data?.message || t("adminPanel.errorDelete"));
@@ -68,7 +69,7 @@ export default function AdminPanel({
     setBusy(true);
     setError("");
     try {
-      const { data } = await axios.post(API.torneos.RESET(torneo._id));
+      const { data } = await resetTorneo(torneo._id);
       onChange(data);
     } catch (err) {
       setError(err.response?.data?.message || t("adminPanel.errorReset"));

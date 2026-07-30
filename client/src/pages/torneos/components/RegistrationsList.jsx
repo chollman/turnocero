@@ -1,10 +1,12 @@
 import { useState } from "react";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import { getLocale } from "../../../utils/locale";
-import { API } from "../../../api/endpoints";
+import {
+  acceptRegistration,
+  rejectRegistration,
+} from "../../../queries/torneos";
 import styles from "../TorneoDetail.module.css";
 
 export default function RegistrationsList({ torneo, onChange }) {
@@ -38,9 +40,7 @@ function RegistrationItem({ registration, torneoId, onChange }) {
   const accept = async () => {
     setBusy(true);
     try {
-      const { data } = await axios.post(
-        API.torneos.REGISTRATION_ACCEPT(torneoId, userId),
-      );
+      const { data } = await acceptRegistration(torneoId, userId);
       onChange(data);
     } catch {
       /* user can retry */
@@ -52,9 +52,7 @@ function RegistrationItem({ registration, torneoId, onChange }) {
   const reject = async () => {
     setBusy(true);
     try {
-      const { data } = await axios.post(
-        API.torneos.REGISTRATION_REJECT(torneoId, userId),
-      );
+      const { data } = await rejectRegistration(torneoId, userId);
       onChange(data);
     } catch {
       /* user can retry */

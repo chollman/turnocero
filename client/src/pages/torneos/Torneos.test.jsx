@@ -2,8 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
@@ -25,11 +35,13 @@ function renderPage({
 } = {}) {
   useAuth.mockReturnValue({ user, isActuallyAdmin, viewAsUser });
   return render(
-    <HelmetProvider>
-      <MemoryRouter>
-        <Torneos />
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter>
+          <Torneos />
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 

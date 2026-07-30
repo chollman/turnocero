@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import { useTorneosQuery } from "../../queries/torneos";
 import EmptyState from "../../components/shared/EmptyState";
 import { ArtTorneo, ArtSearch } from "../../components/shared/EmptyArt";
 import { GhostRows } from "../../components/shared/EmptyGhosts";
@@ -20,53 +19,32 @@ const STATUS_TABS = [
   { id: "finished", labelKey: "tabFinished", filter: "finished" },
 ];
 
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query no tiene datos.
+const EMPTY_TORNEOS = [];
+
 export default function Torneos() {
   const { t } = useTranslation("torneos");
   const { isActuallyAdmin, viewAsUser } = useAuth();
   const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
 
-  const [torneos, setTorneos] = useState([]);
   const [tab, setTab] = useState("all");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotal] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setMore] = useState(false);
   const navigate = useNavigate();
 
-  const load = useCallback(
-    async (pageNum = 1, replace = true, statusFilter = null, signal) => {
-      if (pageNum === 1) setLoading(true);
-      else setMore(true);
-      try {
-        const params = { page: pageNum, limit: 12 };
-        if (statusFilter) params.status = statusFilter;
-        const { data } = await axios.get(API.torneos.LIST, { params, signal });
-        if (signal?.aborted) return;
-        setTorneos((prev) =>
-          replace ? data.torneos : [...prev, ...data.torneos],
-        );
-        setTotal(data.pages);
-        setPage(pageNum);
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        /* silently ignore */
-      } finally {
-        if (!signal?.aborted) {
-          setLoading(false);
-          setMore(false);
-        }
-      }
-    },
-    [],
-  );
+  const statusFilter = STATUS_TABS.find((s) => s.id === tab)?.filter || null;
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage,
+    fetchNextPage,
+  } = useTorneosQuery({ status: statusFilter });
 
-  useEffect(() => {
-    const ac = new AbortController();
-    const f = STATUS_TABS.find((s) => s.id === tab)?.filter || null;
-    load(1, true, f, ac.signal);
-    return () => ac.abort();
-  }, [tab, load]);
+  const torneos = useMemo(
+    () => data?.pages.flatMap((p) => p.torneos) ?? EMPTY_TORNEOS,
+    [data],
+  );
 
   const showDrafts = showAdminUI && tab === "all";
   const drafts = showDrafts ? torneos.filter((t) => t.status === "draft") : [];
@@ -175,14 +153,10 @@ export default function Torneos() {
               ))}
             </div>
 
-            {page < totalPages && (
+            {hasNextPage && (
               <button
                 className={styles.loadMoreBtn}
-                onClick={() => {
-                  const f =
-                    STATUS_TABS.find((s) => s.id === tab)?.filter || null;
-                  load(page + 1, false, f);
-                }}
+                onClick={() => fetchNextPage()}
                 disabled={loadingMore}
               >
                 {loadingMore ? t("list.loadingMore") : t("list.loadMore")}

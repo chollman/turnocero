@@ -1,8 +1,18 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("./GroupStandings", () => ({
   default: ({ standings }) => (
@@ -32,9 +42,15 @@ function renderView({
   isAdmin = false,
 } = {}) {
   return render(
-    <MemoryRouter>
-      <GroupsView torneo={torneo} isAdmin={isAdmin} onTorneoChange={vi.fn()} />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <GroupsView
+          torneo={torneo}
+          isAdmin={isAdmin}
+          onTorneoChange={vi.fn()}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

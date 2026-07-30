@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import ModalPortal from "../../../components/shared/ModalPortal";
-import { API } from "../../../api/endpoints";
+import { reorderSeeds } from "../../../queries/torneos";
 import styles from "../TorneoDetail.module.css";
 
 export default function SeedReorderModal({ torneo, onClose, onSaved }) {
@@ -30,9 +29,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
     setError("");
     try {
       const ids = order.map((u) => u._id || u);
-      const { data } = await axios.patch(API.torneos.SEEDS(torneo._id), {
-        participantIds: ids,
-      });
+      const { data } = await reorderSeeds(torneo._id, ids);
       onSaved(data);
     } catch (err) {
       setError(err.response?.data?.message || t("seeds.errorSave"));

@@ -2,8 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("./components/ImageDropzone", () => ({ default: () => null }));
 
@@ -36,13 +46,15 @@ function setupTorneo(torneo) {
 
 function renderPage({ id = "t1" } = {}) {
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[`/torneos/${id}/editar`]}>
-        <Routes>
-          <Route path="/torneos/:id/editar" element={<EditTorneo />} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[`/torneos/${id}/editar`]}>
+          <Routes>
+            <Route path="/torneos/:id/editar" element={<EditTorneo />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 

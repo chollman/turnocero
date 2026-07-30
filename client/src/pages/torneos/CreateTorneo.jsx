@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { Trans, useTranslation } from "react-i18next";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import { createTorneo } from "../../queries/torneos";
 import { fromLocalInputValue } from "../../utils/eventoDate";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import BackButton from "../../components/shared/BackButton";
@@ -58,9 +57,7 @@ export default function CreateTorneo() {
         fd.append("qualifiersPerGroup", String(qualifiersPerGroup));
       }
       if (file) fd.append("image", file);
-      const { data } = await axios.post(API.torneos.LIST, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await createTorneo(fd);
       navigate(`/torneos/${data._id}`);
     } catch (err) {
       setError(err.response?.data?.message || t("form.createError"));

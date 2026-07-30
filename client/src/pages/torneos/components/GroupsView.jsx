@@ -1,9 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Trans, useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
-import { API } from "../../../api/endpoints";
+import {
+  useTorneoGroupsQuery,
+  torneoKeys,
+  recordGameResult,
+  undoGameResult,
+  saveGroupAdvanced,
+} from "../../../queries/torneos";
 import GroupStandings from "./GroupStandings";
 import GameScoreModal from "./GameScoreModal";
 import PhaseTransitionModal from "./PhaseTransitionModal";
@@ -11,41 +17,27 @@ import styles from "../TorneoDetail.module.css";
 
 export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
   const { t } = useTranslation("torneos");
-  const [phaseData, setPhaseData] = useState(null);
+  const queryClient = useQueryClient();
   const [activePhase, setActivePhase] = useState(torneo.currentPhase || 1);
-  const [loading, setLoading] = useState(true);
   const [recordingGame, setRecordingGame] = useState(null);
   const [recordingGroup, setRecordingGroup] = useState(null);
   const [showPhaseModal, setShowPhaseModal] = useState(false);
   const [editingAdvanced, setEditingAdvanced] = useState(null); // groupId currently in edit-mode
 
-  const load = useCallback(
-    async (phaseToLoad) => {
-      setLoading(true);
-      try {
-        const { data } = await axios.get(API.torneos.GROUPS(torneo._id), {
-          params: { phase: phaseToLoad },
-        });
-        setPhaseData(data);
-      } catch {
-        /* show empty state on failure */
-      } finally {
-        setLoading(false);
-      }
-    },
-    [torneo._id],
+  const { data: phaseData, isPending: loading } = useTorneoGroupsQuery(
+    torneo._id,
+    activePhase,
   );
-
-  useEffect(() => {
-    load(activePhase);
-  }, [load, activePhase]);
 
   // When torneo.currentPhase changes (e.g., after generating next phase), jump to it.
   useEffect(() => {
     setActivePhase(torneo.currentPhase || 1);
   }, [torneo.currentPhase]);
 
-  const refresh = () => load(activePhase);
+  const refresh = () =>
+    queryClient.invalidateQueries({
+      queryKey: torneoKeys.groups(torneo._id, activePhase),
+    });
 
   if (loading || !phaseData) {
     return <p className={styles.emptyMsg}>{t("groups.loading")}</p>;
@@ -68,9 +60,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
 
   const handleRecord = async ({ results }) => {
     if (!recordingGame) return;
-    await axios.post(API.torneos.GAME_RESULT(torneo._id, recordingGame._id), {
-      results,
-    });
+    await recordGameResult(torneo._id, recordingGame._id, results);
     setRecordingGame(null);
     setRecordingGroup(null);
     await refresh();
@@ -78,7 +68,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
 
   const handleUndoResult = async (game) => {
     try {
-      await axios.delete(API.torneos.GAME_RESULT(torneo._id, game._id));
+      await undoGameResult(torneo._id, game._id);
       await refresh();
     } catch (err) {
       alert(err.response?.data?.message || t("detail.undoError"));
@@ -96,9 +86,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
 
   const saveAdvanced = async (group, advancedIds) => {
     try {
-      await axios.patch(API.torneos.GROUP_ADVANCED(torneo._id, group._id), {
-        advancedPlayers: advancedIds,
-      });
+      await saveGroupAdvanced(torneo._id, group._id, advancedIds);
       setEditingAdvanced(null);
       await refresh();
     } catch (err) {

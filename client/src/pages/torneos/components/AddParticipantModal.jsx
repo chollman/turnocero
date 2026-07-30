@@ -1,21 +1,22 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
-import { API } from "../../../api/endpoints";
+import { useUserSearchQuery, addParticipant } from "../../../queries/torneos";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import ModalPortal from "../../../components/shared/ModalPortal";
 import styles from "../TorneoDetail.module.css";
 
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query no tiene datos.
+const EMPTY_RESULTS = [];
+
 export default function AddParticipantModal({ torneo, onClose, onChange }) {
   const { t } = useTranslation("torneos");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(null);
-  const [error, setError] = useState("");
+  const [addError, setAddError] = useState("");
 
   const participantIds = new Set(
     (torneo.participants || []).map((p) => String(p._id || p)),
@@ -29,39 +30,21 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
     torneo.maxParticipants &&
     (torneo.participants?.length || 0) >= torneo.maxParticipants;
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const { data } = await axios.get(API.users.LIST, {
-          params: debouncedSearch ? { search: debouncedSearch } : {},
-        });
-        if (!cancelled) setResults(data || []);
-      } catch (err) {
-        if (!cancelled)
-          setError(err.response?.data?.message || t("addParticipant.errorSearch"));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedSearch, t]);
+  const {
+    data: results = EMPTY_RESULTS,
+    isFetching: loading,
+    isError: searchErrored,
+  } = useUserSearchQuery(debouncedSearch);
+  const error = searchErrored ? t("addParticipant.errorSearch") : addError;
 
   const addUser = async (userId) => {
     setAdding(userId);
-    setError("");
+    setAddError("");
     try {
-      const { data } = await axios.post(
-        API.torneos.PARTICIPANT(torneo._id, userId),
-      );
+      const { data } = await addParticipant(torneo._id, userId);
       onChange(data);
     } catch (err) {
-      setError(err.response?.data?.message || t("addParticipant.errorAdd"));
+      setAddError(err.response?.data?.message || t("addParticipant.errorAdd"));
     } finally {
       setAdding(null);
     }

@@ -1,10 +1,20 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../../test/server";
 
 import PhaseTransitionModal from "./PhaseTransitionModal";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 function setupPreview(preview) {
   server.use(
@@ -16,13 +26,15 @@ function setupPreview(preview) {
 
 function renderModal({ onClose = vi.fn(), onGenerated = vi.fn() } = {}) {
   return render(
-    <MemoryRouter>
-      <PhaseTransitionModal
-        torneoId="t1"
-        onClose={onClose}
-        onGenerated={onGenerated}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <PhaseTransitionModal
+          torneoId="t1"
+          onClose={onClose}
+          onGenerated={onGenerated}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

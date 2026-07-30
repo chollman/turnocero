@@ -1,9 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
-import { API } from "../../../api/endpoints";
+import { removeParticipant } from "../../../queries/torneos";
 import styles from "../TorneoDetail.module.css";
 
 export default function ParticipantsList({ torneo, isAdmin, onChange }) {
@@ -41,9 +40,7 @@ function ParticipantItem({ user, seed, torneoId, canRemove, onChange }) {
   const remove = async () => {
     setBusy(true);
     try {
-      const { data } = await axios.delete(
-        API.torneos.PARTICIPANT(torneoId, user._id),
-      );
+      const { data } = await removeParticipant(torneoId, user._id);
       onChange(data);
     } catch {
       /* silently keep the row; user can retry */

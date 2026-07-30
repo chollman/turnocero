@@ -7,10 +7,20 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../../test/server";
 
 import AddParticipantModal from "./AddParticipantModal";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const USERS = [
   {
@@ -48,13 +58,15 @@ function renderModal({
   onChange = vi.fn(),
 } = {}) {
   return render(
-    <MemoryRouter>
-      <AddParticipantModal
-        torneo={torneo}
-        onClose={onClose}
-        onChange={onChange}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <AddParticipantModal
+          torneo={torneo}
+          onClose={onClose}
+          onChange={onChange}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
