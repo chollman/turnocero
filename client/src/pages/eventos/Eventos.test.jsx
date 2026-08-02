@@ -2,8 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
@@ -74,11 +84,13 @@ function renderPage({
   useAuth.mockReturnValue({ user });
   useNotifications.mockReturnValue({ addToast });
   return render(
-    <HelmetProvider>
-      <MemoryRouter>
-        <Eventos />
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter>
+          <Eventos />
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -595,7 +607,10 @@ describe("<Eventos>", () => {
       evento: { _id: "ev1", title: "Va a cerrar", status: "closed" },
     });
 
-    expect(screen.queryByText("Va a cerrar")).not.toBeInTheDocument();
+    // setQueryData notifica por microtask (ver feedback_tanstack_query_test_timing).
+    await waitFor(() => {
+      expect(screen.queryByText("Va a cerrar")).not.toBeInTheDocument();
+    });
   });
 
   it("renders the radius slider + step buttons for logged-in users", async () => {
@@ -756,8 +771,11 @@ describe("<Eventos>", () => {
     // (simulando el race condition real).
     await triggerSocket("evento:created", { evento: newEvento });
 
-    // El evento ya debería estar en la lista por el socket.
-    expect(screen.getByText("Recién Creado")).toBeInTheDocument();
+    // El evento ya debería estar en la lista por el socket. setQueryData
+    // notifica por microtask (ver feedback_tanstack_query_test_timing).
+    await waitFor(() => {
+      expect(screen.getByText("Recién Creado")).toBeInTheDocument();
+    });
 
     // Ahora resolvemos el POST. handleCreate continúa y intenta agregar
     // — sin el dedup que agregamos, aparecía DOS veces.

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -14,6 +15,29 @@ import { useNotifications } from "../../context/NotificationContext";
 
 function setUser(u) {
   useAuth.mockReturnValue({ user: u });
+}
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
+function renderPicker(props = {}) {
+  return render(
+    <QueryClientProvider client={makeQueryClient()}>
+      <EventoLudotecaPicker
+        eventoId="ev1"
+        isOpen
+        onClose={() => {}}
+        onAdded={() => {}}
+        {...props}
+      />
+    </QueryClientProvider>,
+  );
 }
 
 beforeEach(() => {
@@ -55,14 +79,7 @@ beforeEach(() => {
 describe("<EventoLudotecaPicker>", () => {
   it("shows BGG search tab by default for users without bggUsername", () => {
     setUser({ _id: "me", username: "me" });
-    render(
-      <EventoLudotecaPicker
-        eventoId="ev1"
-        isOpen
-        onClose={() => {}}
-        onAdded={() => {}}
-      />,
-    );
+    renderPicker();
     expect(
       screen.getByLabelText(/buscar juego en boardgame/i),
     ).toBeInTheDocument();
@@ -74,28 +91,14 @@ describe("<EventoLudotecaPicker>", () => {
 
   it("defaults to 'Mi colección' tab for users with bggUsername", async () => {
     setUser({ _id: "me", username: "me", bggUsername: "alicebgg" });
-    render(
-      <EventoLudotecaPicker
-        eventoId="ev1"
-        isOpen
-        onClose={() => {}}
-        onAdded={() => {}}
-      />,
-    );
+    renderPicker();
     expect(await screen.findByText("Catan")).toBeInTheDocument();
     expect(screen.getByText("Wingspan")).toBeInTheDocument();
   });
 
   it("switching to 'Buscar BGG' tab shows the search input", async () => {
     setUser({ _id: "me", username: "me", bggUsername: "alicebgg" });
-    render(
-      <EventoLudotecaPicker
-        eventoId="ev1"
-        isOpen
-        onClose={() => {}}
-        onAdded={() => {}}
-      />,
-    );
+    renderPicker();
     await screen.findByText("Catan");
     fireEvent.click(screen.getByRole("tab", { name: /buscar bgg/i }));
     expect(
@@ -107,14 +110,7 @@ describe("<EventoLudotecaPicker>", () => {
     setUser({ _id: "me", username: "me", bggUsername: "alicebgg" });
     const onAdded = vi.fn();
     const onClose = vi.fn();
-    render(
-      <EventoLudotecaPicker
-        eventoId="ev1"
-        isOpen
-        onClose={onClose}
-        onAdded={onAdded}
-      />,
-    );
+    renderPicker({ onClose, onAdded });
     const item = await screen.findByRole("button", { name: /catan/i });
     fireEvent.click(item);
     // Confirm view rendered
@@ -129,36 +125,23 @@ describe("<EventoLudotecaPicker>", () => {
 
   it("disables items the user already added (myAddedIds)", async () => {
     setUser({ _id: "me", username: "me", bggUsername: "alicebgg" });
-    render(
-      <EventoLudotecaPicker
-        eventoId="ev1"
-        isOpen
-        onClose={() => {}}
-        onAdded={() => {}}
-        existingItems={[
-          {
-            _id: "exist1",
-            bggGameId: 13,
-            gameName: "Catan",
-            addedBy: { _id: "me", username: "me" },
-          },
-        ]}
-      />,
-    );
+    renderPicker({
+      existingItems: [
+        {
+          _id: "exist1",
+          bggGameId: 13,
+          gameName: "Catan",
+          addedBy: { _id: "me", username: "me" },
+        },
+      ],
+    });
     const item = await screen.findByRole("button", { name: /catan/i });
     expect(item).toBeDisabled();
   });
 
   it("'← Elegir otro' goes back to the picker view", async () => {
     setUser({ _id: "me", username: "me", bggUsername: "alicebgg" });
-    render(
-      <EventoLudotecaPicker
-        eventoId="ev1"
-        isOpen
-        onClose={() => {}}
-        onAdded={() => {}}
-      />,
-    );
+    renderPicker();
     const item = await screen.findByRole("button", { name: /catan/i });
     fireEvent.click(item);
     await screen.findByRole("button", { name: /agregar a la ludoteca/i });
@@ -171,14 +154,7 @@ describe("<EventoLudotecaPicker>", () => {
 
   it("shows a connect-BGG hint on the collection tab when user has no bggUsername", () => {
     setUser({ _id: "me", username: "me" });
-    render(
-      <EventoLudotecaPicker
-        eventoId="ev1"
-        isOpen
-        onClose={() => {}}
-        onAdded={() => {}}
-      />,
-    );
+    renderPicker();
     // Tab "Mi colección" doesn't show — only "Buscar BGG" available
     expect(
       screen.getByLabelText(/buscar juego en boardgame/i),

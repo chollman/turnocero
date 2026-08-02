@@ -1,13 +1,21 @@
 import Meeple from "../../components/shared/Meeple";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import {
+  useEventoQuery,
+  useEventoLudotecaQuery,
+  useEventoMesasQuery,
+  eventoKeys,
+  inscribirseEvento,
+  cancelarInscripcion,
+  updateEvento,
+} from "../../queries/eventos";
 import useTickingNow from "../../utils/useTickingNow";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Modal from "../../components/shared/Modal";
@@ -100,9 +108,7 @@ export default function EventoDetail() {
     return () => setActiveEvento(null);
   }, [id, setActiveEvento]);
 
-  const [evento, setEvento] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const queryClient = useQueryClient();
   const [lightbox, setLightbox] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
@@ -112,50 +118,51 @@ export default function EventoDetail() {
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
 
-  // Ludoteca state — al tope para que el badge "Ludoteca (N)" se actualice
-  // en vivo via socket sin esperar a que el user abra esa tab.
-  const [ludotecaItems, setLudotecaItems] = useState(null);
-  // Mesas state — mismo patrón. Fetcheado por separado al GET del evento
-  // (la lista de mesas asociadas no viene en `evento.ludoteca` porque son
-  // documentos del modelo `Table` con `eventoId`). El badge Mesas (N) usa
-  // este state.
-  const [mesasItems, setMesasItems] = useState(null);
-
   // Ticker para que TicketStub refresque su countdown ("en X días").
   const now = useTickingNow();
 
+  const { data: evento, isPending: loading, isError } = useEventoQuery(id);
+  // El socket `evento:deleted` fuerza el estado not-found sin esperar un
+  // refetch — `notFound` combina el error real de la query (404/otros) con
+  // este flag local seteado por el handler onDeleted de abajo.
+  const [forcedGone, setForcedGone] = useState(false);
+  const notFound = isError || forcedGone;
+
+  // Ludoteca: cache-only (mismo patrón que TableChat/notifications — ver
+  // Fases 3/5/6). El server embebe `ludoteca` en el GET /eventos/:id, así
+  // que no hay un GET propio que fetchear acá — se siembra desde
+  // `evento.ludoteca` una sola vez por id y de ahí en más la mantienen al
+  // día el socket + las mutaciones locales (ver shim `setLudotecaItems`).
+  const { data: ludotecaItems } = useEventoLudotecaQuery(id);
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      try {
-        const { data } = await axios.get(API.eventos.DETAIL(id));
-        if (cancelled) return;
-        setEvento(data);
-        setLudotecaItems(data.ludoteca || []);
-        // Mesas: fetch en paralelo. Falla silenciosa (UI cae al fetch
-        // propio de EventoMesas como fallback si seguimos en la página).
-        axios
-          .get(API.eventos.MESAS(id))
-          .then(({ data: mesasData }) => {
-            if (cancelled) return;
-            setMesasItems(mesasData.tables || []);
-          })
-          .catch(() => {
-            if (cancelled) return;
-            setMesasItems([]);
-          });
-      } catch (err) {
-        if (!cancelled && err.response?.status === 404) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    if (evento) {
+      queryClient.setQueryData(eventoKeys.ludoteca(id), evento.ludoteca || []);
     }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+    // Sembrar solo una vez que el evento de ESTE id llegó — no en cada
+    // patch/refetch posterior (el socket ya lleva la cache desde acá).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, !!evento]);
+  const setLudotecaItems = useCallback(
+    (updater) =>
+      queryClient.setQueryData(eventoKeys.ludoteca(id), (prev) =>
+        typeof updater === "function" ? updater(prev ?? null) : updater,
+      ),
+    [queryClient, id],
+  );
+
+  // Mesas del evento — fetch real, separado del detail (el server no lo
+  // embebe). Se dispara recién cuando `evento` resolvió, igual que el
+  // fetch secuencial original.
+  const { data: mesasItems } = useEventoMesasQuery(id, {
+    enabled: !!evento,
+  });
+  const setMesasItems = useCallback(
+    (updater) =>
+      queryClient.setQueryData(eventoKeys.mesas(id), (prev) =>
+        typeof updater === "function" ? updater(prev ?? null) : updater,
+      ),
+    [queryClient, id],
+  );
 
   // Real-time: extraído al hook useEventoSocket. Mantiene los callbacks en
   // refs para no reconectar el socket en cada render (antes el effect tenía
@@ -183,12 +190,12 @@ export default function EventoDetail() {
     },
     onCountsChanged: (payload) => {
       if (!payload.counts) return;
-      setEvento((prev) =>
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) =>
         prev ? { ...prev, registrationCount: payload.counts } : prev,
       );
     },
     onReviewed: (payload) => {
-      setEvento((prev) => {
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) => {
         if (!prev) return prev;
         const next = { ...prev };
         if (payload.counts) next.registrationCount = payload.counts;
@@ -248,20 +255,18 @@ export default function EventoDetail() {
       // El payload trae userRegistration:null porque el server no conoce al
       // caller del socket. mergeEventoUpdate preserva la inscripción del user
       // y la lista de confirmados del estado previo.
-      setEvento((prev) =>
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) =>
         prev ? mergeEventoUpdate(prev, payload.evento) : payload.evento,
       );
     },
     onMesaCreated: (payload) => {
       // El server emite `evento:mesa-created` con `{ eventoId, tableId }`.
-      // No incluye el table populado, así que pedimos la lista entera (es
-      // chica y poco frecuente). Dedupe por _id en handleAdded del child
-      // cubre la race optimistic vs socket (ver feedback_optimistic_vs_socket).
+      // No incluye el table populado, así que refetcheamos la lista entera
+      // (es chica y poco frecuente). Dedupe por _id en handleAdded del
+      // child cubre la race optimistic vs socket (ver
+      // feedback_optimistic_vs_socket).
       if (!payload?.tableId) return;
-      axios
-        .get(API.eventos.MESAS(id))
-        .then(({ data }) => setMesasItems(data.tables || []))
-        .catch(() => {});
+      queryClient.invalidateQueries({ queryKey: eventoKeys.mesas(id) });
     },
     onDeleted: () => {
       // Admin eliminó el evento mientras estábamos viéndolo — caemos al
@@ -269,7 +274,7 @@ export default function EventoDetail() {
       // ahora vería un refresh. Las notificaciones persistentes
       // (`evento_cancelled` con `eventoDeleted: true`) ya avisan al user;
       // este handler solo cierra el UI obsoleto.
-      setNotFound(true);
+      setForcedGone(true);
     },
   });
 
@@ -291,19 +296,13 @@ export default function EventoDetail() {
     try {
       const fd = new FormData();
       if (comprobanteFile) fd.append("comprobante", comprobanteFile);
-      const { data: userReg } = await axios.post(
-        API.eventos.INSCRIBIRSE(id),
-        fd,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
+      const { data: userReg } = await inscribirseEvento(id, fd);
       // Sólo actualizamos `userRegistration` localmente. Los counts los
       // refresca el broadcast `evento:counts-changed` que el server emite
       // antes de responder — si los tocamos optimistamente acá, doblamos:
       // el socket entrega el count autoritativo (+1) y el optimistic suma
       // 1 encima → +2.
-      setEvento((prev) => ({
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) => ({
         ...prev,
         userRegistration: userReg,
       }));
@@ -323,11 +322,11 @@ export default function EventoDetail() {
   async function handleCancelRegistration() {
     setCancellingReg(true);
     try {
-      await axios.delete(API.eventos.INSCRIBIRSE(id));
+      await cancelarInscripcion(id);
       // Mismo patrón que handleInscribirse: el socket evento:counts-changed
       // ya viene con el count autoritativo, así que no tocamos counts acá.
       // Sólo limpiamos userRegistration.
-      setEvento((prev) => ({
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) => ({
         ...prev,
         userRegistration: null,
       }));
@@ -374,10 +373,10 @@ export default function EventoDetail() {
   async function handleSaveEdit(fd) {
     setSavingEdit(true);
     try {
-      const { data } = await axios.put(API.eventos.DETAIL(id), fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setEvento((prev) => mergeEventoUpdate(prev, data));
+      const { data } = await updateEvento(id, fd);
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) =>
+        mergeEventoUpdate(prev, data),
+      );
       setEditing(false);
     } catch (err) {
       addToast({
@@ -396,10 +395,8 @@ export default function EventoDetail() {
     try {
       const fd = new FormData();
       fd.append("status", "cancelled");
-      const { data } = await axios.put(API.eventos.DETAIL(id), fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setEvento((prev) =>
+      const { data } = await updateEvento(id, fd);
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) =>
         mergeEventoUpdate(prev, data, { status: "cancelled" }),
       );
     } catch (err) {
@@ -461,10 +458,10 @@ export default function EventoDetail() {
     try {
       const fd = new FormData();
       fd.append("status", "open");
-      const { data } = await axios.put(API.eventos.DETAIL(id), fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setEvento((prev) => mergeEventoUpdate(prev, data, { status: "open" }));
+      const { data } = await updateEvento(id, fd);
+      queryClient.setQueryData(eventoKeys.detail(id), (prev) =>
+        mergeEventoUpdate(prev, data, { status: "open" }),
+      );
     } catch (err) {
       addToast({
         type: "error",

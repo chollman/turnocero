@@ -2,8 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
@@ -52,17 +62,19 @@ function renderInsc({
   });
   useNotifications.mockReturnValue({ addToast });
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
-        <Routes>
-          <Route
-            path="/eventos/:id/inscripciones"
-            element={<EventoInscripciones />}
-          />
-          <Route path="/" element={<div>home</div>} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
+          <Routes>
+            <Route
+              path="/eventos/:id/inscripciones"
+              element={<EventoInscripciones />}
+            />
+            <Route path="/" element={<div>home</div>} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -101,17 +113,19 @@ describe("<EventoInscripciones>", () => {
     });
     useNotifications.mockReturnValue({ addToast: vi.fn() });
     render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
-          <Routes>
-            <Route
-              path="/eventos/:id/inscripciones"
-              element={<EventoInscripciones />}
-            />
-            <Route path="/" element={<div>home</div>} />
-          </Routes>
-        </MemoryRouter>
-      </HelmetProvider>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
+            <Routes>
+              <Route
+                path="/eventos/:id/inscripciones"
+                element={<EventoInscripciones />}
+              />
+              <Route path="/" element={<div>home</div>} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>,
     );
     expect(
       await screen.findByRole("heading", { name: /torneo catán/i, level: 1 }),

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { API } from "../../api/endpoints";
+import { addLudotecaItem } from "../../queries/eventos";
+import { useBggCollectionQuery } from "../../queries/bgg";
 import Modal from "../../components/shared/Modal";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
@@ -63,7 +63,7 @@ export default function EventoLudotecaPicker({
     if (!selectedGame || submitting) return;
     setSubmitting(true);
     try {
-      const { data } = await axios.post(API.eventos.LUDOTECA(eventoId), {
+      const { data } = await addLudotecaItem(eventoId, {
         bggGameId: selectedGame.id,
         notes: notes.trim(),
       });
@@ -211,29 +211,9 @@ export default function EventoLudotecaPicker({
 // Sub-componente: lista la colección BGG del user con filtro por nombre.
 function CollectionTab({ bggUsername, onPick, myAddedIds }) {
   const { t } = useTranslation("eventos");
-  const [games, setGames] = useState(null);
-  const [error, setError] = useState(null);
+  const { data: games, isError } = useBggCollectionQuery(bggUsername);
   const [filter, setFilter] = useState("");
   const debouncedFilter = useDebouncedValue(filter, 200);
-
-  useEffect(() => {
-    let cancelled = false;
-    setGames(null);
-    setError(null);
-    axios
-      .get(API.bgg.COLECCION(bggUsername))
-      .then(({ data }) => {
-        if (cancelled) return;
-        setGames(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setError(t("ludoteca.picker.collectionError"));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername, t]);
 
   const filtered = useMemo(() => {
     if (!games) return [];
@@ -242,7 +222,8 @@ function CollectionTab({ bggUsername, onPick, myAddedIds }) {
     return games.filter((g) => (g.name || "").toLowerCase().includes(q));
   }, [games, debouncedFilter]);
 
-  if (error) return <p className={styles.dim}>{error}</p>;
+  if (isError)
+    return <p className={styles.dim}>{t("ludoteca.picker.collectionError")}</p>;
   if (games == null)
     return <p className={styles.dim}>{t("ludoteca.picker.collectionLoading")}</p>;
   if (games.length === 0)

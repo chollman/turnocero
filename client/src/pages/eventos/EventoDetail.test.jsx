@@ -8,8 +8,18 @@ import {
 } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
@@ -86,15 +96,17 @@ function renderDetail({
   useAuth.mockReturnValue({ user });
   useNotifications.mockReturnValue({ setActiveEvento });
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[`/eventos/${eventoId}`]}>
-        <Routes>
-          <Route path="/eventos/:id" element={<EventoDetail />} />
-          <Route path="/" element={<div>home</div>} />
-          <Route path="/eventos" element={<div>eventos</div>} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[`/eventos/${eventoId}`]}>
+          <Routes>
+            <Route path="/eventos/:id" element={<EventoDetail />} />
+            <Route path="/" element={<div>home</div>} />
+            <Route path="/eventos" element={<div>eventos</div>} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -223,13 +235,15 @@ describe("<EventoDetail>", () => {
     });
     try {
       render(
-        <HelmetProvider>
-          <MemoryRouter initialEntries={["/eventos/e1"]}>
-            <Routes>
-              <Route path="/eventos/:id" element={<EventoDetail />} />
-            </Routes>
-          </MemoryRouter>
-        </HelmetProvider>,
+        <QueryClientProvider client={makeQueryClient()}>
+          <HelmetProvider>
+            <MemoryRouter initialEntries={["/eventos/e1"]}>
+              <Routes>
+                <Route path="/eventos/:id" element={<EventoDetail />} />
+              </Routes>
+            </MemoryRouter>
+          </HelmetProvider>
+        </QueryClientProvider>,
       );
       await screen.findByRole("heading", { name: "Mi Evento" });
       fireEvent.click(
@@ -268,13 +282,15 @@ describe("<EventoDetail>", () => {
     useAuth.mockReturnValue({ user: { _id: "me" } });
     useNotifications.mockReturnValue({ setActiveEvento, addToast });
     render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/eventos/e1"]}>
-          <Routes>
-            <Route path="/eventos/:id" element={<EventoDetail />} />
-          </Routes>
-        </MemoryRouter>
-      </HelmetProvider>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/eventos/e1"]}>
+            <Routes>
+              <Route path="/eventos/:id" element={<EventoDetail />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>,
     );
     await screen.findByRole("heading", { name: "Mi Evento" });
     fireEvent.click(screen.getByRole("button", { name: /^inscribirme/i }));
@@ -577,14 +593,16 @@ function renderWithProbe({ user = null, evento }) {
   useAuth.mockReturnValue({ user });
   useNotifications.mockReturnValue({ setActiveEvento: vi.fn() });
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={["/eventos/e1"]}>
-        <Routes>
-          <Route path="/eventos/:id" element={<EventoDetail />} />
-          <Route path="/compartidas" element={<CompartidasProbe />} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/eventos/e1"]}>
+          <Routes>
+            <Route path="/eventos/:id" element={<EventoDetail />} />
+            <Route path="/compartidas" element={<CompartidasProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 

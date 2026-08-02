@@ -4,6 +4,7 @@ import { API } from "../api/endpoints";
 
 export const bggKeys = {
   search: (q) => ["bgg", "search", q],
+  coleccion: (bggUsername) => ["bgg", "coleccion", bggUsername],
 };
 
 // Autocomplete de juegos BGG — el mismo patrón vivía duplicado (debounce +
@@ -22,6 +23,24 @@ export function useBggSearchQuery(query, { enabled = true } = {}) {
       return data;
     },
     enabled: enabled && trimmed.length >= 3,
+    staleTime: 5 * 60_000,
+  });
+}
+
+// Colección BGG del user — usada por EventoLudotecaPicker (tab "Mi
+// colección"). El L2 cache real (Mongo, TTL 6h) ya vive server-side
+// (BggCollection) — acá solo evitamos un refetch por cada apertura del
+// picker dentro de la misma sesión de navegación.
+export function useBggCollectionQuery(bggUsername, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: bggKeys.coleccion(bggUsername),
+    queryFn: async ({ signal }) => {
+      const { data } = await axios.get(API.bgg.COLECCION(bggUsername), {
+        signal,
+      });
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: enabled && !!bggUsername,
     staleTime: 5 * 60_000,
   });
 }

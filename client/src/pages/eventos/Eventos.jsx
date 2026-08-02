@@ -6,14 +6,14 @@ import {
   useRef,
   Fragment,
 } from "react";
-import axios from "axios";
 import { io } from "socket.io-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation, Trans } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import { useEventosQuery, eventoKeys, createEvento } from "../../queries/eventos";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import useTickingNow from "../../utils/useTickingNow";
@@ -54,20 +54,23 @@ const FILTER_LABEL_KEYS = {
 // Radio máximo del slider de distancia (km). 0 = sin filtro.
 const MAX_RADIUS_KM = 100;
 
+// Referencia estable — evita un array nuevo en cada render mientras la
+// query no tiene datos.
+const EMPTY_EVENTOS = [];
+
+// "all"/"mine" no filtran server-side — el resto sí manda `status`.
+const SERVER_STATUS_FILTERS = ["open", "closed", "draft", "cancelled"];
+
 export default function Eventos() {
   const { t } = useTranslation("eventos");
   const { user } = useAuth();
   const { addToast } = useNotifications();
   const brandName = useBrandName();
+  const queryClient = useQueryClient();
   const isAdmin = !!user?.isAdmin;
   const userId = user?._id;
   const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng);
 
-  const [eventos, setEventos] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   // Slider de radio. 0 = sin filtro (default). Solo se aplica si user tiene direccion.
   const [radiusKm, setRadiusKm] = useState(0);
   const debouncedRadius = useDebouncedValue(radiusKm, 300);
@@ -96,53 +99,49 @@ export default function Eventos() {
   // divisor "Hoy" se actualicen sin necesidad de re-renderizar manualmente.
   const now = useTickingNow();
 
-  const load = useCallback(
-    async (pageNum = 1, replace = true) => {
-      if (replace) setLoading(true);
-      else setLoadingMore(true);
-      try {
-        const params = { page: pageNum, limit: 12 };
-        if (
-          filter === "open" ||
-          filter === "closed" ||
-          filter === "draft" ||
-          filter === "cancelled"
-        ) {
-          params.status = filter;
-        }
-        if (hasDireccion && debouncedRadius > 0) {
-          params.maxDistanceKm = debouncedRadius;
-        }
-        if (debouncedSearch.trim()) {
-          params.search = debouncedSearch.trim();
-        }
-        const { data } = await axios.get(API.eventos.LIST, { params });
-        setEventos((prev) =>
-          replace ? data.eventos : [...prev, ...data.eventos],
-        );
-        setTotalPages(data.pages);
-        setPage(pageNum);
-      } catch (err) {
-        // Mostramos toast solo en errores reales (no canceled / abort). Si el
-        // fetch falla, antes el feed quedaba vacío sin feedback al user.
-        if (err?.code !== "ERR_CANCELED") {
-          addToast({
-            type: "error",
-            title: t("list.loadError.title"),
-            message: t("list.loadError.message"),
-          });
-        }
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [filter, hasDireccion, debouncedRadius, debouncedSearch, addToast, t],
+  const statusFilter = SERVER_STATUS_FILTERS.includes(filter) ? filter : null;
+  const effectiveRadiusKm = hasDireccion ? debouncedRadius : 0;
+  const listKey = useMemo(
+    () =>
+      eventoKeys.list({
+        status: statusFilter,
+        radiusKm: effectiveRadiusKm || 0,
+        search: debouncedSearch?.trim() || "",
+      }),
+    [statusFilter, effectiveRadiusKm, debouncedSearch],
   );
 
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+  } = useEventosQuery({
+    status: statusFilter,
+    radiusKm: effectiveRadiusKm,
+    search: debouncedSearch,
+  });
+
+  const eventos = useMemo(
+    () => data?.pages.flatMap((p) => p.eventos) ?? EMPTY_EVENTOS,
+    [data],
+  );
+
+  // Mostramos toast solo cuando la query pasa a error (no en cada render
+  // mientras se mantiene en error) — antes el catch del fetch manual mostraba
+  // el toast una vez por intento fallido; esto replica esa cadencia.
   useEffect(() => {
-    load(1, true);
-  }, [load]);
+    if (isError) {
+      addToast({
+        type: "error",
+        title: t("list.loadError.title"),
+        message: t("list.loadError.message"),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isError]);
 
   // Predicado que decide si un evento debe aparecer bajo el filter activo.
   // Lo usan los listeners de socket para no agregar eventos que no califican
@@ -190,9 +189,13 @@ export default function Eventos() {
       // Solo agregarlo si matchea el filter activo — un evento closed
       // broadcasteado no debería aparecer en la lista "Abiertos".
       if (!matchesActiveFilter(payload.evento)) return;
-      setEventos((prev) => {
-        if (prev.some((e) => e._id === payload.evento._id)) return prev;
-        return [payload.evento, ...prev];
+      queryClient.setQueryData(listKey, (old) => {
+        if (!old) return old;
+        if (old.pages.some((p) => p.eventos.some((e) => e._id === payload.evento._id)))
+          return old;
+        const pages = old.pages.slice();
+        pages[0] = { ...pages[0], eventos: [payload.evento, ...pages[0].eventos] };
+        return { ...old, pages };
       });
     });
 
@@ -202,44 +205,78 @@ export default function Eventos() {
       // Si el evento cambió de status y ya no matchea el filter activo,
       // sacarlo del array para mantener la vista consistente.
       const stillVisible = matchesActiveFilter(merged);
-      setEventos((prev) => {
-        if (!stillVisible)
-          return prev.filter((e) => e._id !== payload.eventoId);
-        const exists = prev.some((e) => e._id === payload.eventoId);
+      queryClient.setQueryData(listKey, (old) => {
+        if (!old) return old;
+        if (!stillVisible) {
+          return {
+            ...old,
+            pages: old.pages.map((p) => ({
+              ...p,
+              eventos: p.eventos.filter((e) => e._id !== payload.eventoId),
+            })),
+          };
+        }
+        const exists = old.pages.some((p) =>
+          p.eventos.some((e) => e._id === payload.eventoId),
+        );
         if (exists) {
-          return prev.map((e) =>
-            e._id === payload.eventoId ? { ...e, ...payload.evento } : e,
-          );
+          return {
+            ...old,
+            pages: old.pages.map((p) => ({
+              ...p,
+              eventos: p.eventos.map((e) =>
+                e._id === payload.eventoId ? { ...e, ...payload.evento } : e,
+              ),
+            })),
+          };
         }
         // Si pasó a estar visible recién (ej. draft → open), agregarlo.
-        return [payload.evento, ...prev];
+        const pages = old.pages.slice();
+        pages[0] = { ...pages[0], eventos: [payload.evento, ...pages[0].eventos] };
+        return { ...old, pages };
       });
     });
 
     socket.on("evento:counts-changed", (payload) => {
       if (!payload?.eventoId || !payload.counts) return;
-      setEventos((prev) =>
-        prev.map((e) =>
-          e._id === payload.eventoId
-            ? { ...e, registrationCount: payload.counts }
-            : e,
-        ),
-      );
+      queryClient.setQueryData(listKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            eventos: p.eventos.map((e) =>
+              e._id === payload.eventoId
+                ? { ...e, registrationCount: payload.counts }
+                : e,
+            ),
+          })),
+        };
+      });
     });
 
     socket.on("evento:deleted", (payload) => {
       if (!payload?.eventoId) return;
-      setEventos((prev) => prev.filter((e) => e._id !== payload.eventoId));
+      queryClient.setQueryData(listKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            eventos: p.eventos.filter((e) => e._id !== payload.eventoId),
+          })),
+        };
+      });
     });
 
     return () => {
       socket.emit("leave:eventos-list");
       socket.disconnect();
     };
-    // matchesActiveFilter cambia cuando cambia el filter activo — re-registrar
-    // los listeners con la closure nueva es el comportamiento deseado, sin
-    // necesidad de mantener una ref.
-  }, [user, matchesActiveFilter]);
+    // matchesActiveFilter y listKey cambian cuando cambia el filter activo —
+    // re-registrar los listeners con la closure nueva es el comportamiento
+    // deseado, sin necesidad de mantener una ref.
+  }, [user, matchesActiveFilter, queryClient, listKey]);
 
   // Client-side filter for "mine" (server doesn't support it).
   // El server ordena por `createdAt` desc — ordenamos por `eventDate` ASC para
@@ -304,9 +341,7 @@ export default function Eventos() {
   async function handleCreate(fd) {
     setSubmitting(true);
     try {
-      const { data } = await axios.post(API.eventos.LIST, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await createEvento(fd);
       // Si el evento recién creado coincide con el filtro activo, lo
       // prependeamos. Si no (p.ej. admin con filter='open' crea un draft),
       // cambiamos al filtro de su status para que el admin no "pierda" su
@@ -317,9 +352,13 @@ export default function Eventos() {
         // Dedup: el server emite `evento:created` por socket al actor también,
         // y la socket suele llegar ANTES que la response HTTP. Sin esta guarda
         // el evento aparecía duplicado (ver feedback_optimistic_vs_socket.md).
-        setEventos((prev) => {
-          if (prev.some((e) => e._id === data._id)) return prev;
-          return [data, ...prev];
+        queryClient.setQueryData(listKey, (old) => {
+          if (!old) return old;
+          if (old.pages.some((p) => p.eventos.some((e) => e._id === data._id)))
+            return old;
+          const pages = old.pages.slice();
+          pages[0] = { ...pages[0], eventos: [data, ...pages[0].eventos] };
+          return { ...old, pages };
         });
       } else {
         setFilter(data.status);
@@ -501,13 +540,13 @@ export default function Eventos() {
             }
             text={t("list.emptyMineText")}
             secondary={
-              page < totalPages
+              hasNextPage
                 ? {
                     label: loadingMore
                       ? t("list.loadingMore")
                       : t("list.emptyMineLoadMore"),
                     icon: "compass",
-                    onClick: () => load(page + 1, false),
+                    onClick: () => fetchNextPage(),
                   }
                 : {
                     label: t("list.emptyMineViewAll"),
@@ -623,14 +662,14 @@ export default function Eventos() {
       )}
 
       {!loading &&
-        page < totalPages &&
+        hasNextPage &&
         filter !== "mine" &&
         visibleEventos.length > 0 && (
           <div className={styles.loadMoreWrap}>
             <button
               type="button"
               className={styles.loadMoreBtn}
-              onClick={() => load(page + 1, false)}
+              onClick={() => fetchNextPage()}
               disabled={loadingMore}
             >
               {loadingMore ? t("list.loadingMore") : t("list.loadMore")}

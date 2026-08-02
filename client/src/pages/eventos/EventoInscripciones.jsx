@@ -1,13 +1,19 @@
 import Meeple from "../../components/shared/Meeple";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
-import axios from "axios";
 import { io } from "socket.io-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { API } from "../../api/endpoints";
+import {
+  useEventoInscripcionesQuery,
+  eventoKeys,
+  confirmarInscripcion,
+  rechazarInscripcion,
+  revertirInscripcion,
+} from "../../queries/eventos";
 import { dateParts } from "../../utils/eventoDate";
 import useTickingNow from "../../utils/useTickingNow";
 import TriageColumn from "./TriageColumn";
@@ -19,40 +25,21 @@ export default function EventoInscripciones() {
   const { id } = useParams();
   const { isActuallyAdmin, loading: authLoading } = useAuth();
   const { addToast } = useNotifications();
-
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const queryClient = useQueryClient();
 
   // Ticker para refrescar las "horas relativas" de las inscripciones cada 30s.
   const now = useTickingNow();
 
-  useEffect(() => {
-    // Esperar a que termine el auth-loading y verificar admin antes de pegar
-    // a la API. Un usuario regular ya queda fuera por el <Navigate> de abajo;
-    // no tiene sentido gastar un request 403.
-    if (authLoading) return undefined;
-    if (!isActuallyAdmin) {
-      setLoading(false);
-      return undefined;
-    }
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      try {
-        const { data: res } = await axios.get(API.eventos.INSCRIPCIONES(id));
-        if (!cancelled) setData(res);
-      } catch (err) {
-        if (!cancelled && err.response?.status === 404) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, authLoading, isActuallyAdmin]);
+  // Esperar a que termine el auth-loading y verificar admin antes de pegar a
+  // la API — un usuario regular ya queda fuera por el <Navigate> de abajo, no
+  // tiene sentido gastar un request 403.
+  const queryEnabled = !authLoading && isActuallyAdmin;
+  const {
+    data,
+    isPending: queryLoading,
+    isError: notFound,
+  } = useEventoInscripcionesQuery(id, { enabled: queryEnabled });
+  const loading = authLoading || (queryEnabled && queryLoading);
 
   // Real-time: escuchar nuevas inscripciones y revisiones del propio evento.
   // El socket se monta cuando hay admin autenticado e id, y NO depende de
@@ -60,7 +47,8 @@ export default function EventoInscripciones() {
   // (vía evento:updated) y dispararía un leave+rejoin del socket. El check
   // de `data?.evento` que estaba antes era defensivo pero innecesario: el
   // server ignora los join:evento de eventos inexistentes, y los listeners
-  // usan setData(prev => prev ? ... : prev) para no-op si data llega null.
+  // usan queryClient.setQueryData(key, prev => prev ? ... : prev) para
+  // no-op si la query todavía no tiene datos.
   useEffect(() => {
     if (!isActuallyAdmin) return undefined;
     const token = localStorage.getItem("token");
@@ -76,7 +64,7 @@ export default function EventoInscripciones() {
 
     socket.on("evento:registration-created", (payload) => {
       if (payload?.eventoId !== id) return;
-      setData((prev) => {
+      queryClient.setQueryData(eventoKeys.inscripciones(id), (prev) => {
         if (!prev) return prev;
         const exists = prev.registrations.some(
           (r) => r._id === payload.registration?._id,
@@ -92,7 +80,7 @@ export default function EventoInscripciones() {
 
     socket.on("evento:registration-cancelled", (payload) => {
       if (payload?.eventoId !== id) return;
-      setData((prev) => {
+      queryClient.setQueryData(eventoKeys.inscripciones(id), (prev) => {
         if (!prev) return prev;
         return {
           ...prev,
@@ -105,7 +93,7 @@ export default function EventoInscripciones() {
 
     socket.on("evento:registration-reviewed", (payload) => {
       if (payload?.eventoId !== id) return;
-      setData((prev) => {
+      queryClient.setQueryData(eventoKeys.inscripciones(id), (prev) => {
         if (!prev) return prev;
         return {
           ...prev,
@@ -135,7 +123,7 @@ export default function EventoInscripciones() {
       // reflejaba. El spread genérico es seguro porque el payload del server
       // (PUT response → emitToEventoRoom) NO incluye registrations ni counts;
       // ver `routes/eventos.js`. Solo el evento "header".
-      setData((prev) =>
+      queryClient.setQueryData(eventoKeys.inscripciones(id), (prev) =>
         prev
           ? {
               ...prev,
@@ -149,15 +137,13 @@ export default function EventoInscripciones() {
       socket.emit("leave:evento", id);
       socket.disconnect();
     };
-  }, [id, isActuallyAdmin]);
+  }, [id, isActuallyAdmin, queryClient]);
 
   const accept = useCallback(
     async (reg, adminNotes) => {
       try {
-        await axios.patch(API.eventos.INSCRIPCION_CONFIRMAR(id, reg.user._id), {
-          adminNotes,
-        });
-        setData((prev) => ({
+        await confirmarInscripcion(id, reg.user._id, adminNotes);
+        queryClient.setQueryData(eventoKeys.inscripciones(id), (prev) => ({
           ...prev,
           registrations: prev.registrations.map((r) =>
             r.user._id === reg.user._id
@@ -181,17 +167,14 @@ export default function EventoInscripciones() {
         });
       }
     },
-    [id, addToast, t],
+    [id, addToast, t, queryClient],
   );
 
   const reject = useCallback(
     async (reg, adminNotes, permanent = false) => {
       try {
-        await axios.patch(API.eventos.INSCRIPCION_RECHAZAR(id, reg.user._id), {
-          adminNotes,
-          permanent,
-        });
-        setData((prev) => ({
+        await rechazarInscripcion(id, reg.user._id, adminNotes, permanent);
+        queryClient.setQueryData(eventoKeys.inscripciones(id), (prev) => ({
           ...prev,
           registrations: prev.registrations.map((r) =>
             r.user._id === reg.user._id
@@ -215,7 +198,7 @@ export default function EventoInscripciones() {
         });
       }
     },
-    [id, addToast, t],
+    [id, addToast, t, queryClient],
   );
 
   // Revertir: vuelve el registro a 'pending' como si el usuario recién se
@@ -223,10 +206,8 @@ export default function EventoInscripciones() {
   const undo = useCallback(
     async (reg) => {
       try {
-        const { data: result } = await axios.patch(
-          API.eventos.INSCRIPCION_REVERTIR(id, reg.user._id),
-        );
-        setData((prev) => ({
+        const { data: result } = await revertirInscripcion(id, reg.user._id);
+        queryClient.setQueryData(eventoKeys.inscripciones(id), (prev) => ({
           ...prev,
           registrations: prev.registrations.map((r) =>
             r.user._id === reg.user._id
@@ -251,7 +232,7 @@ export default function EventoInscripciones() {
         });
       }
     },
-    [id, addToast, t],
+    [id, addToast, t, queryClient],
   );
 
   const groups = useMemo(() => {
