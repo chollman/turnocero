@@ -1,77 +1,90 @@
-import { createContext, useContext, useState, useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { STORAGE_KEYS } from "../utils/storageKeys";
-import { API } from "../api/endpoints";
 import { detectTenant } from "../utils/tenant";
 import { unsubscribeThisDevice } from "../utils/pushDevice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  setToken,
+  clearToken,
+  setViewAsUser as setViewAsUserAction,
+} from "../store/slices/authSlice";
+import {
+  authKeys,
+  useMeQuery,
+  loginRequest,
+  registerRequest,
+  oauthLoginRequest,
+  verifyEmailRequest,
+  resendVerificationRequest,
+  forgotPasswordRequest,
+  resetPasswordRequest,
+  logoutRequest,
+  meRequest,
+  updateProfileRequest,
+} from "../queries/auth";
 
-// Auth es doble: token Bearer en `localStorage` (por-origin) + cookie httpOnly.
-// Con el dominio propio (`turnocero.app` front + `api.turnocero.app` back) la
-// cookie es first-party (mismo eTLD+1) → no la frena la ITP de Safari y viaja a
-// todos los subdominios de comunidad. Eso habilita el SSO entre subdominios: en
-// `<slug>.turnocero.app` el `localStorage` está vacío pero la cookie levanta la
-// sesión vía `/me` (ver el efecto de boot abajo). `withCredentials` manda la
-// cookie en cada request; el header Bearer sigue como fast-path en el apex.
-axios.defaults.withCredentials = true;
-
-// Safari/Firefox en modo privado tiran QuotaExceededError al escribir Storage,
-// y SSR no expone `window`. Wrappear evita romper el provider entero.
-const safeStorage = (getStorage) => ({
-  get: (key) => {
-    try {
-      return getStorage()?.getItem(key) ?? null;
-    } catch {
-      return null;
-    }
-  },
+// Safari/Firefox en modo privado tiran QuotaExceededError al escribir
+// sessionStorage; wrappear evita romper el provider entero.
+const session = {
   set: (key, value) => {
     try {
-      getStorage()?.setItem(key, value);
+      sessionStorage.setItem(key, value);
     } catch {
       /* swallow */
     }
   },
   remove: (key) => {
     try {
-      getStorage()?.removeItem(key);
+      sessionStorage.removeItem(key);
     } catch {
       /* swallow */
     }
   },
-});
-
-const local = safeStorage(() =>
-  typeof window !== "undefined" ? window.localStorage : null,
-);
-const session = safeStorage(() =>
-  typeof window !== "undefined" ? window.sessionStorage : null,
-);
-
-const setAuthHeader = (token) => {
-  if (token) {
-    axios.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete axios.defaults.headers.common.Authorization;
-  }
 };
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [realUser, setRealUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [viewAsUser, setViewAsUserState] = useState(
-    () => local.get(STORAGE_KEYS.VIEW_AS_USER) === "true",
-  );
+  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const token = useAppSelector((s) => s.auth.token);
+  const viewAsUser = useAppSelector((s) => s.auth.viewAsUser);
 
-  const setViewAsUser = (value) => {
-    const v = !!value;
-    setViewAsUserState(v);
-    if (v) local.set(STORAGE_KEYS.VIEW_AS_USER, "true");
-    else local.remove(STORAGE_KEYS.VIEW_AS_USER);
-  };
+  // En un subdominio de comunidad (`<slug>.turnocero.app`) el `localStorage`
+  // está vacío — es por-origin — pero la cookie de auth httpOnly es
+  // first-party bajo `turnocero.app`, así que `/me` puede levantar la sesión
+  // igual (SSO entre subdominios). Por eso pegamos `/me` en modo tenant aunque
+  // no haya token local; en el sitio principal sin token nos quedamos
+  // anónimos sin request extra.
+  const onTenant = !!detectTenant();
+  const meEnabled = !!token || onTenant;
+  const {
+    data: realUser,
+    isPending: meIsPending,
+    isError: meIsError,
+  } = useMeQuery({ enabled: meEnabled });
+  // enabled:false deja isPending en true para siempre — hay que gatear con
+  // la misma condición que habilita la query (mismo patrón que SiteConfig).
+  const loading = meEnabled && meIsPending;
+
+  // Token guardado que ya no es válido AL BOOTEAR (mismo comportamiento que
+  // el catch del efecto de boot original: se descarta y queda anónimo). Se
+  // captura el token de entrada una sola vez — a diferencia del boot
+  // original, acá `useMeQuery` sigue viva durante toda la sesión, así que un
+  // 401 posterior (p. ej. la query se re-habilita recién cuando `login()`
+  // setea el token, y en ese instante todavía no hay datos frescos en el
+  // handler mockeado/backend) NO debe volver a disparar esta limpieza.
+  const bootTokenRef = useRef(token);
+  useEffect(() => {
+    if (meIsError && bootTokenRef.current) {
+      dispatch(clearToken());
+      bootTokenRef.current = null;
+    }
+  }, [meIsError, dispatch]);
 
   useEffect(() => {
     const id = axios.interceptors.response.use(
@@ -85,11 +98,9 @@ export const AuthProvider = ({ children }) => {
           !isAuthRoute;
         const isUnauth = status === 401 && !isAuthRoute;
         if (isUnauth || isBan) {
-          local.remove(STORAGE_KEYS.TOKEN);
-          local.remove(STORAGE_KEYS.VIEW_AS_USER);
-          setAuthHeader(null);
-          setRealUser(null);
-          setViewAsUserState(false);
+          dispatch(clearToken());
+          dispatch(setViewAsUserAction(false));
+          queryClient.setQueryData(authKeys.me, null);
           if (isBan) {
             session.set(
               STORAGE_KEYS.BANNED_MESSAGE,
@@ -102,101 +113,45 @@ export const AuthProvider = ({ children }) => {
       },
     );
     return () => axios.interceptors.response.eject(id);
-  }, [navigate]);
-
-  useEffect(() => {
-    const token = local.get(STORAGE_KEYS.TOKEN);
-    // En un subdominio de comunidad (`<slug>.turnocero.app`) el `localStorage`
-    // está vacío — es por-origin — pero la cookie de auth httpOnly es
-    // first-party bajo `turnocero.app`, así que `/me` puede levantar la sesión
-    // igual (SSO entre subdominios). Por eso, aunque no haya token local,
-    // intentamos `/me` cuando estamos en modo tenant. En el sitio principal sin
-    // token nos quedamos anónimos sin pegar un request extra.
-    const onTenant = !!detectTenant();
-    if (!token && !onTenant) {
-      setAuthHeader(null);
-      setLoading(false);
-      return;
-    }
-    setAuthHeader(token); // null-safe: limpia el header si no hay token
-    axios
-      .get(API.auth.ME)
-      .then(({ data }) => setRealUser(data))
-      .catch(() => {
-        setRealUser(null);
-        if (token) {
-          local.remove(STORAGE_KEYS.TOKEN);
-          setAuthHeader(null);
-        }
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  }, [navigate, dispatch, queryClient]);
 
   // `identifier` puede ser el email o el username del usuario — el server
   // resuelve cualquiera de los dos (ver POST /api/auth/login).
   const login = async (identifier, password) => {
-    const { data } = await axios.post(API.auth.LOGIN, { identifier, password });
-    local.set(STORAGE_KEYS.TOKEN, data.token);
-    setAuthHeader(data.token);
-    setRealUser(data.user);
+    const data = await loginRequest(identifier, password);
+    dispatch(setToken(data.token));
+    queryClient.setQueryData(authKeys.me, data.user);
     return data;
   };
 
   // Creates an unverified account. No session is established here — the user
   // must complete /verify-email with the code we sent to confirm ownership.
-  // `extra` lleva campos opcionales del registro nuevo (displayName + color de
-  // avatar elegido); el server los valida e ignora lo inválido.
-  const register = async (username, email, password, extra = {}) => {
-    const { displayName, avatarColor } = extra;
-    const { data } = await axios.post(API.auth.REGISTER, {
-      username,
-      email,
-      password,
-      ...(displayName ? { displayName } : {}),
-      ...(avatarColor ? { avatarColor } : {}),
-    });
-    return data; // { email, message }
-  };
+  const register = (username, email, password, extra = {}) =>
+    registerRequest(username, email, password, extra);
 
   // Login/registro vía OAuth. `provider` ∈ { "google", "facebook" }; el
   // payload es { credential } para Google o { accessToken } para Facebook.
   // Espeja login(): el server resuelve/crea el usuario y devuelve { user, token }.
   const oauthLogin = async (provider, payload) => {
-    const url =
-      provider === "google" ? API.auth.OAUTH_GOOGLE : API.auth.OAUTH_FACEBOOK;
-    const { data } = await axios.post(url, payload);
-    local.set(STORAGE_KEYS.TOKEN, data.token);
-    setAuthHeader(data.token);
-    setRealUser(data.user);
+    const data = await oauthLoginRequest(provider, payload);
+    dispatch(setToken(data.token));
+    queryClient.setQueryData(authKeys.me, data.user);
     return data;
   };
 
   const verifyEmail = async (email, code) => {
-    const { data } = await axios.post(API.auth.VERIFY_EMAIL, { email, code });
-    local.set(STORAGE_KEYS.TOKEN, data.token);
-    setAuthHeader(data.token);
-    setRealUser(data.user);
+    const data = await verifyEmailRequest(email, code);
+    dispatch(setToken(data.token));
+    queryClient.setQueryData(authKeys.me, data.user);
     return data;
   };
 
-  const requestEmailVerification = async (email) => {
-    const { data } = await axios.post(API.auth.RESEND_VERIFICATION, { email });
-    return data;
-  };
+  const requestEmailVerification = (email) => resendVerificationRequest(email);
 
-  const requestPasswordReset = async (email) => {
-    const { data } = await axios.post(API.auth.FORGOT_PASSWORD, { email });
-    return data;
-  };
+  const requestPasswordReset = (email) => forgotPasswordRequest(email);
 
-  const resetPassword = async (email, token, password) => {
-    const { data } = await axios.post(API.auth.RESET_PASSWORD, {
-      email,
-      token,
-      password,
-    });
-    return data;
-  };
+  const resetPassword = (email, resetToken, password) =>
+    resetPasswordRequest(email, resetToken, password);
 
   const logout = async () => {
     // Des-suscribir este device de push ANTES de tirar la sesión (best-effort,
@@ -204,26 +159,26 @@ export const AuthProvider = ({ children }) => {
     // del usuario que se va. Solo en el logout EXPLÍCITO — no en el auto-logout
     // por 401/ban (que podría ser un 401 transitorio).
     await unsubscribeThisDevice();
-    await axios.post(API.auth.LOGOUT).catch(() => {});
-    local.remove(STORAGE_KEYS.TOKEN);
-    local.remove(STORAGE_KEYS.VIEW_AS_USER);
+    await logoutRequest();
+    dispatch(clearToken());
+    dispatch(setViewAsUserAction(false));
     session.remove(STORAGE_KEYS.BANNED_MESSAGE);
-    setAuthHeader(null);
-    setRealUser(null);
-    setViewAsUserState(false);
+    queryClient.setQueryData(authKeys.me, null);
   };
 
   const refreshUser = async () => {
-    const { data } = await axios.get(API.auth.ME);
-    setRealUser(data);
+    const data = await meRequest();
+    queryClient.setQueryData(authKeys.me, data);
     return data;
   };
 
   const updateProfile = async (data) => {
-    const { data: updated } = await axios.put(API.auth.PROFILE, data);
-    setRealUser(updated);
+    const updated = await updateProfileRequest(data);
+    queryClient.setQueryData(authKeys.me, updated);
     return updated;
   };
+
+  const setViewAsUser = (value) => dispatch(setViewAsUserAction(!!value));
 
   const isActuallyAdmin = !!realUser?.isAdmin;
 

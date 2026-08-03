@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { Provider as ReduxProvider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
 
@@ -11,6 +14,31 @@ vi.mock("../utils/pushDevice", () => ({
 }));
 import { unsubscribeThisDevice } from "../utils/pushDevice";
 import { AuthProvider, useAuth } from "./AuthContext";
+import authReducer, {
+  authListenerMiddleware,
+  getInitialAuthState,
+} from "../store/slices/authSlice";
+
+// Store fresco por test — `getInitialAuthState()` debe releerse recién acá,
+// después de que cada test setee su propio localStorage (ver comentario en
+// authSlice.js sobre por qué esto no puede bakearse en initialState).
+function makeStore() {
+  return configureStore({
+    reducer: { auth: authReducer },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().prepend(authListenerMiddleware.middleware),
+    preloadedState: { auth: getInitialAuthState() },
+  });
+}
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 function Probe() {
   const a = useAuth();
@@ -49,11 +77,15 @@ function Probe() {
 
 function renderApp() {
   return render(
-    <MemoryRouter>
-      <AuthProvider>
-        <Probe />
-      </AuthProvider>
-    </MemoryRouter>,
+    <ReduxProvider store={makeStore()}>
+      <QueryClientProvider client={makeQueryClient()}>
+        <MemoryRouter>
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </ReduxProvider>,
   );
 }
 
@@ -153,8 +185,10 @@ describe("AuthContext", () => {
     await act(async () => screen.getByText("do-login").click());
     // El primer arg de login() (email o username) viaja como `identifier`.
     expect(body).toEqual({ identifier: "e@e", password: "pw" });
-    expect(localStorage.getItem("token")).toBe("tok");
-    expect(screen.getByTestId("user").textContent).toBe("alice");
+    await waitFor(() => {
+      expect(localStorage.getItem("token")).toBe("tok");
+      expect(screen.getByTestId("user").textContent).toBe("alice");
+    });
   });
 
   it("oauthLogin posts to the google endpoint, stores token, and sets the user", async () => {
@@ -174,8 +208,10 @@ describe("AuthContext", () => {
     );
     await act(async () => screen.getByText("do-oauth").click());
     expect(body).toEqual({ accessToken: "g-access" });
-    expect(localStorage.getItem("token")).toBe("gtok");
-    expect(screen.getByTestId("user").textContent).toBe("googler");
+    await waitFor(() => {
+      expect(localStorage.getItem("token")).toBe("gtok");
+      expect(screen.getByTestId("user").textContent).toBe("googler");
+    });
   });
 
   it("logout clears token, viewAsUser, and the user", async () => {
@@ -213,8 +249,10 @@ describe("AuthContext", () => {
       expect(screen.getByTestId("loading").textContent).toBe("false"),
     );
     await act(async () => screen.getByText("do-verify").click());
-    expect(localStorage.getItem("token")).toBe("verify-tok");
-    expect(screen.getByTestId("user").textContent).toBe("alice");
+    await waitFor(() => {
+      expect(localStorage.getItem("token")).toBe("verify-tok");
+      expect(screen.getByTestId("user").textContent).toBe("alice");
+    });
   });
 
   it("register does NOT set a token or user", async () => {
@@ -272,7 +310,9 @@ describe("AuthContext", () => {
       expect(screen.getByTestId("user").textContent).toBe("alice-1"),
     );
     await act(async () => screen.getByText("do-refresh").click());
-    expect(screen.getByTestId("user").textContent).toBe("alice-2");
+    await waitFor(() =>
+      expect(screen.getByTestId("user").textContent).toBe("alice-2"),
+    );
   });
 
   it("updateProfile sets the user from the PUT response", async () => {
