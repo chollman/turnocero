@@ -1,13 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation, Trans } from "react-i18next";
 import { getLocale } from "../../utils/locale";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import {
+  mathtradeKeys,
+  useMathTradeQuery,
+  useMathTradeItemsQuery,
+  useMathTradeMyItemsQuery,
+  useMathTradeResultsQuery,
+  deleteMathTradeItem,
+} from "../../queries/mathtrade";
 import Avatar from "../../components/shared/Avatar";
 import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -68,87 +75,58 @@ export default function MathTradeDetail() {
   const { addToast } = useNotifications();
   const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
+  const queryClient = useQueryClient();
 
-  const [trade, setTrade] = useState(null);
-  const [items, setItems] = useState([]);
-  const [myItems, setMyItems] = useState([]);
-  const [results, setResults] = useState(null);
   const [tab, setTab] = useState("ofertas");
-  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // { type:'new' } | { type:'edit', item }
-  const [notFound, setNotFound] = useState(false);
 
+  const {
+    data: trade,
+    isPending: loading,
+    error: tradeError,
+  } = useMathTradeQuery(id);
+  const notFound = tradeError?.response?.status === 404;
+  const { data: items = [] } = useMathTradeItemsQuery(id);
+  const { data: myItems = [] } = useMathTradeMyItemsQuery(id, {
+    enabled: !!user,
+  });
   const published = trade && ["results", "finished"].includes(trade.status);
+  const { data: results = null } = useMathTradeResultsQuery(id, {
+    enabled: !!published,
+  });
 
-  const refreshItems = useCallback(async () => {
-    const [all, mine] = await Promise.all([
-      axios.get(API.mathtrade.ITEMS(id)),
-      user
-        ? axios.get(API.mathtrade.MY_ITEMS(id))
-        : Promise.resolve({ data: [] }),
-    ]);
-    setItems(all.data);
-    setMyItems(mine.data);
-  }, [id, user]);
-
+  // Salta a la tab "resultados" cuando el trade PASA a estar publicado (al
+  // cargar ya publicado, o al transicionar vía AdminPanel) — no en cada
+  // refetch/re-render, para no pisar una tab que el usuario ya eligió.
+  const prevStatusRef = useRef(undefined);
   useEffect(() => {
-    const ac = new AbortController();
-    setLoading(true);
-    (async () => {
-      try {
-        const { data: t } = await axios.get(API.mathtrade.DETAIL(id), {
-          signal: ac.signal,
-        });
-        if (ac.signal.aborted) return;
-        setTrade(t);
-        const [all, mine] = await Promise.all([
-          axios.get(API.mathtrade.ITEMS(id), { signal: ac.signal }),
-          user
-            ? axios.get(API.mathtrade.MY_ITEMS(id), { signal: ac.signal })
-            : Promise.resolve({ data: [] }),
-        ]);
-        if (ac.signal.aborted) return;
-        setItems(all.data);
-        setMyItems(mine.data);
+    const prev = prevStatusRef.current;
+    const now = trade?.status;
+    const wasPublished = ["results", "finished"].includes(prev);
+    const isPublished = ["results", "finished"].includes(now);
+    if (now && now !== prev && isPublished && !wasPublished) {
+      setTab("resultados");
+    }
+    prevStatusRef.current = now;
+  }, [trade?.status]);
 
-        if (["results", "finished"].includes(t.status)) {
-          const { data: r } = await axios.get(API.mathtrade.RESULTS(id), {
-            signal: ac.signal,
-          });
-          if (ac.signal.aborted) return;
-          setResults(r);
-          setTab("resultados");
-        }
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        if (err.response?.status === 404) setNotFound(true);
-      } finally {
-        if (!ac.signal.aborted) setLoading(false);
-      }
-    })();
-    return () => ac.abort();
-  }, [id, user]);
+  const invalidateItems = () => {
+    queryClient.invalidateQueries({ queryKey: mathtradeKeys.items(id) });
+    queryClient.invalidateQueries({ queryKey: mathtradeKeys.myItems(id) });
+  };
 
   const onTradeUpdated = (data) => {
-    setTrade(data);
-    if (["results", "finished"].includes(data.status)) {
-      axios
-        .get(API.mathtrade.RESULTS(id))
-        .then(({ data: r }) => {
-          setResults(r);
-          setTab("resultados");
-        })
-        .catch(() => {});
-    } else {
-      setResults(null);
+    queryClient.setQueryData(mathtradeKeys.detail(id), data);
+    if (!["results", "finished"].includes(data.status)) {
+      queryClient.setQueryData(mathtradeKeys.results(id), null);
     }
-    refreshItems().catch(() => {});
+    invalidateItems();
   };
 
   const deleteItem = async (item) => {
     try {
-      await axios.delete(API.mathtrade.ITEM(id, item._id));
-      await refreshItems();
+      await deleteMathTradeItem(id, item._id);
+      invalidateItems();
     } catch (err) {
       addToast({
         type: "error",
@@ -158,9 +136,9 @@ export default function MathTradeDetail() {
     }
   };
 
-  const onItemSaved = async () => {
+  const onItemSaved = () => {
     setEditing(null);
-    await refreshItems();
+    invalidateItems();
   };
 
   if (notFound)

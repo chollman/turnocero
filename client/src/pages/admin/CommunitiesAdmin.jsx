@@ -1,9 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
+import {
+  communityKeys,
+  useCommunitiesAdminListQuery,
+  createCommunity,
+  deleteCommunity,
+  reassignCommunityToBase,
+  updateCommunity,
+  updateCommunitySkin,
+  uploadCommunityLogo,
+} from "../../queries/community";
 import styles from "./CommunitiesAdmin.module.css";
 
 const POLICY_VALUES = ["open", "approval", "code"];
@@ -131,7 +140,7 @@ function CommunityEditor({
 
   const saveSkin = async () => {
     try {
-      await axios.put(API.comunidades.SKIN(community.slug), {
+      await updateCommunitySkin(community.slug, {
         accents,
         neutralsDark,
         neutralsLight,
@@ -158,9 +167,7 @@ function CommunityEditor({
     fd.append("logo", file);
     fd.append("variant", "light");
     try {
-      await axios.post(API.comunidades.LOGO(community.slug), fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await uploadCommunityLogo(community.slug, fd);
       addToast({
         type: "success",
         message: t("admin:communities.editor.toastLogoUploaded"),
@@ -487,8 +494,9 @@ export default function CommunitiesAdmin() {
   const { t } = useTranslation();
   const { SECTION_KEYS } = useSiteConfig();
   const { addToast } = useNotifications();
-  const [communities, setCommunities] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: communities = [], isPending: loading } =
+    useCommunitiesAdminListQuery();
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     name: "",
@@ -497,23 +505,8 @@ export default function CommunitiesAdmin() {
     inviteCode: "",
   });
 
-  const load = useCallback(async () => {
-    try {
-      const { data } = await axios.get(API.comunidades.LIST);
-      setCommunities(data.comunidades || []);
-    } catch {
-      addToast({
-        type: "error",
-        message: t("admin:communities.toastLoadError"),
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast, t]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: communityKeys.adminList() });
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -522,7 +515,7 @@ export default function CommunitiesAdmin() {
       return;
     }
     try {
-      await axios.post(API.comunidades.LIST, form);
+      await createCommunity(form);
       addToast({ type: "success", message: t("admin:communities.toastCreated") });
       setForm({
         name: "",
@@ -530,7 +523,7 @@ export default function CommunitiesAdmin() {
         joinPolicy: "open",
         inviteCode: "",
       });
-      await load();
+      await refresh();
     } catch (err) {
       addToast({
         type: "error",
@@ -541,9 +534,9 @@ export default function CommunitiesAdmin() {
 
   const handleDelete = async (c) => {
     try {
-      await axios.delete(API.comunidades.DETAIL(c.slug));
+      await deleteCommunity(c.slug);
       addToast({ type: "success", message: t("admin:communities.toastDeleted") });
-      await load();
+      await refresh();
     } catch (err) {
       addToast({
         type: "error",
@@ -557,12 +550,12 @@ export default function CommunitiesAdmin() {
 
   const handleReassign = async (c) => {
     try {
-      await axios.post(API.comunidades.REASSIGN_TO_BASE(c.slug));
+      await reassignCommunityToBase(c.slug);
       addToast({
         type: "success",
         message: t("admin:communities.toastReassigned"),
       });
-      await load();
+      await refresh();
     } catch (err) {
       addToast({
         type: "error",
@@ -573,9 +566,9 @@ export default function CommunitiesAdmin() {
 
   const saveEdit = async (c, patch) => {
     try {
-      await axios.put(API.comunidades.DETAIL(c.slug), patch);
+      await updateCommunity(c.slug, patch);
       addToast({ type: "success", message: t("admin:communities.toastSaved") });
-      await load();
+      await refresh();
     } catch (err) {
       addToast({
         type: "error",
@@ -696,7 +689,7 @@ export default function CommunitiesAdmin() {
                   onToggleSection={(k, v) =>
                     saveEdit(c, { sections: { [k]: v } })
                   }
-                  onChanged={load}
+                  onChanged={refresh}
                 />
               )}
             </li>

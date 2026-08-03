@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -11,6 +12,23 @@ vi.mock("../../context/NotificationContext", () => ({
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
 import CommunitiesAdmin from "./CommunitiesAdmin";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
+function renderAdmin() {
+  return render(
+    <QueryClientProvider client={makeQueryClient()}>
+      <CommunitiesAdmin />
+    </QueryClientProvider>,
+  );
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -38,7 +56,7 @@ describe("<CommunitiesAdmin>", () => {
         }),
       ),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     expect(await screen.findByText("TurnoCero")).toBeInTheDocument();
     expect(screen.getByText("5 miembros")).toBeInTheDocument();
   });
@@ -59,7 +77,7 @@ describe("<CommunitiesAdmin>", () => {
         );
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     await waitFor(() =>
       expect(screen.queryByText("Cargando…")).not.toBeInTheDocument(),
     );
@@ -87,7 +105,7 @@ describe("<CommunitiesAdmin>", () => {
         }),
       ),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     // El toggle de torneos aparece y refleja el override (desmarcado)
     const torneos = screen.getByLabelText("torneos");
@@ -119,7 +137,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.click(
       screen.getByLabelText("Activar single-tenant en este subdominio"),
@@ -151,7 +169,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "betagamers", name: "Beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Slug (subdominio / URL)"), {
       target: { value: "betagamers" },
@@ -177,7 +195,7 @@ describe("<CommunitiesAdmin>", () => {
         }),
       ),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     expect(
       screen.queryByLabelText("Slug (subdominio / URL)"),
@@ -201,7 +219,7 @@ describe("<CommunitiesAdmin>", () => {
         }),
       ),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     expect(
       screen.queryByLabelText("Activar single-tenant en este subdominio"),
@@ -231,7 +249,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Color amber"), {
       target: { value: "#e63946" },
@@ -266,7 +284,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Fondo oscuro"), {
       target: { value: "#1a0e12" },
@@ -298,7 +316,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Texto sobre botones primarios"), {
       target: { value: "#101010" },
@@ -330,7 +348,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Color amberLight"), {
       target: { value: "#00ffcc" },
@@ -362,7 +380,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Color amberGlow"), {
       target: { value: "rgba(255, 0, 0, 0.2)" },
@@ -396,7 +414,7 @@ describe("<CommunitiesAdmin>", () => {
         return HttpResponse.json({ slug: "beta" });
       }),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Elevado oscuro"), {
       target: { value: "#1b2230" },
@@ -429,7 +447,7 @@ describe("<CommunitiesAdmin>", () => {
         }),
       ),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     const glow = screen.getByLabelText("Color amberGlow");
     // Default is valid rgba.
@@ -456,7 +474,7 @@ describe("<CommunitiesAdmin>", () => {
         }),
       ),
     );
-    render(<CommunitiesAdmin />);
+    renderAdmin();
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     // Nota explicativa en lugar de los controles de skin.
     expect(screen.getByText(/se define por código/i)).toBeInTheDocument();

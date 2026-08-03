@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import { useMathTradesQuery } from "../../queries/mathtrade";
 import MathTradeSkeleton from "./MathTradeSkeleton";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { getStatusMeta, getModeLabel } from "./mathtradeStatus";
@@ -53,49 +52,18 @@ export default function MathTrades() {
   const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
 
-  const [trades, setTrades] = useState([]);
   const [tab, setTab] = useState("all");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const navigate = useNavigate();
 
-  const load = useCallback(
-    async (pageNum = 1, replace = true, statusFilter = null, signal) => {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
-      try {
-        const params = { page: pageNum, limit: 12 };
-        if (statusFilter) params.status = statusFilter;
-        const { data } = await axios.get(API.mathtrade.LIST, {
-          params,
-          signal,
-        });
-        if (signal?.aborted) return;
-        setTrades((prev) =>
-          replace ? data.mathtrades : [...prev, ...data.mathtrades],
-        );
-        setTotalPages(data.pages);
-        setPage(pageNum);
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-      } finally {
-        if (!signal?.aborted) {
-          setLoading(false);
-          setLoadingMore(false);
-        }
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const ac = new AbortController();
-    const f = STATUS_TABS.find((t) => t.id === tab)?.filter || null;
-    load(1, true, f, ac.signal);
-    return () => ac.abort();
-  }, [tab, load]);
+  const statusFilter = STATUS_TABS.find((st) => st.id === tab)?.filter || null;
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage,
+    fetchNextPage,
+  } = useMathTradesQuery({ status: statusFilter });
+  const trades = data?.pages.flatMap((p) => p.mathtrades) || [];
 
   const showDrafts = showAdminUI && tab === "all";
   const drafts = showDrafts ? trades.filter((t) => t.status === "draft") : [];
@@ -180,14 +148,10 @@ export default function MathTrades() {
               ))}
             </div>
 
-            {page < totalPages && (
+            {hasNextPage && (
               <button
                 className={styles.loadMoreBtn}
-                onClick={() => {
-                  const f =
-                    STATUS_TABS.find((st) => st.id === tab)?.filter || null;
-                  load(page + 1, false, f);
-                }}
+                onClick={() => fetchNextPage()}
                 disabled={loadingMore}
               >
                 {loadingMore

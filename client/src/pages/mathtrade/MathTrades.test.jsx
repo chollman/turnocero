@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import i18n from "../../i18n";
@@ -10,6 +11,15 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
 import MathTrades from "./MathTrades";
 import { useAuth } from "../../context/AuthContext";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 beforeEach(() => {
   useAuth.mockReturnValue({ isActuallyAdmin: false, viewAsUser: false });
@@ -21,11 +31,13 @@ afterEach(() => {
 
 const renderList = () =>
   render(
-    <HelmetProvider>
-      <MemoryRouter>
-        <MathTrades />
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter>
+          <MathTrades />
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 
 describe("MathTrades", () => {

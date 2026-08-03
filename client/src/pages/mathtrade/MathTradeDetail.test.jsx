@@ -2,8 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
@@ -47,13 +57,15 @@ function mockTrade(overrides = {}) {
 
 const renderDetail = () =>
   render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={["/math-trade/m1"]}>
-        <Routes>
-          <Route path="/math-trade/:id" element={<MathTradeDetail />} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/math-trade/m1"]}>
+          <Routes>
+            <Route path="/math-trade/:id" element={<MathTradeDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 
 describe("MathTradeDetail", () => {

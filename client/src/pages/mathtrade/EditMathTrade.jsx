@@ -1,24 +1,10 @@
-import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useMathTradeQuery } from "../../queries/mathtrade";
 import MathTradeForm from "./MathTradeForm";
 
 export default function EditMathTrade() {
   const { id } = useParams();
-  const [trade, setTrade] = useState(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    axios
-      .get(API.mathtrade.DETAIL(id), { signal: ac.signal })
-      .then(({ data }) => setTrade(data))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setError(true);
-      });
-    return () => ac.abort();
-  }, [id]);
+  const { data: trade, isError: error } = useMathTradeQuery(id);
 
   if (error) return null;
   if (!trade) return null;

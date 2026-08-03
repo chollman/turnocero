@@ -1,7 +1,9 @@
 import { useState } from "react";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { API } from "../../../api/endpoints";
+import {
+  createMathTradeItem,
+  updateMathTradeItem,
+} from "../../../queries/mathtrade";
 import { useNotifications } from "../../../context/NotificationContext";
 import { getErrorMessage } from "../../../utils/getErrorMessage";
 import BggGameSearch from "../../../components/shared/BggGameSearch";
@@ -54,8 +56,8 @@ export default function ItemForm({
         notes,
       };
       const res = item
-        ? await axios.put(API.mathtrade.ITEM(mathtradeId, item._id), payload)
-        : await axios.post(API.mathtrade.ITEMS(mathtradeId), payload);
+        ? await updateMathTradeItem(mathtradeId, item._id, payload)
+        : await createMathTradeItem(mathtradeId, payload);
       onSaved?.(res.data);
     } catch (err) {
       addToast({

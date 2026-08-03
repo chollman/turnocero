@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { API } from "../../api/endpoints";
+import { createMathTrade, updateMathTrade } from "../../queries/mathtrade";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { getErrorMessage } from "../../utils/getErrorMessage";
@@ -58,8 +57,8 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
 
       const res =
         mode === "create"
-          ? await axios.post(API.mathtrade.LIST, fd)
-          : await axios.put(API.mathtrade.DETAIL(initial._id), fd);
+          ? await createMathTrade(fd)
+          : await updateMathTrade(initial._id, fd);
       navigate(`/math-trade/${res.data._id}`);
     } catch (err) {
       addToast({

@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { API } from "../../../api/endpoints";
+import {
+  runMathTradeMatching,
+  runMathTradeMatchingPreview,
+  updateMathTradeStatus,
+  deleteMathTrade,
+} from "../../../queries/mathtrade";
 import { useNotifications } from "../../../context/NotificationContext";
 import { getErrorMessage } from "../../../utils/getErrorMessage";
 import ResultsView from "./ResultsView";
@@ -47,14 +51,9 @@ export default function AdminPanel({ trade, onUpdated }) {
       // Al publicar, corremos primero el matching con la config elegida para
       // que se use ese modo (status→results no re-corre si ya hay lastRunAt).
       if (to === "results") {
-        await axios.post(API.mathtrade.RUN_MATCHING(trade._id), {
-          mode,
-          maxChainLength: maxChain,
-        });
+        await runMathTradeMatching(trade._id, { mode, maxChainLength: maxChain });
       }
-      const { data } = await axios.patch(API.mathtrade.STATUS(trade._id), {
-        status: to,
-      });
+      const { data } = await updateMathTradeStatus(trade._id, to);
       onUpdated?.(data);
       setPreview(null);
     } catch (err) {
@@ -71,10 +70,10 @@ export default function AdminPanel({ trade, onUpdated }) {
   const runPreview = async () => {
     setBusy(true);
     try {
-      const { data } = await axios.post(
-        API.mathtrade.RUN_MATCHING_PREVIEW(trade._id),
-        { mode, maxChainLength: maxChain },
-      );
+      const { data } = await runMathTradeMatchingPreview(trade._id, {
+        mode,
+        maxChainLength: maxChain,
+      });
       setPreview(data);
     } catch (err) {
       addToast({
@@ -91,7 +90,7 @@ export default function AdminPanel({ trade, onUpdated }) {
     if (!window.confirm(t("mathtrade:adminPanel.deleteConfirm"))) return;
     setBusy(true);
     try {
-      await axios.delete(API.mathtrade.DETAIL(trade._id));
+      await deleteMathTrade(trade._id);
       navigate("/math-trade");
     } catch (err) {
       addToast({
