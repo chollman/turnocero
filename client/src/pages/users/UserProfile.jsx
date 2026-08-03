@@ -1,7 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
@@ -9,7 +8,14 @@ import { useTheme } from "../../hooks/useTheme";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import {
+  geocodeAddress,
+  connectBgg,
+  syncBgg,
+  disconnectBgg,
+  uploadAvatar,
+  removeAvatar,
+} from "../../queries/users";
 import MiBgWatchCard from "./MiBgWatchCard";
 import CommunityPrefs from "./CommunityPrefs";
 import Avatar from "../../components/shared/Avatar";
@@ -377,7 +383,7 @@ export default function UserProfile() {
     }
     setGeocoding(true);
     try {
-      const { data } = await axios.get(API.geocode, { params: { q } });
+      const data = await geocodeAddress(q);
       setForm((prev) => ({
         ...prev,
         direccionTexto: data.formatted || prev.direccionTexto,
@@ -409,7 +415,7 @@ export default function UserProfile() {
     setBggBusy(true);
     setBggError("");
     try {
-      await axios.post(API.auth.BGG_CONNECT, { password: bggPassword });
+      await connectBgg(bggPassword);
       await refreshUser();
       setBggPassword("");
       addToast({
@@ -428,7 +434,7 @@ export default function UserProfile() {
     setSyncError("");
     setSyncSuccess("");
     try {
-      const { data } = await axios.post(API.bgg.SYNC);
+      const data = await syncBgg();
       await refreshUser();
       const changes = [];
       if (data.inserted)
@@ -459,7 +465,7 @@ export default function UserProfile() {
     setBggBusy(true);
     setBggError("");
     try {
-      await axios.delete(API.auth.BGG_CONNECTION);
+      await disconnectBgg();
       await refreshUser();
     } catch (err) {
       setBggError(
@@ -493,9 +499,7 @@ export default function UserProfile() {
     try {
       const formData = new FormData();
       formData.append("avatar", blob, "avatar.jpg");
-      await axios.put(API.auth.AVATAR, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await uploadAvatar(formData);
       await refreshUser();
       setAvatarFile(null);
     } catch (err) {
@@ -516,7 +520,7 @@ export default function UserProfile() {
     setAvatarBusy(true);
     setAvatarError("");
     try {
-      await axios.delete(API.auth.AVATAR);
+      await removeAvatar();
       await refreshUser();
     } catch (err) {
       setAvatarError(

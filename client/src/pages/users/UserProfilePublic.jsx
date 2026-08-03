@@ -1,12 +1,18 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { API } from "../../api/endpoints";
+import {
+  useUserDetailQuery,
+  sendFriendRequest,
+  cancelFriendRequest,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  unfriend,
+} from "../../queries/users";
 import { getLocale } from "../../utils/locale";
 import GameTile from "../../components/shared/GameTile";
 import BackButton from "../../components/shared/BackButton";
@@ -105,52 +111,37 @@ export default function UserProfilePublic() {
   const mesasEnabled = isSectionEnabled("mesas");
   const compartidasEnabled = isSectionEnabled("compartidas");
   const bgwatchEnabled = isSectionEnabled("bgwatch");
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    data: profile,
+    isPending: loading,
+    isError,
+  } = useUserDetailQuery(id);
   const [relationship, setRelationship] = useState("none");
   const [friendLoading, setFriendLoading] = useState(false);
 
   useEffect(() => {
-    const ac = new AbortController();
-    setLoading(true);
-    setError(null);
-    axios
-      .get(API.users.DETAIL(id), { signal: ac.signal })
-      .then(({ data }) => {
-        if (ac.signal.aborted) return;
-        setProfile(data);
-        setRelationship(data.relationship ?? "none");
-      })
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        setError(t("usuarios:public.loadError"));
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setLoading(false);
-      });
-    return () => ac.abort();
-  }, [id, t]);
+    if (profile) setRelationship(profile.relationship ?? "none");
+  }, [profile]);
 
   const handleFriendAction = async (action) => {
     setFriendLoading(true);
     try {
       if (action === "request") {
-        await axios.post(API.friends.REQUEST(id));
+        await sendFriendRequest(id);
         setRelationship("request_sent");
       } else if (action === "cancel_request") {
-        await axios.delete(API.friends.REQUEST(id));
+        await cancelFriendRequest(id);
         setRelationship("none");
       } else if (action === "accept") {
-        await axios.post(API.friends.ACCEPT(id));
+        await acceptFriendRequest(id);
         setRelationship("friends");
         notifyFriendAdded();
         refreshUser().catch(() => {});
       } else if (action === "reject") {
-        await axios.post(API.friends.REJECT(id));
+        await rejectFriendRequest(id);
         setRelationship("none");
       } else if (action === "unfriend") {
-        await axios.delete(API.friends.UNFRIEND(id));
+        await unfriend(id);
         setRelationship("none");
         refreshUser().catch(() => {});
       }
@@ -165,11 +156,15 @@ export default function UserProfilePublic() {
     return <ProfileSkeleton />;
   }
 
-  if (error || !profile) {
+  if (isError || !profile) {
     return (
       <div className={styles.page}>
         <div className={styles.stateCenter}>
-          <p>{error || t("usuarios:public.userNotFound")}</p>
+          <p>
+            {isError
+              ? t("usuarios:public.loadError")
+              : t("usuarios:public.userNotFound")}
+          </p>
           <BackButton onClick={goBack} flush>
             {canGoBack
               ? t("usuarios:public.back")

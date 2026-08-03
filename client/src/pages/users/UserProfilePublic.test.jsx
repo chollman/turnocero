@@ -1,9 +1,19 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import i18n from "../../i18n";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
@@ -52,11 +62,13 @@ function setup({ profile = makeProfile(), currentUser = null } = {}) {
   useNotifications.mockReturnValue({ notifyFriendAdded: vi.fn() });
   server.use(http.get("/api/users/:id", () => HttpResponse.json(profile)));
   return render(
-    <MemoryRouter initialEntries={[`/usuarios/${profile._id}`]}>
-      <Routes>
-        <Route path="/usuarios/:id" element={<UserProfilePublic />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={[`/usuarios/${profile._id}`]}>
+        <Routes>
+          <Route path="/usuarios/:id" element={<UserProfilePublic />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

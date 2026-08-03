@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
-import { API } from "../../api/endpoints";
+import { useUserDetailQuery } from "../../queries/users";
 import Avatar from "../../components/shared/Avatar";
 import styles from "./DirectChat.module.css";
 
@@ -29,15 +28,19 @@ export default function DirectChat() {
   const messages = conv?.messages || [];
 
   // Load contact info and open chat in context
+  const { data: contactData, isError: contactError } =
+    useUserDetailQuery(userId);
   useEffect(() => {
-    axios
-      .get(API.users.DETAIL(userId))
-      .then(({ data }) => {
-        setContact(data.user || data);
-        openChat(data.user || data);
-      })
-      .catch(() => navigate("/mensajes", { replace: true }));
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!contactData) return;
+    const c = contactData.user || contactData;
+    setContact(c);
+    openChat(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contactData]);
+  useEffect(() => {
+    if (contactError) navigate("/mensajes", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contactError]);
 
   // Reset the snapshot when switching conversations
   useEffect(() => {

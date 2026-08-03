@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
+import { useUserDetailQuery } from "../../queries/users";
 import GameTile from "../../components/shared/GameTile";
 import EmptyState from "../../components/shared/EmptyState";
 import { ArtMesa, ArtSearch } from "../../components/shared/EmptyArt";
@@ -104,9 +105,10 @@ export default function MeFeed() {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all");
   const [includeFriends, setIncludeFriends] = useState(false);
-  const [hasFriends, setHasFriends] = useState(false);
 
   const uid = user?._id?.toString();
+  const { data: ownProfile } = useUserDetailQuery(uid);
+  const hasFriends = (ownProfile?.friendsCount ?? 0) > 0;
 
   useEffect(() => {
     if (!uid) return undefined;
@@ -130,18 +132,6 @@ export default function MeFeed() {
       });
     return () => ac.abort();
   }, [includeFriends, uid]);
-
-  useEffect(() => {
-    if (!uid) return undefined;
-    const ac = new AbortController();
-    axios
-      .get(API.users.DETAIL(uid), { signal: ac.signal })
-      .then((res) => {
-        if (!ac.signal.aborted) setHasFriends((res.data.friendsCount ?? 0) > 0);
-      })
-      .catch(() => {});
-    return () => ac.abort();
-  }, [uid]);
 
   const now = new Date();
 

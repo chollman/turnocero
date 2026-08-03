@@ -97,23 +97,6 @@ export function useTorneoNextPhasePreviewQuery(id, { enabled = true } = {}) {
   });
 }
 
-// Búsqueda genérica de usuarios — usada por AddParticipantModal (admin_only
-// inscription mode). Cuando se migre el dominio "usuarios" esta query puede
-// mudarse a queries/users.js; por ahora vive acá porque es su único caller.
-export function useUserSearchQuery(search) {
-  return useQuery({
-    queryKey: ["users", "search", search?.trim() || ""],
-    queryFn: async ({ signal }) => {
-      const { data } = await axios.get(API.users.LIST, {
-        params: search?.trim() ? { search: search.trim() } : {},
-        signal,
-      });
-      return data || [];
-    },
-    staleTime: 30_000,
-  });
-}
-
 // ── Writes ─────────────────────────────────────────────────────────────
 // Funciones planas (no useMutation) — cada caller ya maneja su propio
 // busy/error local alrededor del await, mismo criterio que mesas/noticias.

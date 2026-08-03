@@ -1,9 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { API } from "../../api/endpoints";
+import { useBgWatchQuickStatsQuery } from "../../queries/bgWatch";
 import styles from "./MiBgWatchCard.module.css";
 
 const DieIcon = () => (
@@ -47,37 +45,8 @@ const ArrowIcon = () => (
  */
 export default function MiBgWatchCard({ bggUsername, avatarUrl }) {
   const { t } = useTranslation();
-  const [stats, setStats] = useState({ partidas: null, juegos: null });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!bggUsername) return;
-    let cancelled = false;
-    setLoading(true);
-
-    const partidasReq = axios
-      .get(API.bgg.PARTIDAS(bggUsername), { params: { page: 1 } })
-      .then((r) => r.data)
-      .catch(() => null);
-
-    const coleccionReq = axios
-      .get(API.bgg.COLECCION(bggUsername))
-      .then((r) => r.data)
-      .catch(() => null);
-
-    Promise.all([partidasReq, coleccionReq]).then(([partidas, coleccion]) => {
-      if (cancelled) return;
-      setStats({
-        partidas: partidas?.total ?? null,
-        juegos: Array.isArray(coleccion) ? coleccion.length : null,
-      });
-      setLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername]);
+  const { data, isPending: loading } = useBgWatchQuickStatsQuery(bggUsername);
+  const stats = data || { partidas: null, juegos: null };
 
   const initial = bggUsername?.charAt(0)?.toUpperCase() || "?";
   const partidasDisplay = loading ? "…" : (stats.partidas ?? "—");

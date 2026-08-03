@@ -1,8 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+function Providers({ children }) {
+  return (
+    <QueryClientProvider client={makeQueryClient()}>{children}</QueryClientProvider>
+  );
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/ChatContext", () => ({ useChat: vi.fn() }));
@@ -35,12 +50,12 @@ function setup({
   useChat.mockReturnValue({ conversations, openChat, sendMessage });
   server.use(http.get("/api/users/:id", () => HttpResponse.json(contact)));
   return render(
-    <MemoryRouter initialEntries={[`/mensajes/${contactId}`]}>
+    <Providers><MemoryRouter initialEntries={[`/mensajes/${contactId}`]}>
       <Routes>
         <Route path="/mensajes/:userId" element={<DirectChat />} />
         <Route path="/mensajes" element={<div>messages-list</div>} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter></Providers>,
   );
 }
 
@@ -132,11 +147,11 @@ describe("<DirectChat>", () => {
       sendMessage: vi.fn(),
     });
     render(
-      <MemoryRouter initialEntries={["/mensajes/missing"]}>
+      <Providers><MemoryRouter initialEntries={["/mensajes/missing"]}>
         <Routes>
           <Route path="/mensajes/:userId" element={<DirectChat />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter></Providers>,
     );
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith("/mensajes", { replace: true });

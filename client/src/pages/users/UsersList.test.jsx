@@ -7,6 +7,7 @@ import {
   fireEvent,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -14,6 +15,15 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
 import UsersList from "./UsersList";
 import { useAuth } from "../../context/AuthContext";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 function makeUserCard(overrides = {}) {
   return {
@@ -38,9 +48,11 @@ function setup({
   useAuth.mockReturnValue({ user: currentUser });
   server.use(http.get("/api/users", () => HttpResponse.json(users)));
   return render(
-    <MemoryRouter>
-      <UsersList />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <UsersList />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -366,9 +378,11 @@ describe("<UsersList>", () => {
         }),
       );
       render(
+        <QueryClientProvider client={makeQueryClient()}>
         <MemoryRouter>
           <UsersList communityId="c123" />
-        </MemoryRouter>,
+        </MemoryRouter>
+      </QueryClientProvider>,
       );
       await screen.findByText("@alice");
       expect(received).toBe("c123");
@@ -383,9 +397,11 @@ describe("<UsersList>", () => {
         ),
       );
       render(
+        <QueryClientProvider client={makeQueryClient()}>
         <MemoryRouter>
           <UsersList communityId="c123" />
-        </MemoryRouter>,
+        </MemoryRouter>
+      </QueryClientProvider>,
       );
       await screen.findByText("@alice");
       expect(
@@ -408,9 +424,11 @@ describe("<UsersList>", () => {
         );
         useAuth.mockReturnValue({ user: { _id: "me", isAdmin: false } });
         render(
-          <MemoryRouter>
+          <QueryClientProvider client={makeQueryClient()}>
+        <MemoryRouter>
             <UsersList />
-          </MemoryRouter>,
+          </MemoryRouter>
+      </QueryClientProvider>,
         );
 
         // El fetch del mount inicial ocurre (debouncedSearch === '' desde el primer render).

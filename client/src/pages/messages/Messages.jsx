@@ -1,10 +1,9 @@
 import Meeple from "../../components/shared/Meeple";
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
-import { API } from "../../api/endpoints";
+import { useUsersListQuery } from "../../queries/users";
 import Avatar from "../../components/shared/Avatar";
 import styles from "./Messages.module.css";
 
@@ -22,23 +21,18 @@ export default function Messages() {
   const { user } = useAuth();
   const { conversations, openChat } = useChat();
   const navigate = useNavigate();
-  const [friends, setFriends] = useState([]);
   const [showNewChat, setShowNewChat] = useState(false);
   const [search, setSearch] = useState("");
 
   // Load friends list for "new conversation" picker
-  useEffect(() => {
-    if (!user) return;
-    axios
-      .get(API.users.LIST)
-      .then(({ data }) => {
-        const friendIds = new Set(user.friends?.map((f) => f.toString()) || []);
-        setFriends(
-          (data.users || data).filter((u) => friendIds.has(u._id.toString())),
-        );
-      })
-      .catch(() => {});
-  }, [user]);
+  const { data: allUsers = [] } = useUsersListQuery(
+    {},
+    { enabled: !!user },
+  );
+  const friendIds = new Set(user?.friends?.map((f) => f.toString()) || []);
+  const friends = (allUsers.users || allUsers).filter((u) =>
+    friendIds.has(u._id.toString()),
+  );
 
   const isDesktop = () => window.innerWidth >= DESKTOP_BREAKPOINT;
 

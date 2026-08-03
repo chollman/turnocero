@@ -1,9 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import i18n from "../../i18n";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/ChatContext", () => ({ useChat: vi.fn() }));
@@ -57,9 +67,11 @@ function setup({
   server.use(http.get("/api/users", () => HttpResponse.json(friends)));
 
   return render(
-    <MemoryRouter>
-      <ChatLauncher />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <ChatLauncher />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

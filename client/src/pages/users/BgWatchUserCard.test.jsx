@@ -1,15 +1,27 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import BgWatchUserCard from "./BgWatchUserCard";
 
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
 function renderCard(bggUsername = "CarcaFan") {
   return render(
-    <MemoryRouter>
-      <BgWatchUserCard bggUsername={bggUsername} />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <BgWatchUserCard bggUsername={bggUsername} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -152,10 +164,10 @@ describe("<BgWatchUserCard>", () => {
       http.get("/api/bgg/coleccion/:bggUsername", () => HttpResponse.json([])),
     );
     renderCard();
+    // total = 0, juegos = 0 — those show as "0", lastDate = null → "—"
     await waitFor(() => {
       expect(screen.getByText(/última partida/i)).toBeInTheDocument();
+      expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     });
-    // total = 0, juegos = 0 — those show as "0", lastDate = null → "—"
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 });

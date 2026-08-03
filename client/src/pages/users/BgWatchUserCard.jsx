@@ -1,9 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { API } from "../../api/endpoints";
+import { useBgWatchQuickStatsQuery } from "../../queries/bgWatch";
 import { getLocale } from "../../utils/locale";
 import styles from "./BgWatchUserCard.module.css";
 
@@ -53,61 +51,16 @@ const ArrowIcon = () => (
 
 export default function BgWatchUserCard({ bggUsername }) {
   const { t } = useTranslation();
-  const [stats, setStats] = useState({
+  const { data, isPending: loading } = useBgWatchQuickStatsQuery(bggUsername, {
+    includeExtra: true,
+  });
+  const stats = data || {
     partidas: null,
     juegos: null,
     lastDate: null,
     topGame: null,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    if (!bggUsername) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(false);
-
-    const partidasReq = axios
-      .get(API.bgg.PARTIDAS(bggUsername), { params: { page: 1 } })
-      .then((r) => r.data)
-      .catch(() => null);
-
-    const coleccionReq = axios
-      .get(API.bgg.COLECCION(bggUsername))
-      .then((r) => r.data)
-      .catch(() => null);
-
-    Promise.all([partidasReq, coleccionReq]).then(([partidas, coleccion]) => {
-      if (cancelled) return;
-      const ok = partidas !== null || coleccion !== null;
-
-      // Prefer the server-aggregated top game (computed from BggPlay log)
-      // when present. Falls back to collection's numPlays only for profiles
-      // that haven't been synced yet — that path misses unowned games and
-      // doesn't work for users with private collections (e.g. H3rmit87).
-      let topGame = partidas?.topGame ?? null;
-      if (!topGame && Array.isArray(coleccion) && coleccion.length > 0) {
-        const sorted = [...coleccion]
-          .filter((g) => g.numPlays > 0)
-          .sort((a, b) => b.numPlays - a.numPlays);
-        topGame = sorted[0] || null;
-      }
-
-      setStats({
-        partidas: partidas?.total ?? null,
-        juegos: Array.isArray(coleccion) ? coleccion.length : null,
-        lastDate: partidas?.plays?.[0]?.date ?? null,
-        topGame,
-      });
-      setError(!ok);
-      setLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername]);
+  };
+  const error = !loading && data?.ok === false;
 
   const initial = bggUsername?.charAt(0)?.toUpperCase() || "?";
   const partidasDisplay = loading ? "…" : (stats.partidas ?? "—");

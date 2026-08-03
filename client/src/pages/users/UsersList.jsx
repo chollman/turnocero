@@ -1,11 +1,16 @@
 import Meeple from "../../components/shared/Meeple";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import {
+  userKeys,
+  useUsersListQuery,
+  banUser,
+  deleteUser,
+} from "../../queries/users";
 import { getLocale } from "../../utils/locale";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
@@ -248,8 +253,7 @@ export default function UsersList({ communityId = null } = {}) {
   // (ComunidadDetail provee su propio encabezado). Oculta el hero global y el
   // banner de onboarding de BG Watch, y scopea el fetch a esa comunidad.
   const embedded = !!communityId;
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("alpha");
   const [activeOnly, setActiveOnly] = useState(false);
@@ -262,53 +266,25 @@ export default function UsersList({ communityId = null } = {}) {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const fetchUsers = useCallback(
-    async (signal) => {
-      setLoading(true);
-      try {
-        const params = { sortBy };
-        if (debouncedSearch) params.search = debouncedSearch;
-        if (activeOnly) params.activeOnly = "true";
-        if (friendsOnly) params.friendsOnly = "true";
-        if (bgWatchOnly) params.bgWatchOnly = "true";
-        if (communityId) params.community = communityId;
-        const { data } = await axios.get(API.users.LIST, { params, signal });
-        if (signal?.aborted) return;
-        setUsers(data);
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        setUsers([]);
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
-    [
-      debouncedSearch,
-      sortBy,
-      activeOnly,
-      friendsOnly,
-      bgWatchOnly,
-      communityId,
-    ],
-  );
-
-  useEffect(() => {
-    const ac = new AbortController();
-    fetchUsers(ac.signal);
-    return () => ac.abort();
-  }, [fetchUsers]);
+  const params = { sortBy };
+  if (debouncedSearch) params.search = debouncedSearch;
+  if (activeOnly) params.activeOnly = "true";
+  if (friendsOnly) params.friendsOnly = "true";
+  if (bgWatchOnly) params.bgWatchOnly = "true";
+  if (communityId) params.community = communityId;
+  const { data: users = [], isPending: loading } = useUsersListQuery(params);
 
   const handleBanConfirm = async (reason) => {
     if (!banTarget) return;
     setActionLoading(true);
     setActionError("");
     try {
-      const { data } = await axios.patch(API.admin.USER_BAN(banTarget._id), {
+      const { data } = await banUser(banTarget._id, {
         banned: !banTarget.isBanned,
         reason: banTarget.isBanned ? "" : reason || "",
       });
-      setUsers((prev) =>
-        prev.map((u) =>
+      queryClient.setQueryData(userKeys.list(params), (prev) =>
+        (prev || []).map((u) =>
           u._id === banTarget._id
             ? {
                 ...u,
@@ -334,8 +310,10 @@ export default function UsersList({ communityId = null } = {}) {
     setActionLoading(true);
     setActionError("");
     try {
-      await axios.delete(API.admin.USER_DELETE(deleteTarget._id));
-      setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id));
+      await deleteUser(deleteTarget._id);
+      queryClient.setQueryData(userKeys.list(params), (prev) =>
+        (prev || []).filter((u) => u._id !== deleteTarget._id),
+      );
       setDeleteTarget(null);
     } catch (err) {
       setActionError(

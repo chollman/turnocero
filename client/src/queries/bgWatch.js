@@ -128,7 +128,63 @@ export const bgWatchKeys = {
     bggUsername,
     gameId,
   ],
+  quickStats: (bggUsername, includeExtra) => [
+    ...bgWatchKeys.all,
+    "quickStats",
+    bggUsername,
+    includeExtra,
+  ],
 };
+
+// ── Quick stats (widget "Mi BG Watch" / tarjeta BG Watch en perfil público) ──
+// Total de partidas + tamaño de colección, con top-juego y fecha de última
+// partida opcionales (`includeExtra`). Antes vivía duplicado como un fetch
+// manual en MiBgWatchCard.jsx y BgWatchUserCard.jsx (pages/users) — mismo par
+// de GET, dos formas de estado distintas. `partidas`/`coleccion` se resuelven
+// en paralelo y cada una absorbe su propio error a `null` (igual que el
+// código viejo): un fallo parcial no tira la card entera, solo esa mitad del
+// dato — `ok:false` en el resultado indica que AMBAS fallaron.
+export function useBgWatchQuickStatsQuery(
+  bggUsername,
+  { includeExtra = false } = {},
+) {
+  return useQuery({
+    queryKey: bgWatchKeys.quickStats(bggUsername, includeExtra),
+    queryFn: async ({ signal }) => {
+      const [partidas, coleccion] = await Promise.all([
+        axios
+          .get(API.bgg.PARTIDAS(bggUsername), { params: { page: 1 }, signal })
+          .then((r) => r.data)
+          .catch(() => null),
+        axios
+          .get(API.bgg.COLECCION(bggUsername), { signal })
+          .then((r) => r.data)
+          .catch(() => null),
+      ]);
+      const result = {
+        partidas: partidas?.total ?? null,
+        juegos: Array.isArray(coleccion) ? coleccion.length : null,
+        ok: partidas !== null || coleccion !== null,
+      };
+      if (includeExtra) {
+        // Preferimos el top-juego agregado por el server (BggPlay). Si no
+        // vino (perfil sin sincronizar), lo derivamos de numPlays de la
+        // colección — no cubre juegos no poseídos ni colecciones privadas.
+        let topGame = partidas?.topGame ?? null;
+        if (!topGame && Array.isArray(coleccion) && coleccion.length > 0) {
+          const sorted = [...coleccion]
+            .filter((g) => g.numPlays > 0)
+            .sort((a, b) => b.numPlays - a.numPlays);
+          topGame = sorted[0] || null;
+        }
+        result.lastDate = partidas?.plays?.[0]?.date ?? null;
+        result.topGame = topGame;
+      }
+      return result;
+    },
+    enabled: !!bggUsername,
+  });
+}
 
 // ── Partidas (lista + agregados de perfil) ──────────────────────────────
 

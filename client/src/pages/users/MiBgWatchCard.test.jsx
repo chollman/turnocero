@@ -1,15 +1,27 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import MiBgWatchCard from "./MiBgWatchCard";
 
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
 function renderCard(bggUsername = "CarcaFan") {
   return render(
-    <MemoryRouter>
-      <MiBgWatchCard bggUsername={bggUsername} />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <MiBgWatchCard bggUsername={bggUsername} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -52,12 +64,14 @@ describe("<MiBgWatchCard>", () => {
 
   it("muestra la foto de avatar del usuario si está asignada", () => {
     render(
-      <MemoryRouter>
-        <MiBgWatchCard
-          bggUsername="CarcaFan"
-          avatarUrl="https://cdn.test/avatar.webp"
-        />
-      </MemoryRouter>,
+      <QueryClientProvider client={makeQueryClient()}>
+        <MemoryRouter>
+          <MiBgWatchCard
+            bggUsername="CarcaFan"
+            avatarUrl="https://cdn.test/avatar.webp"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     const img = document.querySelector("img");
     expect(img).not.toBeNull();

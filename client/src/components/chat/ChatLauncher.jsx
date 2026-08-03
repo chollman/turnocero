@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSectionEnabled } from "../../hooks/useSectionEnabled";
-import { API } from "../../api/endpoints";
+import { userKeys, useUsersListQuery } from "../../queries/users";
 import Avatar from "../shared/Avatar";
 import styles from "./ChatLauncher.module.css";
 
@@ -20,31 +20,26 @@ export default function ChatLauncher() {
   const isSectionEnabled = useSectionEnabled();
   const dmsEnabled = isSectionEnabled("dms");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [friends, setFriends] = useState([]);
   const [search, setSearch] = useState("");
   const panelRef = useRef(null);
   const btnRef = useRef(null);
 
-  const fetchFriends = useCallback(() => {
-    if (!user) {
-      setFriends([]);
-      return;
-    }
-    axios
-      .get(API.users.LIST, { params: { friendsOnly: "true" } })
-      .then(({ data }) => setFriends(Array.isArray(data) ? data : []))
-      .catch(() => {});
-  }, [user]);
-
-  useEffect(() => {
-    fetchFriends();
-  }, [fetchFriends]);
+  const friendsParams = { friendsOnly: "true" };
+  const { data: friends = [] } = useUsersListQuery(friendsParams, {
+    enabled: !!user,
+  });
 
   useEffect(() => {
     if (!user) return;
-    return addFriendListener(fetchFriends);
-  }, [user, addFriendListener, fetchFriends]);
+    return addFriendListener(() => {
+      queryClient.invalidateQueries({
+        queryKey: userKeys.list(friendsParams),
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, addFriendListener, queryClient]);
 
   // Close on outside click
   useEffect(() => {

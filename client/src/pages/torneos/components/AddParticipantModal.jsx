@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
-import { useUserSearchQuery, addParticipant } from "../../../queries/torneos";
+import { addParticipant } from "../../../queries/torneos";
+import { useUserSearchQuery } from "../../../queries/users";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import ModalPortal from "../../../components/shared/ModalPortal";
