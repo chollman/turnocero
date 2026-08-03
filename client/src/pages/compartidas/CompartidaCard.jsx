@@ -3,10 +3,15 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
+import {
+  updateCompartida,
+  deleteCompartida,
+  addCompartidaImage,
+  removeCompartidaImage,
+} from "../../queries/compartidas";
 import GameTile from "../../components/shared/GameTile";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
@@ -337,7 +342,7 @@ export default function CompartidaCard({
   const handleDelete = async () => {
     if (!window.confirm(t("card.confirmDelete"))) return;
     try {
-      await axios.delete(API.compartidas.DETAIL(post._id));
+      await deleteCompartida(post._id);
       onDeleted?.(post._id);
     } catch {
       /* silently ignore */
@@ -367,7 +372,7 @@ export default function CompartidaCard({
     try {
       const fd = new FormData();
       fd.append("image", file);
-      const { data } = await axios.post(API.compartidas.IMAGES(post._id), fd);
+      const { data } = await addCompartidaImage(post._id, fd);
       const updated = { ...post, images: data };
       setPost(updated);
       onUpdated?.(updated);
@@ -381,7 +386,7 @@ export default function CompartidaCard({
     if (imgBusy) return;
     setImgBusy(true);
     try {
-      await axios.delete(API.compartidas.IMAGE_DETAIL(post._id, imgId));
+      await removeCompartidaImage(post._id, imgId);
       const updated = {
         ...post,
         images: post.images.filter((im) => im._id !== imgId),
@@ -397,7 +402,7 @@ export default function CompartidaCard({
 
   const handleSaveEdit = async () => {
     try {
-      const { data } = await axios.put(API.compartidas.DETAIL(post._id), {
+      const { data } = await updateCompartida(post._id, {
         title: editTitle,
         body: editBody,
         privacy: editPrivacy,

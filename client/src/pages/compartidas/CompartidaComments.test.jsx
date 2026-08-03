@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 import CompartidaComments from "./CompartidaComments";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const user = {
   _id: "user1",
@@ -41,9 +51,11 @@ function renderComponent(props = {}) {
     onCountChange: vi.fn(),
   };
   return render(
-    <MemoryRouter>
-      <CompartidaComments {...defaults} {...props} />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <CompartidaComments {...defaults} {...props} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

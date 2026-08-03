@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation, Trans } from "react-i18next";
-import axios from "axios";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import { useReviewsByGameQuery, compartidaKeys } from "../../queries/compartidas";
 import ResenaCard from "./ResenaCard";
 import CompartidasSidebar from "./CompartidasSidebar";
 import CompartidaSkeleton from "./CompartidaSkeleton";
@@ -21,63 +21,50 @@ export default function ReviewsByGame() {
   const { t } = useTranslation("compartidas");
   const { bggId } = useParams();
   const brandName = useBrandName();
-
-  const [game, setGame] = useState(null);
-  const [avgRating, setAvgRating] = useState(null);
-  const [total, setTotal] = useState(0);
-  const [reviews, setReviews] = useState([]);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState("");
-
-  const loadPage = useCallback(
-    async (pageNum, replace, signal) => {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
-      try {
-        const { data } = await axios.get(API.compartidas.BY_GAME(bggId), {
-          params: { page: pageNum, limit: 10 },
-          signal,
-        });
-        setGame(data.game);
-        setAvgRating(data.avgRating);
-        setTotal(data.total);
-        setPages(data.pages);
-        setPage(pageNum);
-        setReviews((prev) =>
-          replace ? data.reviews : [...prev, ...data.reviews],
-        );
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        if (err.response?.status === 404)
-          setError(t("reviewsByGame.errorNotFound"));
-        else setError(t("reviewsByGame.errorLoad"));
-      } finally {
-        if (!signal?.aborted) {
-          setLoading(false);
-          setLoadingMore(false);
-        }
-      }
-    },
-    [bggId, t],
+  const queryClient = useQueryClient();
+  const listKey = compartidaKeys.byGame(bggId);
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    error: queryError,
+    hasNextPage,
+    fetchNextPage,
+  } = useReviewsByGameQuery(bggId);
+  const game = data?.pages[0]?.game || null;
+  const avgRating = data?.pages[0]?.avgRating ?? null;
+  const total = data?.pages[0]?.total ?? 0;
+  const reviews = useMemo(
+    () => data?.pages.flatMap((p) => p.reviews) ?? [],
+    [data],
   );
-
-  useEffect(() => {
-    const ac = new AbortController();
-    setError("");
-    setReviews([]);
-    loadPage(1, true, ac.signal);
-    return () => ac.abort();
-  }, [loadPage]);
+  const error = queryError
+    ? queryError.response?.status === 404
+      ? t("reviewsByGame.errorNotFound")
+      : t("reviewsByGame.errorLoad")
+    : "";
 
   const handleDeleted = (id) => {
-    setReviews((prev) => prev.filter((r) => r._id !== id));
-    setTotal((t) => Math.max(0, t - 1));
+    queryClient.setQueryData(listKey, (old) => {
+      if (!old) return old;
+      const pages = old.pages.map((p) => ({
+        ...p,
+        reviews: p.reviews.filter((r) => r._id !== id),
+        total: Math.max(0, p.total - 1),
+      }));
+      return { ...old, pages };
+    });
   };
-  const handleUpdated = (updated) =>
-    setReviews((prev) => prev.map((r) => (r._id === updated._id ? updated : r)));
+  const handleUpdated = (updated) => {
+    queryClient.setQueryData(listKey, (old) => {
+      if (!old) return old;
+      const pages = old.pages.map((p) => ({
+        ...p,
+        reviews: p.reviews.map((r) => (r._id === updated._id ? updated : r)),
+      }));
+      return { ...old, pages };
+    });
+  };
 
   const gameName = game?.name || t("reviewsByGame.gameFallback");
   const metaTitle = t("reviewsByGame.metaTitle", {
@@ -193,10 +180,10 @@ export default function ReviewsByGame() {
                       onUpdated={handleUpdated}
                     />
                   ))}
-                  {page < pages && (
+                  {hasNextPage && (
                     <button
                       className={styles.loadMoreBtn}
-                      onClick={() => loadPage(page + 1, false)}
+                      onClick={() => fetchNextPage()}
                       disabled={loadingMore}
                     >
                       {loadingMore

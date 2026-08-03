@@ -1,13 +1,17 @@
 import Meeple from "../../components/shared/Meeple";
-import { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import { useState, useEffect, useMemo, useRef, Fragment } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, Link } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
-import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import {
+  useCompartidasFeedQuery,
+  useCompartidaStatsQuery,
+  compartidaKeys,
+} from "../../queries/compartidas";
 import Avatar from "../../components/shared/Avatar";
 import EmptyState from "../../components/shared/EmptyState";
 import { ArtCompartida, ArtSearch } from "../../components/shared/EmptyArt";
@@ -27,6 +31,8 @@ import styles from "./Compartidas.module.css";
 const TAB_VALUES = ["todo", "resena", "juntada"];
 
 const INTERLEAVE_EVERY = 3;
+
+const EMPTY_POSTS = [];
 
 // Frase intercalada en el feed. Se elige una al azar por visita a la sección
 // (ver utils/compartidaQuotes.js). Fallback de ritmo cuando la sección Mesas
@@ -82,16 +88,7 @@ export default function Compartidas() {
   const prefilledMesa = searchParams.get("mesa") || "";
   const prefilledEvento = searchParams.get("evento") || "";
 
-  const [posts, setPosts] = useState([]);
-  const [featured, setFeatured] = useState(null);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  // Distingue "feed vacío" de "falló la carga" — sin esto, un error de red
-  // mostraba el empty state como si no hubiera compartidas.
-  const [error, setError] = useState(false);
+  const queryClient = useQueryClient();
   // Inicializar pestaña/búsqueda desde la URL para soportar deep-links
   // compartibles (?tab=resena&q=catan).
   const [tab, setTab] = useState(() => {
@@ -125,10 +122,6 @@ export default function Compartidas() {
   // Fotos elegidas desde el "Subir foto" del composer — se siembran en el form.
   const [composerFiles, setComposerFiles] = useState(null);
   const composerFileRef = useRef(null);
-  // Stats GLOBALES del hero (total + últimos 7 días), servidas por el backend
-  // y decoupladas del feed: NO cambian con la pestaña/búsqueda activa ni
-  // dependen de cuántos posts haya cargado el scroll.
-  const [stats, setStats] = useState(null);
   // Frase al azar, fijada una vez por visita (montaje) a la sección.
   const [quote] = useState(randomCompartidaQuote);
 
@@ -145,57 +138,67 @@ export default function Compartidas() {
     setShowCreate(true);
   };
 
-  const loadFeed = useCallback(
-    async (pageNum = 1, replace = true, opts = {}) => {
-      if (pageNum === 1) {
-        setLoading(true);
-        setError(false);
-      } else setLoadingMore(true);
-      try {
-        const params = { page: pageNum, limit: 10 };
-        if (opts.category) params.category = opts.category;
-        if (opts.q) params.q = opts.q;
-        const { data } = await axios.get(API.compartidas.LIST, { params });
-        setPosts((prev) =>
-          replace ? data.compartidas : [...prev, ...data.compartidas],
-        );
-        setTotalPages(data.pages);
-        setPage(pageNum);
-        if (typeof data.total === "number") setTotal(data.total);
-        if (pageNum === 1) {
-          setFeatured(data.featured || null);
-        }
-      } catch {
-        // La paginación (load-more) falla en silencio: el feed ya cargado sigue
-        // usable. Un error en la primera página sí se reporta para no confundir
-        // "falló" con "vacío".
-        if (pageNum === 1) setError(true);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [],
+  const listKey = useMemo(
+    () => compartidaKeys.list({ category: categoryParam || null, q: qParam }),
+    [categoryParam, qParam],
   );
-
-  // Recargar página 1 al cambiar de pestaña o búsqueda.
-  useEffect(() => {
-    loadFeed(1, true, { category: categoryParam, q: qParam });
-  }, [loadFeed, categoryParam, qParam]);
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    isError: error,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useCompartidasFeedQuery({ category: categoryParam, q: qParam });
+  const posts = useMemo(
+    () => data?.pages.flatMap((p) => p.compartidas) ?? EMPTY_POSTS,
+    [data],
+  );
+  const featured = data?.pages[0]?.featured || null;
+  const total = data?.pages[0]?.total ?? 0;
+  // Stats GLOBALES del hero (total + últimos 7 días), servidas por el backend
+  // y decoupladas del feed: NO cambian con la pestaña/búsqueda activa ni
+  // dependen de cuántos posts haya cargado el scroll.
+  const { data: stats } = useCompartidaStatsQuery();
 
   const handleCreated = (newPost) => {
-    setPosts((prev) => [newPost, ...prev]);
+    queryClient.setQueryData(listKey, (old) => {
+      if (!old) return old;
+      const pages = [...old.pages];
+      const first = pages[0];
+      if (first.compartidas.some((p) => p._id === newPost._id)) return old;
+      pages[0] = { ...first, compartidas: [newPost, ...first.compartidas] };
+      return { ...old, pages };
+    });
     closeCreate();
   };
 
   const handleDeleted = (id) => {
-    setPosts((prev) => prev.filter((p) => p._id !== id));
-    if (featured?._id === id) setFeatured(null);
+    queryClient.setQueryData(listKey, (old) => {
+      if (!old) return old;
+      const pages = old.pages.map((p, i) => ({
+        ...p,
+        compartidas: p.compartidas.filter((post) => post._id !== id),
+        featured: i === 0 && p.featured?._id === id ? null : p.featured,
+      }));
+      return { ...old, pages };
+    });
   };
 
   const handleUpdated = (updated) => {
-    setPosts((prev) => prev.map((p) => (p._id === updated._id ? updated : p)));
-    if (featured?._id === updated._id) setFeatured(updated);
+    queryClient.setQueryData(listKey, (old) => {
+      if (!old) return old;
+      const pages = old.pages.map((p, i) => ({
+        ...p,
+        compartidas: p.compartidas.map((post) =>
+          post._id === updated._id ? updated : post,
+        ),
+        featured:
+          i === 0 && p.featured?._id === updated._id ? updated : p.featured,
+      }));
+      return { ...old, pages };
+    });
   };
 
   // Routing del renderer: reseña → ResenaCard (editorial); juntada → CompartidaCard.
@@ -217,18 +220,6 @@ export default function Compartidas() {
     );
 
   const visiblePosts = posts.filter((p) => !featured || p._id !== featured._id);
-
-  // Stats globales del hero — una sola vez al montar.
-  useEffect(() => {
-    const ac = new AbortController();
-    axios
-      .get(API.compartidas.STATS, { signal: ac.signal })
-      .then(({ data }) => {
-        if (!ac.signal.aborted) setStats(data);
-      })
-      .catch(() => {});
-    return () => ac.abort();
-  }, []);
 
   const userDisplay = user ? getUserDisplay(user) : null;
   const userFirstName =
@@ -427,8 +418,7 @@ export default function Compartidas() {
               text={t("feed.errorText")}
               primary={{
                 label: t("feed.errorRetry"),
-                onClick: () =>
-                  loadFeed(1, true, { category: categoryParam, q: qParam }),
+                onClick: () => refetch(),
               }}
             />
           ) : posts.length === 0 && !featured ? (
@@ -493,10 +483,10 @@ export default function Compartidas() {
                 </Fragment>
               ))}
 
-              {page < totalPages && (
+              {hasNextPage && (
                 <button
                   className={styles.loadMoreBtn}
-                  onClick={() => loadFeed(page + 1, false)}
+                  onClick={() => fetchNextPage()}
                   disabled={loadingMore}
                 >
                   {loadingMore

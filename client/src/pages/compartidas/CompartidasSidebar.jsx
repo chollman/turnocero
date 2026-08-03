@@ -1,11 +1,10 @@
 import Meeple from "../../components/shared/Meeple";
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
-import { API } from "../../api/endpoints";
+import { useTopGamesQuery, useMyUpcomingTablesQuery } from "../../queries/tables";
 import { getLocale } from "../../utils/locale";
 import GameTile from "../../components/shared/GameTile";
 import GuestJoinBanner from "../../components/shared/GuestJoinBanner";
@@ -30,47 +29,22 @@ export default function CompartidasSidebar() {
   const { isSectionEnabled } = useSiteConfig();
   const mesasEnabled = isSectionEnabled("mesas");
   const bgwatchEnabled = isSectionEnabled("bgwatch");
-  const [tables, setTables] = useState([]);
-  const [topGames, setTopGames] = useState([]);
+  // "Top juegos" es público (optionalAuth) → se trae siempre, también para
+  // anónimos: es la prueba social de que la comunidad está activa.
+  const { data: topGamesRaw } = useTopGamesQuery({ enabled: mesasEnabled });
+  const topGames = useMemo(() => (topGamesRaw || []).slice(0, 5), [topGamesRaw]);
 
-  useEffect(() => {
-    if (!mesasEnabled) {
-      setTables([]);
-      setTopGames([]);
-      return undefined;
-    }
-    const ac = new AbortController();
-
-    // "Top juegos" es público (optionalAuth) → se trae siempre, también para
-    // anónimos: es la prueba social de que la comunidad está activa.
-    axios
-      .get(API.tables.TOP_GAMES, { signal: ac.signal })
-      .then(({ data }) => {
-        if (!ac.signal.aborted) setTopGames(data.slice(0, 5));
-      })
-      .catch(() => {});
-
-    // "Tus mesas" es personal → solo para usuarios logueados.
-    if (user) {
-      axios
-        .get(API.tables.MINE, { params: { limit: 4 }, signal: ac.signal })
-        .then(({ data }) => {
-          if (ac.signal.aborted) return;
-          const upcoming = (data.tables || [])
-            .filter(
-              (t) => t.status !== "cancelled" && new Date(t.date) >= new Date(),
-            )
-            .sort((a, b) => new Date(a.date) - new Date(b.date))
-            .slice(0, 3);
-          setTables(upcoming);
-        })
-        .catch(() => {});
-    } else {
-      setTables([]);
-    }
-
-    return () => ac.abort();
-  }, [user, mesasEnabled]);
+  // "Tus mesas" es personal → solo para usuarios logueados.
+  const { data: myTablesRaw } = useMyUpcomingTablesQuery({
+    enabled: mesasEnabled && !!user,
+  });
+  const tables = useMemo(() => {
+    if (!mesasEnabled || !user) return [];
+    return (myTablesRaw || [])
+      .filter((t) => t.status !== "cancelled" && new Date(t.date) >= new Date())
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 3);
+  }, [myTablesRaw, mesasEnabled, user]);
 
   return (
     <aside className={styles.sidebar}>

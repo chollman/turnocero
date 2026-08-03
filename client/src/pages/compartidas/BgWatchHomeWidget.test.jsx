@@ -1,17 +1,29 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import BgWatchHomeWidget from "./BgWatchHomeWidget";
 
 const DISMISS_KEY = "turnocero_bgwatch_promo_dismissed";
 
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
 function renderWidget(props = {}) {
   return render(
-    <MemoryRouter>
-      <BgWatchHomeWidget user={props.user} dismissible={props.dismissible} />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <BgWatchHomeWidget user={props.user} dismissible={props.dismissible} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

@@ -2,9 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import i18n from "../../i18n";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
@@ -80,11 +90,13 @@ function renderPage({
   useAuth.mockReturnValue({ user });
   useSiteConfig.mockReturnValue({ isSectionEnabled });
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={initialEntries}>
-        <Compartidas />
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Compartidas />
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -376,10 +388,10 @@ describe("<Compartidas>", () => {
       ),
     );
     renderPage({ user: null });
-    await waitFor(() =>
-      expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument(),
-    );
-    expect(screen.getByText(/registrate para compartir/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument();
+      expect(screen.getByText(/registrate para compartir/i)).toBeInTheDocument();
+    });
   });
 
   it('user sees "+ Publicar compartida" button in empty state', async () => {
@@ -395,13 +407,15 @@ describe("<Compartidas>", () => {
       ),
     );
     renderPage();
-    await waitFor(() =>
-      expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument(),
-    );
+    await waitFor(() => {
+      expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /compartir una partida/i }),
+      ).toBeInTheDocument();
+    });
     const publishBtn = screen.getByRole("button", {
       name: /compartir una partida/i,
     });
-    expect(publishBtn).toBeInTheDocument();
     fireEvent.click(publishBtn);
     expect(screen.getByTestId("create-form")).toBeInTheDocument();
   });

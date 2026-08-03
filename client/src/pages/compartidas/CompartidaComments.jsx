@@ -1,8 +1,8 @@
 import Meeple from "../../components/shared/Meeple";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import Avatar from "../../components/shared/Avatar";
 import CommentLikeButton from "../../components/shared/CommentLikeButton";
 import LikersModal from "../../components/shared/LikersModal";
@@ -10,11 +10,26 @@ import { getUserDisplay } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { patchCommentInTree, toggleLikePatch } from "../../utils/commentLikes";
 import { API } from "../../api/endpoints";
+import {
+  useCompartidaCommentsQuery,
+  compartidaKeys,
+  addCompartidaComment,
+  editCompartidaComment,
+  deleteCompartidaComment,
+  toggleCompartidaCommentLike,
+} from "../../queries/compartidas";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import styles from "./CompartidaCard.module.css";
 
-const PAGE_SIZE = 10;
 const COMMENT_MAX = 500;
+const EMPTY_COMMENTS = [];
+
+// Parchea el árbol de comentarios ({top-level con .replies}) cross-page,
+// mismo patrón que los sockets de Eventos.jsx (Fase 6, dominio eventos).
+function patchPages(old, mapComments) {
+  if (!old) return old;
+  return { ...old, pages: old.pages.map((p) => ({ ...p, comments: mapComments(p.comments) })) };
+}
 
 // Comentarios muestran fecha+hora absoluta en formato dd/MM/aa HH:mm
 // (ej. "05/01/26 14:30"). Lo armamos a mano para fijar el separador exacto
@@ -44,12 +59,33 @@ export default function CompartidaComments({
   onCountChange,
 }) {
   const { t } = useTranslation("compartidas");
-  const [comments, setComments] = useState([]); // top-level, cada uno con .replies
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
+  const queryClient = useQueryClient();
+  const commentsKey = compartidaKeys.comments(compartidaId);
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage,
+    fetchNextPage,
+  } = useCompartidaCommentsQuery(compartidaId);
+  const comments = useMemo(
+    () => data?.pages.flatMap((p) => p.comments) ?? EMPTY_COMMENTS,
+    [data],
+  );
+  // `total` es un contador local ajustado a mano (bumpTotal) en cada
+  // add/reply/delete — el server no re-cuenta hasta el próximo GET. Se
+  // resincroniza solo cuando llega una página NUEVA (no en cada patch local
+  // del cache, que no cambia `pages.length`).
   const [total, setTotal] = useState(0);
+  const pagesLoaded = data?.pages.length ?? 0;
+  useEffect(() => {
+    const last = data?.pages[data.pages.length - 1];
+    if (last && typeof last.total === "number") {
+      setTotal(last.total);
+      onCountChange?.(last.total);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compartidaId, pagesLoaded]);
   const [commentInput, setCommentInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [editingCid, setEditingCid] = useState(null);
@@ -62,52 +98,12 @@ export default function CompartidaComments({
   const [likersCommentId, setLikersCommentId] = useState(null);
   const scrollRef = useRef(null);
 
-  const loadComments = useCallback(
-    async (pageNum, replace, signal) => {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
-      try {
-        const { data } = await axios.get(
-          API.compartidas.COMMENTS(compartidaId),
-          { params: { page: pageNum, limit: PAGE_SIZE }, signal },
-        );
-        setComments((prev) =>
-          replace ? data.comments : [...prev, ...data.comments],
-        );
-        setTotal(data.total);
-        setPages(data.pages);
-        setPage(pageNum);
-        onCountChange?.(data.total);
-      } catch (err) {
-        if (axios.isCancel(err)) return;
-        /* silently — la UI se mantiene utilizable */
-      } finally {
-        if (!signal?.aborted) {
-          setLoading(false);
-          setLoadingMore(false);
-        }
-      }
-    },
-    [compartidaId, onCountChange],
-  );
-
-  useEffect(() => {
-    const ac = new AbortController();
-    setComments([]);
-    setPage(1);
-    setPages(1);
-    loadComments(1, true, ac.signal);
-    return () => ac.abort();
-  }, [compartidaId, loadComments]);
-
-  const hasMore = page < pages;
-
   const onLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) loadComments(page + 1, false);
-  }, [loadingMore, hasMore, page, loadComments]);
+    if (!loadingMore && hasNextPage) fetchNextPage();
+  }, [loadingMore, hasNextPage, fetchNextPage]);
 
   const sentinelRef = useInfiniteScroll(onLoadMore, {
-    enabled: hasMore,
+    enabled: hasNextPage,
     root: scrollRef,
     rootMargin: "80px",
   });
@@ -124,11 +120,18 @@ export default function CompartidaComments({
     setSubmitting(true);
     setError("");
     try {
-      const { data } = await axios.post(
-        API.compartidas.COMMENTS(compartidaId),
-        { content: commentInput.trim() },
-      );
-      setComments((c) => [{ ...data, replies: [] }, ...c]); // más nuevo arriba
+      const { data: newComment } = await addCompartidaComment(compartidaId, {
+        content: commentInput.trim(),
+      });
+      queryClient.setQueryData(commentsKey, (old) => {
+        if (!old) return old;
+        const pages = [...old.pages];
+        pages[0] = {
+          ...pages[0],
+          comments: [{ ...newComment, replies: [] }, ...pages[0].comments],
+        };
+        return { ...old, pages };
+      });
       bumpTotal(1);
       setCommentInput("");
     } catch (err) {
@@ -150,17 +153,22 @@ export default function CompartidaComments({
     setReplySubmitting(true);
     setError("");
     try {
-      const { data } = await axios.post(
-        API.compartidas.COMMENTS(compartidaId),
-        { content: replyText.trim(), parent: parentClickedId },
-      );
-      // El server aplana al raíz → data.parent es el comentario de nivel superior.
-      setComments((cs) =>
-        cs.map((c) =>
-          c._id === data.parent
-            ? { ...c, replies: [...(c.replies || []), data] }
-            : c,
-        ),
+      const { data: newReply } = await addCompartidaComment(compartidaId, {
+        content: replyText.trim(),
+        parent: parentClickedId,
+      });
+      // El server aplana al raíz → newReply.parent es el comentario de nivel
+      // superior, que puede vivir en cualquier página ya cargada.
+      queryClient.setQueryData(
+        commentsKey,
+        (old) =>
+          patchPages(old, (list) =>
+            list.map((c) =>
+              c._id === newReply.parent
+                ? { ...c, replies: [...(c.replies || []), newReply] }
+                : c,
+            ),
+          ),
       );
       bumpTotal(1);
       setReplyingTo(null);
@@ -175,21 +183,24 @@ export default function CompartidaComments({
   const handleEdit = async (cid) => {
     if (!editContent.trim()) return;
     try {
-      const { data } = await axios.put(
-        API.compartidas.COMMENT_DETAIL(compartidaId, cid),
-        { content: editContent.trim() },
+      const { data: updated } = await editCompartidaComment(
+        compartidaId,
+        cid,
+        editContent.trim(),
       );
-      setComments((cs) =>
-        cs.map((c) => {
-          if (c._id === cid) return { ...data, replies: c.replies || [] };
-          if (c.replies?.some((r) => r._id === cid)) {
-            return {
-              ...c,
-              replies: c.replies.map((r) => (r._id === cid ? data : r)),
-            };
-          }
-          return c;
-        }),
+      queryClient.setQueryData(commentsKey, (old) =>
+        patchPages(old, (list) =>
+          list.map((c) => {
+            if (c._id === cid) return { ...updated, replies: c.replies || [] };
+            if (c.replies?.some((r) => r._id === cid)) {
+              return {
+                ...c,
+                replies: c.replies.map((r) => (r._id === cid ? updated : r)),
+              };
+            }
+            return c;
+          }),
+        ),
       );
       setEditingCid(null);
     } catch (err) {
@@ -199,19 +210,23 @@ export default function CompartidaComments({
 
   const handleDelete = async (cid) => {
     try {
-      await axios.delete(API.compartidas.COMMENT_DETAIL(compartidaId, cid));
+      await deleteCompartidaComment(compartidaId, cid);
       const top = comments.find((c) => c._id === cid);
       if (top) {
         // Comentario raíz → se borra con sus respuestas (cascada en el server).
         bumpTotal(-(1 + (top.replies?.length || 0)));
-        setComments((cs) => cs.filter((c) => c._id !== cid));
+        queryClient.setQueryData(commentsKey, (old) =>
+          patchPages(old, (list) => list.filter((c) => c._id !== cid)),
+        );
       } else {
         bumpTotal(-1);
-        setComments((cs) =>
-          cs.map((c) => ({
-            ...c,
-            replies: (c.replies || []).filter((r) => r._id !== cid),
-          })),
+        queryClient.setQueryData(commentsKey, (old) =>
+          patchPages(old, (list) =>
+            list.map((c) => ({
+              ...c,
+              replies: (c.replies || []).filter((r) => r._id !== cid),
+            })),
+          ),
         );
       }
     } catch (err) {
@@ -221,18 +236,24 @@ export default function CompartidaComments({
 
   // Toggle de like de un comentario/respuesta. Optimistic + rollback (patrón
   // useCompartidaLike). El árbol se actualiza con patchCommentInTree (sirve
-  // tanto para top-level como para respuestas).
+  // tanto para top-level como para respuestas), cross-page.
   const toggleCommentLike = async (c) => {
     if (!user) {
       onRequireLogin?.(t("comments.requireLogin"));
       return;
     }
     const original = { liked: c.liked, likeCount: c.likeCount ?? 0 };
-    setComments((cs) => patchCommentInTree(cs, c._id, toggleLikePatch(c)));
+    queryClient.setQueryData(commentsKey, (old) =>
+      patchPages(old, (list) =>
+        patchCommentInTree(list, c._id, toggleLikePatch(c)),
+      ),
+    );
     try {
-      await axios.post(API.compartidas.COMMENT_LIKE(compartidaId, c._id));
+      await toggleCompartidaCommentLike(compartidaId, c._id);
     } catch {
-      setComments((cs) => patchCommentInTree(cs, c._id, original));
+      queryClient.setQueryData(commentsKey, (old) =>
+        patchPages(old, (list) => patchCommentInTree(list, c._id, original)),
+      );
     }
   };
 
@@ -479,7 +500,7 @@ export default function CompartidaComments({
             </div>
           ))}
 
-          {hasMore && (
+          {hasNextPage && (
             <button
               type="button"
               className={styles.commentsMoreBtn}
@@ -491,7 +512,7 @@ export default function CompartidaComments({
                 : t("comments.loadMore")}
             </button>
           )}
-          {hasMore && <div ref={sentinelRef} aria-hidden="true" />}
+          {hasNextPage && <div ref={sentinelRef} aria-hidden="true" />}
         </div>
       )}
 

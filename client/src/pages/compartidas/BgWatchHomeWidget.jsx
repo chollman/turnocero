@@ -1,9 +1,8 @@
 import Meeple from "../../components/shared/Meeple";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useBgWatchHomeStatsQuery } from "../../queries/bgg";
 import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./BgWatchHomeWidget.module.css";
 
@@ -40,63 +39,11 @@ function writeDismissed() {
  */
 function ConnectedView({ bggUsername }) {
   const { t } = useTranslation("compartidas");
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(false);
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const url = API.bgg.PARTIDAS(bggUsername);
-
-    Promise.all([
-      axios.get(url, { params: { page: 1, mindate: `${year}-01-01` } }),
-      axios.get(url, { params: { page: 1, mindate: `${year}-${month}-01` } }),
-    ])
-      .then(([yearRes, monthRes]) => {
-        if (cancelled) return;
-        const yearPlays = yearRes.data?.plays || [];
-        const totalYear =
-          typeof yearRes.data?.total === "number"
-            ? yearRes.data.total
-            : yearPlays.length;
-        const totalMonth =
-          typeof monthRes.data?.total === "number"
-            ? monthRes.data.total
-            : (monthRes.data?.plays || []).reduce(
-                (sum, p) => sum + (p.quantity || 1),
-                0,
-              );
-        const tally = {};
-        for (const p of yearPlays) {
-          if (!p.gameId) continue;
-          const qty = p.quantity || 1;
-          if (!tally[p.gameId])
-            tally[p.gameId] = {
-              name: p.gameName || t("homeWidget.unknownGame"),
-              count: 0,
-            };
-          tally[p.gameId].count += qty;
-        }
-        const mostPlayed = Object.values(tally).sort(
-          (a, b) => b.count - a.count,
-        )[0];
-        setStats({ totalYear, thisMonth: totalMonth, mostPlayed });
-        setLoading(false);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setError(true);
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername, t]);
+  const {
+    data: stats,
+    isPending: loading,
+    isError: error,
+  } = useBgWatchHomeStatsQuery(bggUsername);
 
   const totalYear = stats?.totalYear ?? 0;
   const headlineText = error
@@ -153,8 +100,8 @@ function ConnectedView({ bggUsername }) {
           <span
             className={`${styles.statValue} ${styles.statValueText}`}
             title={
-              !loading && !error && stats.mostPlayed?.name
-                ? stats.mostPlayed.name
+              !loading && !error && stats.mostPlayed
+                ? stats.mostPlayed.name || t("homeWidget.unknownGame")
                 : undefined
             }
           >
@@ -165,8 +112,10 @@ function ConnectedView({ bggUsername }) {
               />
             ) : error ? (
               "—"
+            ) : stats.mostPlayed ? (
+              stats.mostPlayed.name || t("homeWidget.unknownGame")
             ) : (
-              stats.mostPlayed?.name || "—"
+              "—"
             )}
           </span>
         </div>

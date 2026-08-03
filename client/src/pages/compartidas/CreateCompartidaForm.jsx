@@ -1,9 +1,9 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
-import { API } from "../../api/endpoints";
+import { useTableQuery } from "../../queries/tables";
+import { useEventoQuery } from "../../queries/eventos";
 import { getLocale } from "../../utils/locale";
 import Avatar from "../../components/shared/Avatar";
 import CommunitySelect from "../../components/shared/CommunitySelect";
@@ -123,37 +123,27 @@ export default function CreateCompartidaForm({
 
   // Resolver la mesa/evento prefilled para renderizar el chip. Si el fetch
   // falla (403/404/sin acceso), limpiamos el id para no enviar un link inválido.
+  const { data: prefilledTableData, isError: prefilledTableErrored } =
+    useTableQuery(prefilledTableId, { enabled: !!prefilledTableId });
   useEffect(() => {
-    if (!prefilledTableId) return undefined;
-    const ac = new AbortController();
-    axios
-      .get(API.tables.DETAIL(prefilledTableId), { signal: ac.signal })
-      .then(({ data }) => {
-        if (!ac.signal.aborted) setLinkedTable(data);
-      })
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        setLinkedTable(null);
-        setLinkedTableId("");
-      });
-    return () => ac.abort();
-  }, [prefilledTableId]);
+    if (!prefilledTableId) return;
+    if (prefilledTableData) setLinkedTable(prefilledTableData);
+    else if (prefilledTableErrored) {
+      setLinkedTable(null);
+      setLinkedTableId("");
+    }
+  }, [prefilledTableId, prefilledTableData, prefilledTableErrored]);
 
+  const { data: prefilledEventoData, isError: prefilledEventoErrored } =
+    useEventoQuery(prefilledEventoId, { enabled: !!prefilledEventoId });
   useEffect(() => {
-    if (!prefilledEventoId) return undefined;
-    const ac = new AbortController();
-    axios
-      .get(API.eventos.DETAIL(prefilledEventoId), { signal: ac.signal })
-      .then(({ data }) => {
-        if (!ac.signal.aborted) setLinkedEvento(data);
-      })
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        setLinkedEvento(null);
-        setLinkedEventoId("");
-      });
-    return () => ac.abort();
-  }, [prefilledEventoId]);
+    if (!prefilledEventoId) return;
+    if (prefilledEventoData) setLinkedEvento(prefilledEventoData);
+    else if (prefilledEventoErrored) {
+      setLinkedEvento(null);
+      setLinkedEventoId("");
+    }
+  }, [prefilledEventoId, prefilledEventoData, prefilledEventoErrored]);
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files || []);

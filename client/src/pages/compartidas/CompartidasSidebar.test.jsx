@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const useAuthMock = vi.fn();
 const useSiteConfigMock = vi.fn();
@@ -27,9 +37,11 @@ import CompartidasSidebar from "./CompartidasSidebar";
 
 function renderSidebar() {
   return render(
-    <MemoryRouter>
-      <CompartidasSidebar />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <CompartidasSidebar />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -117,10 +129,10 @@ describe("<CompartidasSidebar>", () => {
     renderSidebar();
     await waitFor(() => {
       expect(screen.getByText("Top juegos esta semana")).toBeInTheDocument();
+      expect(screen.getByText("25")).toBeInTheDocument();
+      expect(screen.getByText("15")).toBeInTheDocument();
+      expect(screen.getByText("Carcassonne")).toBeInTheDocument();
     });
-    expect(screen.getByText("25")).toBeInTheDocument();
-    expect(screen.getByText("15")).toBeInTheDocument();
-    expect(screen.getByText("Carcassonne")).toBeInTheDocument();
   });
 
   it("renders empty top-games state when API returns []", async () => {

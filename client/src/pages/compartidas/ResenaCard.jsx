@@ -3,10 +3,9 @@ import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
-import { API } from "../../api/endpoints";
+import { updateCompartida, deleteCompartida } from "../../queries/compartidas";
 import Avatar from "../../components/shared/Avatar";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
@@ -136,7 +135,7 @@ export default function ResenaCard({
   const handleDelete = async () => {
     if (!window.confirm(t("resena.confirmDelete"))) return;
     try {
-      await axios.delete(API.compartidas.DETAIL(post._id));
+      await deleteCompartida(post._id);
       onDeleted?.(post._id);
     } catch {
       /* ignore */
@@ -159,7 +158,7 @@ export default function ResenaCard({
     setEditError("");
     setSaving(true);
     try {
-      const { data } = await axios.put(API.compartidas.DETAIL(post._id), {
+      const { data } = await updateCompartida(post._id, {
         title: editTitle,
         body: editBody,
         rating: editRating,

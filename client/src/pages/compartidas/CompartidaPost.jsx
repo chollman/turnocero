@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
-import { API } from "../../api/endpoints";
+import { useCompartidaQuery, compartidaKeys } from "../../queries/compartidas";
 import CompartidaCard from "./CompartidaCard";
 import ResenaCard from "./ResenaCard";
 import CompartidasSidebar from "./CompartidasSidebar";
@@ -27,34 +27,21 @@ export default function CompartidaPost() {
   const navigate = useNavigate();
   const { setActiveCompartida } = useNotifications();
   const brandName = useBrandName();
-  const [post, setPost] = useState(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: post, isPending: loading, error: queryError } =
+    useCompartidaQuery(id);
+  const status = queryError?.response?.status;
+  const error = queryError
+    ? status === 404
+      ? t("post.errorNotFound")
+      : status === 403
+        ? t("post.errorForbidden")
+        : t("post.errorGeneric")
+    : "";
 
   useEffect(() => {
     setActiveCompartida(id);
   }, [id, setActiveCompartida]);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    axios
-      .get(API.compartidas.DETAIL(id), { signal: ac.signal })
-      .then(({ data }) => {
-        if (!ac.signal.aborted) setPost(data);
-      })
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        if (err.response?.status === 404)
-          setError(t("post.errorNotFound"));
-        else if (err.response?.status === 403)
-          setError(t("post.errorForbidden"));
-        else setError(t("post.errorGeneric"));
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setLoading(false);
-      });
-    return () => ac.abort();
-  }, [id, t]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const postUrl = `${origin}/compartidas/${id}`;
@@ -147,14 +134,18 @@ export default function CompartidaPost() {
               <ResenaCard
                 post={post}
                 onDeleted={() => navigate("/compartidas")}
-                onUpdated={(updated) => setPost(updated)}
+                onUpdated={(updated) =>
+                  queryClient.setQueryData(compartidaKeys.detail(id), updated)
+                }
                 clampBody={false}
               />
             ) : (
               <CompartidaCard
                 post={post}
                 onDeleted={() => navigate("/compartidas")}
-                onUpdated={(updated) => setPost(updated)}
+                onUpdated={(updated) =>
+                  queryClient.setQueryData(compartidaKeys.detail(id), updated)
+                }
               />
             ))}
         </div>

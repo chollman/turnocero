@@ -44,6 +44,35 @@ export function useTablesQuery({
   });
 }
 
+// "Top juegos" del sidebar de Compartidas — público (optionalAuth), prueba
+// social de que la comunidad está activa.
+export function useTopGamesQuery({ enabled = true } = {}) {
+  return useQuery({
+    queryKey: [...tableKeys.all, "topGames"],
+    queryFn: async ({ signal }) => {
+      const { data } = await axios.get(API.tables.TOP_GAMES, { signal });
+      return data;
+    },
+    enabled,
+  });
+}
+
+// "Tus mesas" del sidebar de Compartidas — próximas 3, personal. Query propia
+// (no reutiliza useTablesQuery) para no forzar `limit` en su query key.
+export function useMyUpcomingTablesQuery({ enabled = true } = {}) {
+  return useQuery({
+    queryKey: [...tableKeys.all, "myUpcoming"],
+    queryFn: async ({ signal }) => {
+      const { data } = await axios.get(API.tables.MINE, {
+        params: { limit: 4 },
+        signal,
+      });
+      return data.tables || [];
+    },
+    enabled,
+  });
+}
+
 export function useTableQuery(id, { enabled = true } = {}) {
   return useQuery({
     queryKey: tableKeys.detail(id),

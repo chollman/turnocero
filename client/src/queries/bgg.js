@@ -5,6 +5,7 @@ import { API } from "../api/endpoints";
 export const bggKeys = {
   search: (q) => ["bgg", "search", q],
   coleccion: (bggUsername) => ["bgg", "coleccion", bggUsername],
+  homeStats: (bggUsername) => ["bgg", "homeStats", bggUsername],
 };
 
 // Autocomplete de juegos BGG — el mismo patrón vivía duplicado (debounce +
@@ -42,5 +43,51 @@ export function useBggCollectionQuery(bggUsername, { enabled = true } = {}) {
     },
     enabled: enabled && !!bggUsername,
     staleTime: 5 * 60_000,
+  });
+}
+
+// Stats resumen del widget "BG Watch" en el home de Compartidas: total del
+// año + del mes + juego más jugado. `mostPlayed.name` puede venir vacío (raro
+// — jugada sin nombre de juego cacheado); el fallback de texto se aplica en
+// el componente vía i18n, no acá (queryFn no tiene acceso a `t`).
+export function useBgWatchHomeStatsQuery(bggUsername, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: bggKeys.homeStats(bggUsername),
+    queryFn: async ({ signal }) => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const url = API.bgg.PARTIDAS(bggUsername);
+      const [yearRes, monthRes] = await Promise.all([
+        axios.get(url, { params: { page: 1, mindate: `${year}-01-01` }, signal }),
+        axios.get(url, {
+          params: { page: 1, mindate: `${year}-${month}-01` },
+          signal,
+        }),
+      ]);
+      const yearPlays = yearRes.data?.plays || [];
+      const totalYear =
+        typeof yearRes.data?.total === "number"
+          ? yearRes.data.total
+          : yearPlays.length;
+      const totalMonth =
+        typeof monthRes.data?.total === "number"
+          ? monthRes.data.total
+          : (monthRes.data?.plays || []).reduce(
+              (sum, p) => sum + (p.quantity || 1),
+              0,
+            );
+      const tally = {};
+      for (const p of yearPlays) {
+        if (!p.gameId) continue;
+        const qty = p.quantity || 1;
+        if (!tally[p.gameId]) tally[p.gameId] = { name: p.gameName || "", count: 0 };
+        tally[p.gameId].count += qty;
+      }
+      const mostPlayed =
+        Object.values(tally).sort((a, b) => b.count - a.count)[0] || null;
+      return { totalYear, thisMonth: totalMonth, mostPlayed };
+    },
+    enabled: enabled && !!bggUsername,
   });
 }

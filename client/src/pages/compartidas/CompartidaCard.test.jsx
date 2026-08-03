@@ -1,8 +1,28 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
+// Reemplaza <Providers> en todos los render() del archivo — CompartidaCard
+// monta CompartidaComments (useQueryClient) al togglear el bloque de comentarios.
+function Providers({ children }) {
+  return (
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
@@ -55,9 +75,9 @@ function renderCard(post, { user = null } = {}) {
   useAuth.mockReturnValue({ user });
   useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
   return render(
-    <MemoryRouter>
+    <Providers>
       <CompartidaCard post={post} onDeleted={vi.fn()} onUpdated={vi.fn()} />
-    </MemoryRouter>,
+    </Providers>,
   );
 }
 
@@ -335,7 +355,7 @@ describe("<CompartidaCard>", () => {
     useSiteConfig.mockReturnValue({ isSectionEnabled: (k) => k !== "mesas" });
     useAuth.mockReturnValue({ user: null });
     render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             linkedTable: {
@@ -350,7 +370,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     // Body still renders but no linked table chip
     expect(screen.getByText(/Anoche jugamos Catán/)).toBeInTheDocument();
@@ -398,7 +418,7 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             author: {
@@ -410,7 +430,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={onDeleted}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     fireEvent.click(screen.getByText("⋯"));
     fireEvent.click(screen.getByRole("button", { name: "Eliminar" }));
@@ -525,14 +545,14 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost()}
           featured
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     expect(screen.getByText(/compartida del día/i)).toBeInTheDocument();
   });
@@ -541,7 +561,7 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     const { container } = render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             body: "Un relato bien largo ".repeat(20),
@@ -550,7 +570,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     const link = container.querySelector('a[href="/compartidas/c1"]');
     expect(link).toBeInTheDocument();
@@ -561,14 +581,14 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     const { container } = render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({ playResult: PLAY_RESULT })}
           featured
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     expect(
       container.querySelector('a[href="/compartidas/c1"]'),
@@ -579,7 +599,7 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     const { container } = render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             linkedTable: {
@@ -595,7 +615,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     const link = container.querySelector('a[href="/mesas/tF"]');
     expect(link).toBeInTheDocument();
@@ -608,7 +628,7 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     const { container } = render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             images: [
@@ -621,7 +641,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     const srcs = [...container.querySelectorAll("img")].map((i) =>
       i.getAttribute("src"),
@@ -635,14 +655,14 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     const { container } = render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({ playResult: PLAY_RESULT, images: photoUrls(3) })}
           featured
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     // Con scorecard a la izquierda, la columna de fotos se apila (stacked).
     expect(
@@ -654,7 +674,7 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             playResult: PLAY_RESULT,
@@ -666,7 +686,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     expect(document.querySelector(".playResult")).toBeInTheDocument();
     expect(document.querySelector(".gameTags")).toBeNull();
@@ -677,14 +697,14 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     const { container } = render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({ images: photoUrls(3) })}
           featured
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     expect(container.querySelector(".photosFeatured")).toBeInTheDocument();
     expect(
@@ -1050,7 +1070,7 @@ describe("<CompartidaCard>", () => {
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     useAuth.mockReturnValue({ user: null });
     render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             author: {
@@ -1063,7 +1083,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     expect(
       screen.getByRole("link", { name: /bg watch de cha/i }),
@@ -1074,7 +1094,7 @@ describe("<CompartidaCard>", () => {
     useSiteConfig.mockReturnValue({ isSectionEnabled: (s) => s !== "bgwatch" });
     useAuth.mockReturnValue({ user: null });
     render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost({
             author: {
@@ -1087,7 +1107,7 @@ describe("<CompartidaCard>", () => {
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     expect(
       screen.queryByRole("link", { name: /bg watch/i }),
@@ -1121,14 +1141,14 @@ describe("<CompartidaCard>", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
     render(
-      <MemoryRouter>
+      <Providers>
         <CompartidaCard
           post={makePost()}
           featured
           onDeleted={vi.fn()}
           onUpdated={vi.fn()}
         />
-      </MemoryRouter>,
+      </Providers>,
     );
     const link = screen.getByRole("link", { name: "Claudio H" });
     expect(link).toHaveAttribute("href", "/usuarios/a1");
@@ -1247,14 +1267,14 @@ describe("<CompartidaCard>", () => {
       useAuth.mockReturnValue({ user: null });
       useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
       render(
-        <MemoryRouter>
+        <Providers>
           <CompartidaCard
             post={makePost({ likes: ["x", "y", "z"] })}
             featured
             onDeleted={vi.fn()}
             onUpdated={vi.fn()}
           />
-        </MemoryRouter>,
+        </Providers>,
       );
       fireEvent.click(
         screen.getByRole("button", { name: /ver a quién le gustó/i }),
