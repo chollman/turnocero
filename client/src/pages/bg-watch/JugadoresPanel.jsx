@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import {
+  useJugadoresQuery,
+  bgWatchKeys,
+  markPlayerSelf,
+} from "../../queries/bgWatch";
 import Avatar from "../../components/shared/Avatar";
 import EmptyState from "../../components/shared/EmptyState";
 import useSearchTerm from "../../hooks/useSearchTerm";
@@ -19,17 +23,12 @@ import styles from "./BgWatchProfile.module.css";
  */
 export default function JugadoresPanel({ bggUsername, onTotalChange }) {
   const { t } = useTranslation("bgwatch");
-  const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [q, setQ] = useState("");
 
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const searchTerm = useSearchTerm(q);
-  const reqIdRef = useRef(0);
 
   const openDetail = (row) =>
     navigate(
@@ -38,50 +37,33 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
       )}`,
     );
 
-  const fetchPage = useCallback(
-    (pageToLoad) => {
-      const myId = ++reqIdRef.current;
-      setLoading(true);
-      setError(false);
-      axios
-        .get(API.bgg.JUGADORES(bggUsername), {
-          params: { page: pageToLoad, q: searchTerm || undefined },
-        })
-        .then(({ data }) => {
-          if (myId !== reqIdRef.current) return;
-          setItems(data.items || []);
-          setPage(data.page || pageToLoad);
-          setPages(data.pages || 1);
-          setTotal(data.total || 0);
-          // Reportar el total al padre solo sin búsqueda activa, para que el
-          // badge de la tab refleje el total real (no el filtrado) — igual que
-          // PartidasPanel con su meta.
-          if (!searchTerm && onTotalChange) onTotalChange(data.total || 0);
-        })
-        .catch(() => {
-          if (myId === reqIdRef.current) setError(true);
-        })
-        .finally(() => {
-          if (myId === reqIdRef.current) setLoading(false);
-        });
-    },
-    [bggUsername, searchTerm, onTotalChange],
-  );
+  const {
+    data,
+    isPending: loading,
+    isError: error,
+  } = useJugadoresQuery({ bggUsername, page, q: searchTerm });
+  const items = data?.items || [];
+  const pages = data?.pages || 1;
+  const total = data?.total || 0;
 
+  // Reset a página 1 al cambiar la búsqueda.
   useEffect(() => {
-    fetchPage(1);
-  }, [searchTerm, fetchPage]);
+    setPage(1);
+  }, [searchTerm]);
 
-  const reload = () => fetchPage(page);
+  // Reportar el total al padre solo sin búsqueda activa, para que el badge de
+  // la tab refleje el total real (no el filtrado) — igual que PartidasPanel.
+  useEffect(() => {
+    if (data && !searchTerm) onTotalChange?.(data.total || 0);
+  }, [data, searchTerm, onTotalChange]);
 
   // Marcar / desmarcar a un jugador como el propio dueño del perfil.
   const setSelf = async (row, value) => {
     try {
-      await axios.post(API.bgg.JUGADOR_YO_MISMO(bggUsername), {
-        rawKeys: row.rawKeys,
-        value,
+      await markPlayerSelf(bggUsername, row.rawKeys, value);
+      queryClient.invalidateQueries({
+        queryKey: [...bgWatchKeys.all, "jugadores", bggUsername],
       });
-      reload();
     } catch (e) {
       alert(e?.response?.data?.message || t("jugadores.updateError"));
     }
@@ -184,7 +166,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
         <Pagination
           page={page}
           totalPages={pages}
-          onPage={(p) => fetchPage(p)}
+          onPage={(p) => setPage(p)}
         />
       )}
 

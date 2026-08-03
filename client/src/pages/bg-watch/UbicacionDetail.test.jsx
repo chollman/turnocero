@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 let mockUser;
 vi.mock("../../context/AuthContext", () => ({
@@ -55,26 +65,28 @@ function detailResponse(extra = {}) {
 
 function renderDetail(key = "k:l:casa") {
   return render(
-    <MemoryRouter initialEntries={[`/bg-watch/alice/ubicacion/${key}`]}>
-      <Routes>
-        <Route
-          path="/bg-watch/:bggUsername/ubicacion/:locationKey"
-          element={<UbicacionDetail />}
-        />
-        <Route
-          path="/bg-watch/:bggUsername/partidas"
-          element={<div data-testid="partidas-page">partidas</div>}
-        />
-        <Route
-          path="/bg-watch/:bggUsername/ubicaciones"
-          element={<div data-testid="ubicaciones-page">ubicaciones</div>}
-        />
-        <Route
-          path="/bg-watch/:bggUsername/partidas/:playId"
-          element={<div data-testid="play-detail-page">detalle</div>}
-        />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={[`/bg-watch/alice/ubicacion/${key}`]}>
+        <Routes>
+          <Route
+            path="/bg-watch/:bggUsername/ubicacion/:locationKey"
+            element={<UbicacionDetail />}
+          />
+          <Route
+            path="/bg-watch/:bggUsername/partidas"
+            element={<div data-testid="partidas-page">partidas</div>}
+          />
+          <Route
+            path="/bg-watch/:bggUsername/ubicaciones"
+            element={<div data-testid="ubicaciones-page">ubicaciones</div>}
+          />
+          <Route
+            path="/bg-watch/:bggUsername/partidas/:playId"
+            element={<div data-testid="play-detail-page">detalle</div>}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

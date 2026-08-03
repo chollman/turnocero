@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => (
@@ -56,16 +66,18 @@ function stubGrupo(body = GRUPO) {
 
 function renderPanel() {
   return render(
-    <MemoryRouter initialEntries={["/bg-watch/claudio/partidas/777"]}>
-      <Routes>
-        <Route
-          path="/bg-watch/:bggUsername/partidas/:playId"
-          element={
-            <GroupStatsPanel bggUsername="claudio" playId="777" userMap={{}} />
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={["/bg-watch/claudio/partidas/777"]}>
+        <Routes>
+          <Route
+            path="/bg-watch/:bggUsername/partidas/:playId"
+            element={
+              <GroupStatsPanel bggUsername="claudio" playId="777" userMap={{}} />
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

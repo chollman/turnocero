@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import { CommunityContext } from "../../context/CommunityContext";
 import BgWatchComunidad from "./BgWatchComunidad";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const user = {
   _id: "u1",
@@ -71,9 +81,11 @@ beforeEach(() => {
 
 function renderHub() {
   return render(
-    <MemoryRouter>
-      <BgWatchComunidad />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <BgWatchComunidad />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -98,11 +110,13 @@ function communityValue(overrides = {}) {
 
 function renderHubWithCommunity(value) {
   return render(
-    <CommunityContext.Provider value={value}>
-      <MemoryRouter>
-        <BgWatchComunidad />
-      </MemoryRouter>
-    </CommunityContext.Provider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <CommunityContext.Provider value={value}>
+        <MemoryRouter>
+          <BgWatchComunidad />
+        </MemoryRouter>
+      </CommunityContext.Provider>
+    </QueryClientProvider>,
   );
 }
 

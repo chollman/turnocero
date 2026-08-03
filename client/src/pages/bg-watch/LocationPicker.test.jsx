@@ -1,9 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 import LocationPicker from "./LocationPicker";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 // 3 ubicaciones ya en orden de recencia (el server ordena). Con limit=2 → 2 págs.
 const ALL = [
@@ -43,7 +53,11 @@ beforeEach(() => {
 
 describe("<LocationPicker>", () => {
   it("la lista está colapsada hasta cliquear el input", async () => {
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     // Sin abrir → no hay items.
     expect(screen.queryByText("Casa")).toBeNull();
     openDropdown();
@@ -51,7 +65,11 @@ describe("<LocationPicker>", () => {
   });
 
   it("muestra el loader (dado) mientras carga y lo oculta al llegar los datos", async () => {
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     expect(screen.getByRole("status")).toHaveTextContent(/buscando ubicaciones/i);
     await screen.findByText("Casa");
@@ -59,7 +77,11 @@ describe("<LocationPicker>", () => {
   });
 
   it("al desplegar muestra la primera página (no toda la lista)", async () => {
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     expect(await screen.findByText("Casa")).toBeInTheDocument();
     expect(screen.getByText("Club")).toBeInTheDocument();
@@ -69,7 +91,11 @@ describe("<LocationPicker>", () => {
   });
 
   it("'Ver más' trae la página 2 y la appendea", async () => {
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     await screen.findByText("Casa");
     fireEvent.click(screen.getByRole("button", { name: /ver más/i }));
@@ -78,7 +104,11 @@ describe("<LocationPicker>", () => {
   });
 
   it("la búsqueda refetchea server-side (debounced) con ?q", async () => {
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     await screen.findByText("Casa");
     fireEvent.change(screen.getByPlaceholderText(PLACEHOLDER), {
@@ -86,8 +116,8 @@ describe("<LocationPicker>", () => {
     });
     await waitFor(() => {
       expect(screen.queryByText("Casa")).toBeNull();
+      expect(screen.getByText("Club")).toBeInTheDocument();
     });
-    expect(screen.getByText("Club")).toBeInTheDocument();
   });
 
   it("no busca con menos de 3 caracteres; sí al llegar a 3", async () => {
@@ -100,7 +130,11 @@ describe("<LocationPicker>", () => {
         return misUbicacionesHandler(ctx);
       }),
     );
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     await screen.findByText("Casa"); // carga inicial → 1 request
     fireEvent.change(screen.getByPlaceholderText(PLACEHOLDER), {
@@ -120,7 +154,11 @@ describe("<LocationPicker>", () => {
 
   it("elegir una ubicación existente llama onPick y cierra el dropdown", async () => {
     const onPick = vi.fn();
-    render(<LocationPicker bggUsername="alice" onPick={onPick} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={onPick} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     const item = await screen.findByText("Casa");
     fireEvent.click(item.closest("button"));
@@ -133,7 +171,11 @@ describe("<LocationPicker>", () => {
 
   it("ofrece 'Usar «…»' y crea una ubicación nueva no listada", async () => {
     const onPick = vi.fn();
-    render(<LocationPicker bggUsername="alice" onPick={onPick} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={onPick} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     await screen.findByText("Casa");
     fireEvent.change(screen.getByPlaceholderText(PLACEHOLDER), {
@@ -147,7 +189,11 @@ describe("<LocationPicker>", () => {
   });
 
   it("NO ofrece 'Usar «…»' si el término coincide con una existente", async () => {
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     await screen.findByText("Casa");
     fireEvent.change(screen.getByPlaceholderText(PLACEHOLDER), {
@@ -161,7 +207,9 @@ describe("<LocationPicker>", () => {
 
   it("muestra la ubicación seleccionada actual sin necesidad de abrir", async () => {
     render(
-      <LocationPicker bggUsername="alice" value="Casa" onPick={vi.fn()} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" value="Casa" onPick={vi.fn()} />
+      </QueryClientProvider>,
     );
     expect(screen.getByText(/seleccionada:/i)).toBeInTheDocument();
     // Y la lista sigue colapsada.
@@ -170,7 +218,11 @@ describe("<LocationPicker>", () => {
 
   it("sin bggUsername cae a un input de texto libre", () => {
     const onPick = vi.fn();
-    render(<LocationPicker bggUsername="" value="" onPick={onPick} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="" value="" onPick={onPick} />
+      </QueryClientProvider>,
+    );
     const input = screen.getByLabelText("Ubicación");
     fireEvent.change(input, { target: { value: "Casa de Juan" } });
     expect(onPick).toHaveBeenCalledWith("Casa de Juan");
@@ -182,7 +234,11 @@ describe("<LocationPicker>", () => {
         HttpResponse.json({ items: [], total: 0, page: 1, pages: 0 }),
       ),
     );
-    render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <LocationPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     openDropdown();
     expect(await screen.findByText(/sin ubicaciones aún/i)).toBeInTheDocument();
   });

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useUbicacionDetalleQuery, bgWatchKeys } from "../../queries/bgWatch";
 import { useAuth } from "../../context/AuthContext";
 import Meeple from "../../components/shared/Meeple";
 import BackButton from "../../components/shared/BackButton";
@@ -34,32 +34,20 @@ export default function UbicacionDetail() {
     user.bggUsername.toLowerCase() === (bggUsername || "").toLowerCase();
   const canView = isOwnProfile || !!user?.isAdmin;
 
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    if (!canView) return undefined;
-    const ac = new AbortController();
-    setError(false);
-    axios
-      .get(API.bgg.UBICACION_DETALLE(bggUsername, locationKey), {
-        params: { page },
-        signal: ac.signal,
-      })
-      .then(({ data: d }) => setData(d))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setError(true);
-      });
-    return () => ac.abort();
-  }, [bggUsername, locationKey, page, canView, refreshKey]);
+  const { data, isError: error } = useUbicacionDetalleQuery(
+    bggUsername,
+    locationKey,
+    page,
+    { enabled: canView },
+  );
 
   // Reiniciar la página al cambiar de ubicación.
   useEffect(() => {
     setPage(1);
-    setData(null);
   }, [locationKey]);
 
   const userMap = useBggUserMap(data?.plays);
@@ -71,7 +59,14 @@ export default function UbicacionDetail() {
     if (result === "merged") {
       navigate(`/bg-watch/${bggUsername}/ubicaciones`);
     } else if (result === "updated") {
-      setRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({
+        queryKey: [
+          ...bgWatchKeys.all,
+          "ubicacionDetalle",
+          bggUsername,
+          locationKey,
+        ],
+      });
     }
   };
 

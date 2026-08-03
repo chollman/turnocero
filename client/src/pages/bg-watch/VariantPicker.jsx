@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useVariantesQuery } from "../../queries/bgWatch";
 import styles from "./BgWatchProfile.module.css";
 
 const norm = (s) =>
@@ -25,18 +24,8 @@ export default function VariantPicker({
   onClose,
 }) {
   const { t } = useTranslation("bgwatch");
-  const [items, setItems] = useState([]);
+  const { data: items = [] } = useVariantesQuery(bggUsername, gameId);
   const [q, setQ] = useState("");
-
-  useEffect(() => {
-    if (!bggUsername || !gameId) return undefined;
-    const ac = new AbortController();
-    axios
-      .get(API.bgg.VARIANTES(bggUsername, gameId), { signal: ac.signal })
-      .then(({ data }) => setItems(data.items || []))
-      .catch(() => {});
-    return () => ac.abort();
-  }, [bggUsername, gameId]);
 
   const term = q.trim();
   const visible = term

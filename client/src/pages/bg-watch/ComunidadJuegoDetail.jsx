@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useComunidadJuegoQuery } from "../../queries/bgWatch";
 import Avatar from "../../components/shared/Avatar";
 import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -17,21 +15,7 @@ export default function ComunidadJuegoDetail() {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation("bgwatch");
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    setData(null);
-    setError(false);
-    axios
-      .get(API.bgg.COMUNIDAD_JUEGO(gameId), { signal: ac.signal })
-      .then(({ data: d }) => setData(d))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setError(true);
-      });
-    return () => ac.abort();
-  }, [gameId]);
+  const { data, isError: error } = useComunidadJuegoQuery(gameId);
 
   if (error) {
     return (

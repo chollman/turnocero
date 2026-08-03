@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { Helmet } from "react-helmet-async";
-import { API } from "../../api/endpoints";
+import { usePartidaDetalleQuery, deleteBgWatchPlay } from "../../queries/bgWatch";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useShortLink } from "../../hooks/useShortLink";
@@ -243,9 +242,6 @@ export default function PlayDetail() {
   const brandName = useBrandName();
   const { t } = useTranslation("bgwatch");
 
-  const [data, setData] = useState(null);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -258,21 +254,12 @@ export default function PlayDetail() {
     eager: true,
   });
 
-  useEffect(() => {
-    const ac = new AbortController();
-    setData(null);
-    setNotFound(false);
-    setError(false);
-    axios
-      .get(API.bgg.PARTIDA_DETALLE(bggUsername, playId), { signal: ac.signal })
-      .then(({ data: d }) => setData(d))
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        if (err.response?.status === 404) setNotFound(true);
-        else setError(true);
-      });
-    return () => ac.abort();
-  }, [bggUsername, playId]);
+  const { data, error: queryError } = usePartidaDetalleQuery(
+    bggUsername,
+    playId,
+  );
+  const notFound = queryError?.response?.status === 404;
+  const error = !!queryError && !notFound;
 
   const play = data?.play || null;
   const game = data?.game || null;
@@ -335,7 +322,7 @@ export default function PlayDetail() {
   const confirmDelete = async () => {
     setDeleting(true);
     try {
-      await axios.delete(API.bgg.PARTIDA_DETAIL(playId));
+      await deleteBgWatchPlay(playId);
       navigate(`/bg-watch/${bggUsername}/partidas`, { replace: true });
     } catch (err) {
       addToast({

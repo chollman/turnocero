@@ -3,9 +3,9 @@ import Avatar from "../../components/shared/Avatar";
 import { useCallback, useState } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
-import { API } from "../../api/endpoints";
+import { bgWatchKeys, deleteBgWatchPlay } from "../../queries/bgWatch";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import BackButton from "../../components/shared/BackButton";
 import PartidasPanel from "./PartidasPanel";
@@ -24,6 +24,7 @@ export default function BgWatchProfile() {
   const location = useLocation();
   const { user } = useAuth();
   const { t } = useTranslation("bgwatch");
+  const queryClient = useQueryClient();
 
   // La tab activa se deriva de la URL para que /partidas y /coleccion sean
   // deep-linkeables (caer directo en cada vista). Default = partidas.
@@ -43,7 +44,6 @@ export default function BgWatchProfile() {
   const [locationsTotal, setLocationsTotal] = useState(null);
   const [deletingPlay, setDeletingPlay] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const isOwnProfile =
     !!user?.bggUsername &&
@@ -143,9 +143,17 @@ export default function BgWatchProfile() {
     if (!deletingPlay) return;
     setDeleting(true);
     try {
-      await axios.delete(API.bgg.PARTIDA_DETAIL(deletingPlay.id));
+      await deleteBgWatchPlay(deletingPlay.id);
       setDeletingPlay(null);
-      setRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({
+        queryKey: [...bgWatchKeys.all, "partidas", bggUsername],
+      });
+      queryClient.invalidateQueries({
+        queryKey: bgWatchKeys.juegosJugados(bggUsername),
+      });
+      queryClient.invalidateQueries({
+        queryKey: bgWatchKeys.resumen(bggUsername),
+      });
     } catch (err) {
       alert(err.response?.data?.message || t("profile.deletePlayError"));
     } finally {
@@ -267,7 +275,6 @@ export default function BgWatchProfile() {
         {/* Both panels mounted (preserve state when switching tabs) */}
         <div style={{ display: activeTab === "partidas" ? "block" : "none" }}>
           <PartidasPanel
-            key={`partidas-${refreshKey}`}
             bggUsername={bggUsername}
             collection={collection}
             onPlayClick={handlePlayClick}

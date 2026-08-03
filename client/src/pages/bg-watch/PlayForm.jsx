@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import InfoTooltip from "../../components/shared/InfoTooltip";
 import BackButton from "../../components/shared/BackButton";
-import { API } from "../../api/endpoints";
+import { detectNewPlayers } from "../../queries/bgWatch";
+import { useBggGameQuery } from "../../queries/bgg";
 import MyGamesPicker from "./MyGamesPicker";
 import LocationPicker from "./LocationPicker";
 import PlayerPicker from "./PlayerPicker";
@@ -288,12 +288,7 @@ export default function PlayForm({
       return undefined;
     const myId = ++detectRef.current;
     const ac = new AbortController();
-    axios
-      .post(
-        API.bgg.NUEVOS(bggUsername, game.id),
-        { players: detectRoster },
-        { signal: ac.signal },
-      )
+    detectNewPlayers(bggUsername, game.id, detectRoster, ac.signal)
       .then(({ data }) => {
         if (myId !== detectRef.current) return;
         const flags = data?.flags || {};
@@ -310,26 +305,28 @@ export default function PlayForm({
   }, [game?.id, editMode, bggUsername, detectRoster]);
 
   // ── Duración sugerida = tiempo de caja de BGG (playingtime) ──────────
+  // Ya viene en `game.playingTime` cuando el juego se eligió desde un picker
+  // que lo trae (MyGamesPicker/BggGameSearch); si no, se busca (sólo entonces
+  // la query hace un GET real — `enabled` lo gatea).
+  const needsGameFetch =
+    !editMode && !!game?.id && game.playingTime === undefined;
+  const { data: gameDetails } = useBggGameQuery(game?.id, {
+    enabled: needsGameFetch,
+  });
   useEffect(() => {
     if (editMode || !game?.id) {
       setSuggestedDuration(null);
-      return undefined;
-    }
-    if (game.playingTime !== undefined) {
+    } else if (game.playingTime !== undefined) {
       setSuggestedDuration(game.playingTime || null);
-      return undefined;
+    } else if (gameDetails) {
+      setSuggestedDuration(
+        gameDetails.playingTime ||
+          gameDetails.maxPlayTime ||
+          gameDetails.minPlayTime ||
+          null,
+      );
     }
-    const ac = new AbortController();
-    axios
-      .get(API.bgg.GAME(game.id), { signal: ac.signal })
-      .then(({ data }) =>
-        setSuggestedDuration(
-          data.playingTime || data.maxPlayTime || data.minPlayTime || null,
-        ),
-      )
-      .catch(() => {});
-    return () => ac.abort();
-  }, [game?.id, game?.playingTime, editMode]);
+  }, [editMode, game?.id, game?.playingTime, gameDetails]);
 
   // ── Borrador local ──────────────────────────────────────────────────
   const [draftOffer, setDraftOffer] = useState(null);

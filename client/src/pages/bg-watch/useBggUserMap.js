@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useMemo } from "react";
+import { useBggUsernamesMapQuery } from "../../queries/bgWatch";
 
 // Collect unique lowercased BGG usernames from the players of a list of plays.
 export function extractBggUsernames(plays) {
@@ -21,37 +20,6 @@ export function extractBggUsernames(plays) {
 // `turnoceroUser` shape: { _id, username, displayName, avatar, bggUsername }
 export default function useBggUserMap(plays) {
   const usernames = useMemo(() => extractBggUsernames(plays), [plays]);
-  // Stable key so React only re-runs the effect when the set actually changes.
-  const usernamesKey = useMemo(
-    () => usernames.slice().sort().join(","),
-    [usernames],
-  );
-  const [userMap, setUserMap] = useState({});
-
-  useEffect(() => {
-    if (usernames.length === 0) {
-      setUserMap({});
-      return;
-    }
-    let cancelled = false;
-    axios
-      .post(API.users.BY_BGG_USERNAMES, { usernames })
-      .then(({ data }) => {
-        if (cancelled || !Array.isArray(data)) return;
-        const map = {};
-        for (const u of data) {
-          if (u.bggUsername) map[u.bggUsername.toLowerCase()] = u;
-        }
-        setUserMap(map);
-      })
-      .catch(() => {
-        if (!cancelled) setUserMap({});
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usernamesKey]);
-
-  return userMap;
+  const { data } = useBggUsernamesMapQuery(usernames);
+  return data ?? {};
 }

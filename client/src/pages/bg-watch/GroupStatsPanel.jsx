@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { usePartidaGrupoQuery } from "../../queries/bgWatch";
 import { getLocale } from "../../utils/locale";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
@@ -39,30 +38,15 @@ export default function GroupStatsPanel({ bggUsername, playId, userMap }) {
   const navigate = useNavigate();
   const { t } = useTranslation("bgwatch");
   const [open, setOpen] = useState(false);
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const ac = new AbortController();
-    setError(false);
-    axios
-      .get(API.bgg.PARTIDA_GRUPO(bggUsername, playId), {
-        params: { page },
-        signal: ac.signal,
-      })
-      .then(({ data: d }) => setData(d))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setError(true);
-      });
-    return () => ac.abort();
-  }, [open, bggUsername, playId, page]);
+  const {
+    data,
+    isError: error,
+  } = usePartidaGrupoQuery(bggUsername, playId, page, { enabled: open });
 
   // Reset al cambiar de partida (navegación detalle → detalle).
   useEffect(() => {
     setOpen(false);
-    setData(null);
     setPage(1);
   }, [playId]);
 

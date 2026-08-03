@@ -1,10 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 import UbicacionesPanel from "./UbicacionesPanel";
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+function Providers({ children }) {
+  return (
+    <QueryClientProvider client={makeQueryClient()}>{children}</QueryClientProvider>
+  );
+}
+
 
 function casa(extra = {}) {
   return {
@@ -29,9 +44,9 @@ function listResponse(items) {
 
 function renderPanel() {
   return render(
-    <MemoryRouter>
+    <Providers><MemoryRouter>
       <UbicacionesPanel bggUsername="alice" />
-    </MemoryRouter>,
+    </MemoryRouter></Providers>,
   );
 }
 
@@ -56,9 +71,9 @@ describe("<UbicacionesPanel>", () => {
     );
     const onTotalChange = vi.fn();
     render(
-      <MemoryRouter>
+      <Providers><MemoryRouter>
         <UbicacionesPanel bggUsername="alice" onTotalChange={onTotalChange} />
-      </MemoryRouter>,
+      </MemoryRouter></Providers>,
     );
     await screen.findByText("Casa");
     await waitFor(() => expect(onTotalChange).toHaveBeenCalledWith(9));
@@ -70,7 +85,7 @@ describe("<UbicacionesPanel>", () => {
       return <div data-testid="loc">{loc.pathname}</div>;
     }
     render(
-      <MemoryRouter initialEntries={["/bg-watch/alice/ubicaciones"]}>
+      <Providers><MemoryRouter initialEntries={["/bg-watch/alice/ubicaciones"]}>
         <Routes>
           <Route
             path="/bg-watch/alice/ubicaciones"
@@ -81,7 +96,7 @@ describe("<UbicacionesPanel>", () => {
             element={<LocationProbe />}
           />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter></Providers>,
     );
     fireEvent.click(await screen.findByRole("button", { name: /Casa/ }));
     const loc = await screen.findByTestId("loc");

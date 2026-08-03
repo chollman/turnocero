@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useGameExpansionesQuery } from "../../queries/bgWatch";
 import DiceLoader from "../../components/shared/DiceLoader";
 import PickerEmptyRow from "./PickerEmptyRow";
 import styles from "./BgWatchProfile.module.css";
@@ -22,25 +21,12 @@ export default function ExpansionsPicker({
   onClose,
 }) {
   const { t } = useTranslation("bgwatch");
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const {
+    data: items = [],
+    isPending: loading,
+    isError: error,
+  } = useGameExpansionesQuery(gameId);
   const [q, setQ] = useState("");
-
-  useEffect(() => {
-    if (!gameId) return undefined;
-    const ac = new AbortController();
-    setLoading(true);
-    setError(false);
-    axios
-      .get(API.bgg.GAME_EXPANSIONES(gameId), { signal: ac.signal })
-      .then(({ data }) => setItems(data.items || []))
-      .catch((e) => {
-        if (!axios.isCancel(e)) setError(true);
-      })
-      .finally(() => setLoading(false));
-    return () => ac.abort();
-  }, [gameId]);
 
   const selectedIds = new Set((selected || []).map((e) => e.id));
   const term = q.trim().toLowerCase();

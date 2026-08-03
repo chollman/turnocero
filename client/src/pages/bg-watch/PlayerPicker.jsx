@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import {
+  useMisJugadoresQuery,
+  useTurnoceroJugadoresQuery,
+  useBggUsernamesMapQuery,
+} from "../../queries/bgWatch";
 import Avatar from "../../components/shared/Avatar";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import DiceLoader from "../../components/shared/DiceLoader";
 import styles from "./BgWatchProfile.module.css";
+
+const EMPTY_ITEMS = [];
 
 /**
  * Selector de jugador al "+ Agregar jugador" en una partida. Dos modos:
@@ -41,12 +46,6 @@ export default function PlayerPicker({
     return parts.join(" · ");
   };
   const [mode, setMode] = useState("coplayers");
-  const [items, setItems] = useState([]);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(false);
   const [q, setQ] = useState("");
 
   // Debounce + umbral mínimo de 3 caracteres (como el buscador de juegos de
@@ -54,111 +53,49 @@ export default function PlayerPicker({
   const searchTerm = useSearchTerm(q);
   const listRef = useRef(null);
   const inputRef = useRef(null);
-  const abortRef = useRef(null);
-  const reqIdRef = useRef(0);
 
-  // Mapa bggUsernameLower → usuario de TurnoCero, para mostrarle el avatar a los
-  // compañeros que además son miembros (vinculados por su BGG username). Se va
-  // acumulando a medida que aparecen nuevos usernames (paginación / búsqueda);
-  // requestedRef evita refetchear los ya consultados.
-  const [userMap, setUserMap] = useState({});
-  const requestedRef = useRef(new Set());
-
-  useEffect(() => {
-    if (mode !== "coplayers") return undefined;
-    const toFetch = [];
-    for (const p of items) {
-      const u = (p.username || "").trim().toLowerCase();
-      if (u && !requestedRef.current.has(u)) {
-        requestedRef.current.add(u);
-        toFetch.push(u);
-      }
-    }
-    if (toFetch.length === 0) return undefined;
-    let cancelled = false;
-    const chunks = [];
-    for (let i = 0; i < toFetch.length; i += 50) {
-      chunks.push(toFetch.slice(i, i + 50));
-    }
-    Promise.all(
-      chunks.map((c) =>
-        axios
-          .post(API.users.BY_BGG_USERNAMES, { usernames: c })
-          .then((r) => r.data)
-          .catch(() => []),
-      ),
-    ).then((results) => {
-      if (cancelled) return;
-      const merged = {};
-      for (const arr of results) {
-        if (!Array.isArray(arr)) continue;
-        for (const u of arr) {
-          if (u.bggUsername) merged[u.bggUsername.toLowerCase()] = u;
-        }
-      }
-      if (Object.keys(merged).length) {
-        setUserMap((prev) => ({ ...prev, ...merged }));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [items, mode]);
-
-  const fetchPage = useCallback(
-    (pageToLoad, append) => {
-      if (mode === "coplayers" && !bggUsername) return;
-      const myId = ++reqIdRef.current;
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      setError(false);
-      const url =
-        mode === "coplayers"
-          ? API.bgg.MIS_JUGADORES(bggUsername)
-          : API.users.JUGADORES;
-      axios
-        .get(url, {
-          params: { page: pageToLoad, q: searchTerm || undefined },
-          signal: ac.signal,
-        })
-        .then(({ data }) => {
-          if (myId !== reqIdRef.current) return;
-          setItems((prev) =>
-            append ? [...prev, ...(data.items || [])] : data.items || [],
-          );
-          setPage(data.page || pageToLoad);
-          setPages(data.pages || 1);
-        })
-        .catch((err) => {
-          if (myId !== reqIdRef.current || axios.isCancel(err)) return;
-          setError(true);
-        })
-        .finally(() => {
-          if (myId !== reqIdRef.current) return;
-          setLoading(false);
-          setLoadingMore(false);
-        });
-    },
-    [mode, bggUsername, searchTerm],
+  const coplayersQuery = useMisJugadoresQuery({
+    bggUsername,
+    q: searchTerm,
+    enabled: mode === "coplayers",
+  });
+  const turnoceroQuery = useTurnoceroJugadoresQuery({
+    q: searchTerm,
+    enabled: mode === "turnocero",
+  });
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    isError: error,
+    hasNextPage,
+    fetchNextPage,
+  } = mode === "coplayers" ? coplayersQuery : turnoceroQuery;
+  const items = useMemo(
+    () => data?.pages.flatMap((p) => p.items || []) ?? EMPTY_ITEMS,
+    [data],
   );
 
-  useEffect(() => {
-    setItems([]);
-    setPage(1);
-    setPages(1);
-    fetchPage(1, false);
-  }, [mode, searchTerm, fetchPage]);
+  // Mapa bggUsernameLower → usuario de TurnoCero, para mostrarle el avatar a los
+  // compañeros que además son miembros (vinculados por su BGG username).
+  const coplayerUsernames = useMemo(
+    () =>
+      mode === "coplayers"
+        ? items
+            .map((p) => (p.username || "").trim().toLowerCase())
+            .filter(Boolean)
+        : [],
+    [items, mode],
+  );
+  const { data: userMap = {} } = useBggUsernamesMapQuery(coplayerUsernames);
 
-  const onLoadMore = useCallback(() => {
-    fetchPage(page + 1, true);
-  }, [fetchPage, page]);
+  const onLoadMore = () => {
+    if (!loadingMore && hasNextPage) fetchNextPage();
+  };
 
   const sentinelRef = useInfiniteScroll(onLoadMore, {
     root: listRef,
-    enabled: page < pages && !loading && !loadingMore,
+    enabled: hasNextPage && !loading && !loadingMore,
   });
 
   // Al elegir un jugador el picker NO se cierra (se pueden sumar varios). Para
@@ -338,7 +275,7 @@ export default function PlayerPicker({
               );
             })}
 
-          {page < pages && (
+          {hasNextPage && (
             <li ref={sentinelRef}>
               <button
                 type="button"

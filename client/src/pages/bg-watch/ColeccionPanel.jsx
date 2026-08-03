@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useBggCollectionQuery,
+  useBggCollectionCooldownQuery,
+  refreshBggCollection,
+  bggKeys,
+} from "../../queries/bgg";
 import Pagination from "./Pagination";
 import GameCardSkeleton from "./GameCardSkeleton";
 import styles from "./BgWatchProfile.module.css";
@@ -81,14 +86,38 @@ export default function ColeccionPanel({
   canCreate = false,
 }) {
   const { t } = useTranslation("bgwatch");
-  const [collection, setCollection] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [refreshTick, setRefreshTick] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [now, setNow] = useState(() => Date.now());
-  const forceRefreshRef = useRef(false);
+  const [refreshBusy, setRefreshBusy] = useState(false);
+  const [refreshError, setRefreshError] = useState(null);
+
+  const {
+    data: collection,
+    isPending: loading,
+    error: queryError,
+  } = useBggCollectionQuery(bggUsername);
+  const error = refreshError
+    ? refreshError
+    : queryError
+      ? queryError.response?.data?.message || t("coleccion.loadError")
+      : null;
+
+  useEffect(() => {
+    if (collection) onLoaded?.(collection);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collection]);
+
+  // Server-driven cooldown: cada GET (no solo el refresh manual) devuelve el
+  // header — sincronizado por useBggCollectionQuery a un cache-entry propio.
+  const { data: cooldownUntilFromServer } = useBggCollectionCooldownQuery(bggUsername);
+  useEffect(() => {
+    if (typeof cooldownUntilFromServer === "number") {
+      setCooldownUntil(cooldownUntilFromServer);
+      setNow(Date.now());
+    }
+  }, [cooldownUntilFromServer]);
 
   const cooldownRemaining = Math.max(
     0,
@@ -102,45 +131,30 @@ export default function ColeccionPanel({
     return () => clearInterval(id);
   }, [inCooldown]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    const params = forceRefreshRef.current ? { refresh: 1 } : undefined;
-    forceRefreshRef.current = false;
-    axios
-      .get(API.bgg.COLECCION(bggUsername), { params })
-      .then(({ data, headers }) => {
-        if (cancelled) return;
-        setCollection(data);
-        // Server-driven cooldown — sync from header.
-        const headerMs = Number(headers?.["x-refresh-cooldown-ms"] || 0);
-        setCooldownUntil(headerMs > 0 ? Date.now() + headerMs : 0);
+  const handleRefresh = async () => {
+    if (loading || refreshBusy || inCooldown) return;
+    setRefreshBusy(true);
+    setRefreshError(null);
+    try {
+      const { data, cooldownMs } = await refreshBggCollection(bggUsername);
+      queryClient.setQueryData(bggKeys.coleccion(bggUsername), data);
+      const until = cooldownMs > 0 ? Date.now() + cooldownMs : 0;
+      queryClient.setQueryData(bggKeys.coleccionCooldown(bggUsername), until);
+      if (cooldownMs > 0) {
+        setCooldownUntil(until);
         setNow(Date.now());
-        if (onLoaded) onLoaded(data);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        // 429 includes the cooldown header — sync the countdown.
-        const headerMs = Number(
-          err.response?.headers?.["x-refresh-cooldown-ms"] || 0,
-        );
-        if (headerMs > 0) {
-          setCooldownUntil(Date.now() + headerMs);
-          setNow(Date.now());
-        }
-        setError(
-          err.response?.data?.message || t("coleccion.loadError"),
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername, onLoaded, refreshTick, t]);
+      }
+    } catch (err) {
+      const cooldownMs = err.cooldownMs || 0;
+      if (cooldownMs > 0) {
+        setCooldownUntil(Date.now() + cooldownMs);
+        setNow(Date.now());
+      }
+      setRefreshError(err.response?.data?.message || t("coleccion.loadError"));
+    } finally {
+      setRefreshBusy(false);
+    }
+  };
 
   const totalPages = collection
     ? Math.ceil(collection.length / COLLECTION_PAGE_SIZE)
@@ -164,12 +178,8 @@ export default function ColeccionPanel({
           <button
             type="button"
             className={styles.refreshBtn}
-            onClick={() => {
-              if (loading || inCooldown) return;
-              forceRefreshRef.current = true;
-              setRefreshTick((t) => t + 1);
-            }}
-            disabled={loading || inCooldown}
+            onClick={handleRefresh}
+            disabled={loading || refreshBusy || inCooldown}
             aria-label={t("coleccion.refreshLabel")}
             style={{ marginLeft: "auto" }}
           >

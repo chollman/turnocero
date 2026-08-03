@@ -1,8 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useBgWatchPartidasQuery,
+  usePartidasCooldownQuery,
+  refreshBgWatchPartidas,
+  partidasQueryKey,
+  useJuegosJugadosQuery,
+  useResumenQuery,
+  bgWatchKeys,
+} from "../../queries/bgWatch";
 import PlayCard from "./PlayCard";
 import BgWatchFilterSelect from "./BgWatchFilterSelect";
 import PlayCardSkeleton from "./PlayCardSkeleton";
@@ -141,28 +149,69 @@ export default function PartidasPanel({
   canRefresh = false,
 }) {
   const { t } = useTranslation("bgwatch");
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState("list"); // 'list' | 'byGame'
 
   // ── List mode state ──
-  const [plays, setPlays] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState("all");
-  const [refreshTick, setRefreshTick] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [now, setNow] = useState(() => Date.now());
-  const forceRefreshRef = useRef(false);
+  const [refreshBusy, setRefreshBusy] = useState(false);
+  const [refreshError, setRefreshError] = useState(null);
 
   // ── By-game mode state ──
   const [gamesPage, setGamesPage] = useState(1);
-  const [playedGamesFromServer, setPlayedGamesFromServer] = useState(null);
+
+  const range = dateRangeFor(filter);
+  const {
+    data: plays,
+    isPending: loading,
+    error: queryError,
+  } = useBgWatchPartidasQuery({
+    bggUsername,
+    page,
+    mindate: range.mindate,
+    maxdate: range.maxdate,
+  });
+  const error = refreshError
+    ? refreshError
+    : queryError
+      ? queryError.response?.data?.message || t("partidas.loadError")
+      : null;
+
+  useEffect(() => {
+    if (plays && filter === "all" && page === 1) {
+      onMetaChange?.({
+        total: plays.total,
+        lastDate: plays.plays?.[0]?.date || null,
+        topGame: plays.topGame ?? null,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plays, filter, page]);
+
+  // Fetch the server-aggregated played-games list (derived from BggPlay).
+  // Authoritative when present: includes games the user played but doesn't
+  // own, and works for users with private collections (where the
+  // collection-derived list is empty/incomplete).
+  const { data: playedGamesFromServer } = useJuegosJugadosQuery(bggUsername);
 
   // ── Sidebar (modo lista) ── resumen agregado para heatmap + win-rate. Se
   // trae UNA vez por perfil (no por página/filtro): win-rate y heatmap salen
   // de la agregación COMPLETA del log, así que NO se deben recomputar del
-  // page-sample. refetch solo en cambio de usuario o "Actualizar".
-  const [resumen, setResumen] = useState(null);
+  // page-sample. Falla en silencio (sidebar degradado, no rompe la lista).
+  const { data: resumen } = useResumenQuery(bggUsername);
+
+  // Server-driven cooldown: cada GET (no solo el refresh manual) devuelve el
+  // header — sincronizado por useBgWatchPartidasQuery a un cache-entry propio.
+  const { data: cooldownUntilFromServer } = usePartidasCooldownQuery(bggUsername);
+  useEffect(() => {
+    if (typeof cooldownUntilFromServer === "number") {
+      setCooldownUntil(cooldownUntilFromServer);
+      setNow(Date.now());
+    }
+  }, [cooldownUntilFromServer]);
 
   const cooldownRemaining = Math.max(
     0,
@@ -176,96 +225,44 @@ export default function PartidasPanel({
     return () => clearInterval(id);
   }, [inCooldown]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    const params = { page };
-    const range = dateRangeFor(filter);
-    if (range.mindate) params.mindate = range.mindate;
-    if (range.maxdate) params.maxdate = range.maxdate;
-    if (forceRefreshRef.current) {
-      params.refresh = 1;
-      forceRefreshRef.current = false;
-    }
-
-    axios
-      .get(API.bgg.PARTIDAS(bggUsername), { params })
-      .then(({ data, headers }) => {
-        if (cancelled) return;
-        setPlays(data);
-        // Server is the source of truth for the cooldown — sync from header.
-        const headerMs = Number(headers?.["x-refresh-cooldown-ms"] || 0);
-        setCooldownUntil(headerMs > 0 ? Date.now() + headerMs : 0);
+  // "Actualizar" manual: bypassea la cache del server (refresh:1), escribe el
+  // resultado directo en la MISMA entrada de cache (misma key que la query de
+  // lectura) y sincroniza el cooldown server-driven. juegosJugados/resumen se
+  // invalidan también — son agregados independientes de página/filtro que
+  // solo tiene sentido re-pedir en un refresh real, no en paginar/filtrar.
+  const handleRefresh = async () => {
+    if (loading || refreshBusy || inCooldown) return;
+    setRefreshBusy(true);
+    setRefreshError(null);
+    try {
+      const { data, cooldownMs } = await refreshBgWatchPartidas(bggUsername, {
+        page,
+        mindate: range.mindate,
+        maxdate: range.maxdate,
+      });
+      queryClient.setQueryData(
+        partidasQueryKey(bggUsername, { page, mindate: range.mindate, maxdate: range.maxdate }),
+        data,
+      );
+      const until = cooldownMs > 0 ? Date.now() + cooldownMs : 0;
+      queryClient.setQueryData(bgWatchKeys.partidasCooldown(bggUsername), until);
+      if (cooldownMs > 0) {
+        setCooldownUntil(until);
         setNow(Date.now());
-        if (filter === "all" && page === 1 && onMetaChange) {
-          onMetaChange({
-            total: data.total,
-            lastDate: data.plays?.[0]?.date || null,
-            topGame: data.topGame ?? null,
-          });
-        }
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        // 429 carries the cooldown header too — sync the countdown.
-        const headerMs = Number(
-          err.response?.headers?.["x-refresh-cooldown-ms"] || 0,
-        );
-        if (headerMs > 0) {
-          setCooldownUntil(Date.now() + headerMs);
-          setNow(Date.now());
-        }
-        setError(
-          err.response?.data?.message || t("partidas.loadError"),
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername, page, filter, onMetaChange, refreshTick, t]);
-
-  // Fetch the server-aggregated played-games list (derived from BggPlay).
-  // Authoritative when present: includes games the user played but doesn't
-  // own, and works for users with private collections (where the
-  // collection-derived list is empty/incomplete).
-  useEffect(() => {
-    let cancelled = false;
-    axios
-      .get(API.bgg.JUEGOS_JUGADOS(bggUsername))
-      .then(({ data }) => {
-        if (!cancelled) setPlayedGamesFromServer(data);
-      })
-      .catch(() => {
-        if (!cancelled) setPlayedGamesFromServer([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername, refreshTick]);
-
-  // Resumen para el sidebar (heatmap + win-rate). Independiente de
-  // página/filtro: derivado del log completo. Falla en silencio (sidebar
-  // degradado, no rompe la lista).
-  useEffect(() => {
-    let cancelled = false;
-    axios
-      .get(API.bgg.RESUMEN(bggUsername))
-      .then(({ data }) => {
-        if (!cancelled) setResumen(data);
-      })
-      .catch(() => {
-        if (!cancelled) setResumen(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername, refreshTick]);
+      }
+      queryClient.invalidateQueries({ queryKey: bgWatchKeys.juegosJugados(bggUsername) });
+      queryClient.invalidateQueries({ queryKey: bgWatchKeys.resumen(bggUsername) });
+    } catch (err) {
+      const cooldownMs = err.cooldownMs || 0;
+      if (cooldownMs > 0) {
+        setCooldownUntil(Date.now() + cooldownMs);
+        setNow(Date.now());
+      }
+      setRefreshError(err.response?.data?.message || t("partidas.loadError"));
+    } finally {
+      setRefreshBusy(false);
+    }
+  };
 
   // Prefer the server-aggregated list when it has data. Fall back to the
   // collection-derived list for users whose plays aren't synced into
@@ -399,13 +396,9 @@ export default function PartidasPanel({
             )}
             <button
               type="button"
-              className={`${styles.refreshBtn} ${loading ? styles.refreshBtnSpinning : ""}`}
-              onClick={() => {
-                if (loading || inCooldown) return;
-                forceRefreshRef.current = true;
-                setRefreshTick((t) => t + 1);
-              }}
-              disabled={loading || inCooldown}
+              className={`${styles.refreshBtn} ${loading || refreshBusy ? styles.refreshBtnSpinning : ""}`}
+              onClick={handleRefresh}
+              disabled={loading || refreshBusy || inCooldown}
               aria-label={t("partidas.refreshAria")}
             >
               <SyncIcon />

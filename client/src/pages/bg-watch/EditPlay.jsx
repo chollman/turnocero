@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { API } from "../../api/endpoints";
+import {
+  usePartidaQuery,
+  updateBgWatchPlay,
+  deleteBgWatchPlay,
+} from "../../queries/bgWatch";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import PlayForm from "./PlayForm";
 
@@ -46,7 +49,6 @@ export default function EditPlay() {
     const fromState = location.state?.play;
     return fromState ? toInitialValues(fromState) : null;
   });
-  const [loadError, setLoadError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -60,18 +62,15 @@ export default function EditPlay() {
   }, [canEdit, bggUsername, navigate]);
 
   // Fallback: si no vino la partida por state (refresh / deep-link), traerla.
+  const { data: fetchedPlay, error: fetchError } = usePartidaQuery(
+    bggUsername,
+    playId,
+    { enabled: canEdit && !initialValues },
+  );
   useEffect(() => {
-    if (!canEdit || initialValues) return;
-    const ac = new AbortController();
-    axios
-      .get(API.bgg.PARTIDA(bggUsername, playId), { signal: ac.signal })
-      .then(({ data }) => setInitialValues(toInitialValues(data)))
-      .catch((err) => {
-        if (axios.isCancel(err)) return;
-        setLoadError(true);
-      });
-    return () => ac.abort();
-  }, [canEdit, initialValues, bggUsername, playId]);
+    if (fetchedPlay) setInitialValues(toInitialValues(fetchedPlay));
+  }, [fetchedPlay]);
+  const loadError = !!fetchError;
 
   const goBack = () => navigate(`/bg-watch/${bggUsername}`);
 
@@ -79,7 +78,7 @@ export default function EditPlay() {
     setSubmitting(true);
     setServerError("");
     try {
-      await axios.put(API.bgg.PARTIDA_DETAIL(playId), payload);
+      await updateBgWatchPlay(playId, payload);
       addToast({ type: "success", message: t("editPlay.playUpdated") });
       goBack();
     } catch (err) {
@@ -94,7 +93,7 @@ export default function EditPlay() {
     if (!window.confirm(t("editPlay.deleteConfirm"))) return;
     setSubmitting(true);
     try {
-      await axios.delete(API.bgg.PARTIDA_DETAIL(playId));
+      await deleteBgWatchPlay(playId);
       addToast({ type: "success", message: t("editPlay.playDeleted") });
       goBack();
     } catch (err) {

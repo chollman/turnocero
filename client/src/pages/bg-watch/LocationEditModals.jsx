@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import {
+  useUbicacionesMergeSearchQuery,
+  renameLocation,
+  mergeLocations,
+} from "../../queries/bgWatch";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import i18n from "../../i18n";
@@ -48,10 +51,7 @@ export function EditLocationModal({ bggUsername, location, onClose }) {
     setErr("");
     setMsg("");
     try {
-      await axios.patch(API.bgg.UBICACION_NOMBRE(bggUsername), {
-        rawKeys: location.rawKeys,
-        name: trimmed,
-      });
+      await renameLocation(bggUsername, location.rawKeys, trimmed);
       setDirty(true);
       setMsg(t("locationEdit.nameSaved"));
     } catch (e) {
@@ -140,49 +140,27 @@ export function EditLocationModal({ bggUsername, location, onClose }) {
 // ── Fusionar ubicación (source → target) ───────────────────────────────────
 export function MergeLocationModal({ bggUsername, source, onClose }) {
   const { t } = useTranslation("bgwatch");
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [target, setTarget] = useState(null);
   const [merging, setMerging] = useState(false);
   const [err, setErr] = useState("");
   const searchTerm = useSearchTerm(q);
-  const reqIdRef = useRef(0);
-
-  useEffect(() => {
-    const myId = ++reqIdRef.current;
-    setLoading(true);
-    axios
-      .get(API.bgg.UBICACIONES(bggUsername), {
-        params: { q: searchTerm || undefined, limit: 50 },
-      })
-      .then(({ data }) => {
-        if (myId !== reqIdRef.current) return;
-        // Excluir la propia ubicación (por solapamiento de rawKeys).
-        const srcKeys = new Set(source.rawKeys);
-        setItems(
-          (data.items || []).filter(
-            (it) => !it.rawKeys.some((k) => srcKeys.has(k)),
-          ),
-        );
-      })
-      .catch(() => {
-        if (myId === reqIdRef.current) setItems([]);
-      })
-      .finally(() => {
-        if (myId === reqIdRef.current) setLoading(false);
-      });
-  }, [bggUsername, searchTerm, source.rawKeys]);
+  const { data: rawItems, isPending: loading } = useUbicacionesMergeSearchQuery({
+    bggUsername,
+    q: searchTerm,
+  });
+  // Excluir la propia ubicación (por solapamiento de rawKeys).
+  const srcKeys = new Set(source.rawKeys);
+  const items = (rawItems || []).filter(
+    (it) => !it.rawKeys.some((k) => srcKeys.has(k)),
+  );
 
   const doMerge = async () => {
     if (!target) return;
     setMerging(true);
     setErr("");
     try {
-      await axios.post(API.bgg.UBICACION_MERGE(bggUsername), {
-        sourceRawKeys: source.rawKeys,
-        targetRawKeys: target.rawKeys,
-      });
+      await mergeLocations(bggUsername, source.rawKeys, target.rawKeys);
       onClose(true);
     } catch (e) {
       setErr(e?.response?.data?.message || t("locationEdit.mergeError"));

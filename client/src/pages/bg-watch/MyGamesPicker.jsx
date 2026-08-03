@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useMisJuegosQuery } from "../../queries/bgWatch";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
@@ -9,6 +8,8 @@ import DiceLoader from "../../components/shared/DiceLoader";
 import PickerEmptyRow from "./PickerEmptyRow";
 import { gameInitials } from "./Scorecard";
 import styles from "./BgWatchProfile.module.css";
+
+const EMPTY_ITEMS = [];
 
 /**
  * Selector de juego al cargar una partida. Sirve la lista propia del usuario
@@ -23,12 +24,6 @@ import styles from "./BgWatchProfile.module.css";
  */
 export default function MyGamesPicker({ bggUsername, onPick }) {
   const { t } = useTranslation("bgwatch");
-  const [items, setItems] = useState([]);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(false);
   const [q, setQ] = useState("");
   const [bggMode, setBggMode] = useState(!bggUsername);
 
@@ -36,67 +31,31 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
   // BGG): con 1-2 letras no refetchea, sigue mostrando la lista por defecto.
   const searchTerm = useSearchTerm(q);
   const listRef = useRef(null);
-  const abortRef = useRef(null);
-  const reqIdRef = useRef(0);
 
-  // Trae una página. `append` distingue "cargar más" de un reset. Sólo aplica
-  // estado la request más reciente (reqId) para que un cambio de búsqueda no
-  // se pise con un "load more" en vuelo.
-  const fetchPage = useCallback(
-    (pageToLoad, append) => {
-      if (!bggUsername) return;
-      const myId = ++reqIdRef.current;
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      setError(false);
-      axios
-        .get(API.bgg.MIS_JUEGOS(bggUsername), {
-          params: { page: pageToLoad, q: searchTerm || undefined },
-          signal: ac.signal,
-        })
-        .then(({ data }) => {
-          if (myId !== reqIdRef.current) return;
-          setItems((prev) =>
-            append ? [...prev, ...(data.items || [])] : data.items || [],
-          );
-          setPage(data.page || pageToLoad);
-          setPages(data.pages || 1);
-        })
-        .catch((err) => {
-          if (myId !== reqIdRef.current || axios.isCancel(err)) return;
-          setError(true);
-        })
-        .finally(() => {
-          if (myId !== reqIdRef.current) return;
-          setLoading(false);
-          setLoadingMore(false);
-        });
-    },
-    [bggUsername, searchTerm],
+  useEffect(() => {
+    if (!bggUsername) setBggMode(true);
+  }, [bggUsername]);
+
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    isError: error,
+    hasNextPage,
+    fetchNextPage,
+  } = useMisJuegosQuery({ bggUsername, q: searchTerm, enabled: !!bggUsername });
+  const items = useMemo(
+    () => data?.pages.flatMap((p) => p.items || []) ?? EMPTY_ITEMS,
+    [data],
   );
 
-  // Reset + primera página cuando cambia el usuario o el término de búsqueda.
-  useEffect(() => {
-    if (!bggUsername) {
-      setBggMode(true);
-      return;
-    }
-    setItems([]);
-    setPage(1);
-    setPages(1);
-    fetchPage(1, false);
-  }, [bggUsername, searchTerm, fetchPage]);
-
-  const onLoadMore = useCallback(() => {
-    fetchPage(page + 1, true);
-  }, [fetchPage, page]);
+  const onLoadMore = () => {
+    if (!loadingMore && hasNextPage) fetchNextPage();
+  };
 
   const sentinelRef = useInfiniteScroll(onLoadMore, {
     root: listRef,
-    enabled: !bggMode && page < pages && !loading && !loadingMore,
+    enabled: !bggMode && hasNextPage && !loading && !loadingMore,
   });
 
   if (bggMode) {
@@ -188,7 +147,7 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
               </button>
             );
           })}
-          {page < pages && (
+          {hasNextPage && (
             <div className={styles.gameRowMore} ref={sentinelRef}>
               <button
                 type="button"

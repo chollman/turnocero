@@ -1,8 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+function Providers({ children }) {
+  return (
+    <QueryClientProvider client={makeQueryClient()}>{children}</QueryClientProvider>
+  );
+}
 
 let mockUser;
 vi.mock("../../context/AuthContext", () => ({
@@ -43,9 +58,9 @@ function listResponse(items) {
 
 function renderPanel() {
   return render(
-    <MemoryRouter>
+    <Providers><MemoryRouter>
       <JugadoresPanel bggUsername="alice" />
-    </MemoryRouter>,
+    </MemoryRouter></Providers>,
   );
 }
 
@@ -71,9 +86,9 @@ describe("<JugadoresPanel>", () => {
     );
     const onTotalChange = vi.fn();
     render(
-      <MemoryRouter>
+      <Providers><MemoryRouter>
         <JugadoresPanel bggUsername="alice" onTotalChange={onTotalChange} />
-      </MemoryRouter>,
+      </MemoryRouter></Providers>,
     );
     await screen.findByText("Juan");
     await waitFor(() => expect(onTotalChange).toHaveBeenCalledWith(7));
@@ -114,7 +129,7 @@ describe("<JugadoresPanel>", () => {
       return <div data-testid="loc">{loc.pathname}</div>;
     }
     render(
-      <MemoryRouter initialEntries={["/bg-watch/alice/jugadores"]}>
+      <Providers><MemoryRouter initialEntries={["/bg-watch/alice/jugadores"]}>
         <Routes>
           <Route
             path="/bg-watch/alice/jugadores"
@@ -122,7 +137,7 @@ describe("<JugadoresPanel>", () => {
           />
           <Route path="/bg-watch/:u/jugador/:key" element={<LocationProbe />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter></Providers>,
     );
     const rowBtn = await screen.findByRole("button", { name: /Juan/ });
     fireEvent.click(rowBtn);

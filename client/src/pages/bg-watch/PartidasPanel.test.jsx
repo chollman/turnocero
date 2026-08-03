@@ -7,8 +7,18 @@ import {
   within,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse, delay } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("./PlayCard", () => ({
   default: ({ play, onClick }) => (
@@ -53,19 +63,21 @@ import PartidasPanel from "./PartidasPanel";
 
 function renderPanel(props = {}) {
   return render(
-    <MemoryRouter>
-      <PartidasPanel
-        bggUsername="CarcaFan"
-        collection={props.collection ?? null}
-        onPlayClick={props.onPlayClick || vi.fn()}
-        onPlayEdit={props.onPlayEdit}
-        onPlayDelete={props.onPlayDelete}
-        onMetaChange={props.onMetaChange}
-        // Default to true so the existing cooldown/button-interaction tests
-        // can still find the "Actualizar" button. New tests opt out explicitly.
-        canRefresh={props.canRefresh ?? true}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <PartidasPanel
+          bggUsername="CarcaFan"
+          collection={props.collection ?? null}
+          onPlayClick={props.onPlayClick || vi.fn()}
+          onPlayEdit={props.onPlayEdit}
+          onPlayDelete={props.onPlayDelete}
+          onMetaChange={props.onMetaChange}
+          // Default to true so the existing cooldown/button-interaction tests
+          // can still find the "Actualizar" button. New tests opt out explicitly.
+          canRefresh={props.canRefresh ?? true}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -359,10 +371,12 @@ describe("<PartidasPanel>", () => {
       ),
     );
     renderPanel();
-    const winRate = await screen.findByTestId("win-rate");
-    expect(winRate.dataset.wins).toBe("8");
-    expect(winRate.dataset.rated).toBe("20");
-    expect(screen.getAllByTestId("heatmap")[0].dataset.len).toBe("1");
+    await waitFor(() => {
+      const winRate = screen.getByTestId("win-rate");
+      expect(winRate.dataset.wins).toBe("8");
+      expect(winRate.dataset.rated).toBe("20");
+      expect(screen.getAllByTestId("heatmap")[0].dataset.len).toBe("1");
+    });
   });
 
   it("clicking a filter chip changes its active class", async () => {

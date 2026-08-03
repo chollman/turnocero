@@ -1,8 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import useBggUserMap, { extractBggUsernames } from "./useBggUserMap";
+
+function wrapper({ children }) {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+}
 
 describe("extractBggUsernames", () => {
   it("returns [] for non-array input", () => {
@@ -52,13 +65,13 @@ describe("useBggUserMap", () => {
   });
 
   it("returns empty map when plays is empty", async () => {
-    const { result } = renderHook(() => useBggUserMap([]));
+    const { result } = renderHook(() => useBggUserMap([]), { wrapper });
     expect(result.current).toEqual({});
   });
 
   it("returns a map keyed by lowercased bggUsername when plays have players", async () => {
     const plays = [{ players: [{ username: "Alice" }, { username: "Bob" }] }];
-    const { result } = renderHook(() => useBggUserMap(plays));
+    const { result } = renderHook(() => useBggUserMap(plays), { wrapper });
     await waitFor(() => {
       expect(Object.keys(result.current).length).toBe(2);
     });
@@ -73,7 +86,7 @@ describe("useBggUserMap", () => {
       ),
     );
     const plays = [{ players: [{ username: "alice" }] }];
-    const { result } = renderHook(() => useBggUserMap(plays));
+    const { result } = renderHook(() => useBggUserMap(plays), { wrapper });
     await waitFor(() => {
       expect(result.current).toEqual({});
     });

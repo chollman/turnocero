@@ -1,9 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import BgWatchH2H from "./BgWatchH2H";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const alice = {
   _id: "a",
@@ -15,14 +25,16 @@ const bob = { _id: "b", username: "bob", displayName: "Bobby", avatar: {} };
 
 function renderH2H() {
   return render(
-    <MemoryRouter initialEntries={["/bg-watch/comunidad/h2h/alice/bob"]}>
-      <Routes>
-        <Route
-          path="/bg-watch/comunidad/h2h/:userA/:userB"
-          element={<BgWatchH2H />}
-        />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={["/bg-watch/comunidad/h2h/alice/bob"]}>
+        <Routes>
+          <Route
+            path="/bg-watch/comunidad/h2h/:userA/:userB"
+            element={<BgWatchH2H />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

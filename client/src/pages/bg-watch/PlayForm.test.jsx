@@ -1,9 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import i18n from "../../i18n";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
@@ -43,21 +53,23 @@ function makeUser(overrides = {}) {
 
 function renderForm(props = {}) {
   return render(
-    <MemoryRouter>
-      <PlayForm
-        user={props.user || makeUser()}
-        initialValues={props.initialValues}
-        editMode={props.editMode}
-        lockedGame={props.lockedGame}
-        submitting={props.submitting}
-        serverError={props.serverError}
-        onSubmit={props.onSubmit || vi.fn()}
-        onCancel={props.onCancel || vi.fn()}
-        onDelete={props.onDelete}
-        allowMultiSave={props.allowMultiSave}
-        lastJuntada={props.lastJuntada}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <PlayForm
+          user={props.user || makeUser()}
+          initialValues={props.initialValues}
+          editMode={props.editMode}
+          lockedGame={props.lockedGame}
+          submitting={props.submitting}
+          serverError={props.serverError}
+          onSubmit={props.onSubmit || vi.fn()}
+          onCancel={props.onCancel || vi.fn()}
+          onDelete={props.onDelete}
+          allowMultiSave={props.allowMultiSave}
+          lastJuntada={props.lastJuntada}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useJugadorDetalleQuery, bgWatchKeys } from "../../queries/bgWatch";
 import { useAuth } from "../../context/AuthContext";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
@@ -50,28 +50,17 @@ export default function JugadorDetail() {
     user.bggUsername.toLowerCase() === (bggUsername || "").toLowerCase();
   const canView = isOwnProfile || !!user?.isAdmin;
 
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [showH2h, setShowH2h] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    if (!canView) return undefined;
-    const ac = new AbortController();
-    setError(false);
-    axios
-      .get(API.bgg.JUGADOR_DETALLE(bggUsername, playerKey), {
-        params: { page },
-        signal: ac.signal,
-      })
-      .then(({ data: d }) => setData(d))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setError(true);
-      });
-    return () => ac.abort();
-  }, [bggUsername, playerKey, page, canView, refreshKey]);
+  const { data, isError: error } = useJugadorDetalleQuery(
+    bggUsername,
+    playerKey,
+    page,
+    { enabled: canView },
+  );
 
   // Desenlace del modal de edición: "merged" cambió la identidad (el jugador ya
   // no existe como tal) → volvemos a la lista; "updated" cambió nombre/avatar/
@@ -81,14 +70,15 @@ export default function JugadorDetail() {
     if (result === "merged") {
       navigate(`/bg-watch/${bggUsername}/jugadores`);
     } else if (result === "updated") {
-      setRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({
+        queryKey: [...bgWatchKeys.all, "jugadorDetalle", bggUsername, playerKey],
+      });
     }
   };
 
   // Reiniciar la página (y ocultar el H2H) al cambiar de jugador.
   useEffect(() => {
     setPage(1);
-    setData(null);
     setShowH2h(false);
   }, [playerKey]);
 

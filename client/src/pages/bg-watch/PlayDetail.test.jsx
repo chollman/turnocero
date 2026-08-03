@@ -2,8 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 let mockUser;
 vi.mock("../../context/AuthContext", () => ({
@@ -92,24 +102,26 @@ function stubDetalle(overrides = {}) {
 
 function renderDetail(path = "/bg-watch/claudio/partidas/777") {
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route
-            path="/bg-watch/:bggUsername/partidas/:playId"
-            element={<PlayDetail />}
-          />
-          <Route
-            path="/bg-watch/:bggUsername/partidas"
-            element={<div data-testid="partidas-page" />}
-          />
-          <Route
-            path="/bg-watch/:bggUsername/partidas/:playId/editar"
-            element={<div data-testid="edit-page" />}
-          />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route
+              path="/bg-watch/:bggUsername/partidas/:playId"
+              element={<PlayDetail />}
+            />
+            <Route
+              path="/bg-watch/:bggUsername/partidas"
+              element={<div data-testid="partidas-page" />}
+            />
+            <Route
+              path="/bg-watch/:bggUsername/partidas/:playId/editar"
+              element={<div data-testid="edit-page" />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 

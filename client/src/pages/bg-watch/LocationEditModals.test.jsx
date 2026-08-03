@@ -6,8 +6,18 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 import { EditLocationModal } from "./LocationEditModals";
 
@@ -48,11 +58,13 @@ describe("<EditLocationModal>", () => {
       }),
     );
     render(
-      <EditLocationModal
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditLocationModal
         bggUsername="alice"
         location={casa()}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
 
     const input = screen.getByDisplayValue("Casa");
@@ -66,11 +78,13 @@ describe("<EditLocationModal>", () => {
 
   it("no permite guardar un nombre vacío", async () => {
     render(
-      <EditLocationModal
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditLocationModal
         bggUsername="alice"
         location={casa()}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     fireEvent.change(screen.getByDisplayValue("Casa"), {
       target: { value: "  " },
@@ -84,11 +98,13 @@ describe("<EditLocationModal>", () => {
   it("cerrar sin cambios devuelve false", () => {
     const onClose = vi.fn();
     render(
-      <EditLocationModal
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditLocationModal
         bggUsername="alice"
         location={casa()}
         onClose={onClose}
-      />,
+        />
+      </QueryClientProvider>,
     );
     fireEvent.click(screen.getByText("Cerrar"));
     expect(onClose).toHaveBeenCalledWith(false);
@@ -102,11 +118,13 @@ describe("<EditLocationModal>", () => {
       ),
     );
     render(
-      <EditLocationModal
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditLocationModal
         bggUsername="alice"
         location={casa()}
         onClose={onClose}
-      />,
+        />
+      </QueryClientProvider>,
     );
     fireEvent.change(screen.getByDisplayValue("Casa"), {
       target: { value: "Mi Casa" },
@@ -138,11 +156,13 @@ describe("<EditLocationModal>", () => {
       }),
     );
     render(
-      <EditLocationModal
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditLocationModal
         bggUsername="alice"
         location={casa()}
         onClose={onClose}
-      />,
+        />
+      </QueryClientProvider>,
     );
 
     fireEvent.click(

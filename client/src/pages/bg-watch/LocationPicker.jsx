@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import { useMisUbicacionesQuery } from "../../queries/bgWatch";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import useClickOutside from "../../hooks/useClickOutside";
 import EmptyState from "../../components/shared/EmptyState";
 import DiceLoader from "../../components/shared/DiceLoader";
 import styles from "./BgWatchProfile.module.css";
+
+const EMPTY_ITEMS = [];
 
 /**
  * Selector de ubicación al cargar/editar una partida. A diferencia del selector
@@ -35,12 +36,6 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
     }
     return parts.join(" · ");
   };
-  const [items, setItems] = useState([]);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(false);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -49,69 +44,36 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
   const searchTerm = useSearchTerm(q);
   const fieldRef = useRef(null);
   const listRef = useRef(null);
-  const abortRef = useRef(null);
-  const reqIdRef = useRef(0);
 
-  // Trae una página. `append` distingue "cargar más" de un reset. Sólo aplica
-  // estado la request más reciente (reqId) para que un cambio de búsqueda no
-  // se pise con un "load more" en vuelo.
-  const fetchPage = useCallback(
-    (pageToLoad, append) => {
-      if (!bggUsername) return;
-      const myId = ++reqIdRef.current;
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      setError(false);
-      axios
-        .get(API.bgg.MIS_UBICACIONES(bggUsername), {
-          params: { page: pageToLoad, q: searchTerm || undefined },
-          signal: ac.signal,
-        })
-        .then(({ data }) => {
-          if (myId !== reqIdRef.current) return;
-          setItems((prev) =>
-            append ? [...prev, ...(data.items || [])] : data.items || [],
-          );
-          setPage(data.page || pageToLoad);
-          setPages(data.pages || 1);
-        })
-        .catch((err) => {
-          if (myId !== reqIdRef.current || axios.isCancel(err)) return;
-          setError(true);
-        })
-        .finally(() => {
-          if (myId !== reqIdRef.current) return;
-          setLoading(false);
-          setLoadingMore(false);
-        });
-    },
-    [bggUsername, searchTerm],
+  // Sólo trae datos mientras el dropdown está abierto (evita un fetch inútil
+  // al montar con el selector cerrado).
+  const {
+    data,
+    isPending: loading,
+    isFetchingNextPage: loadingMore,
+    isError: error,
+    hasNextPage,
+    fetchNextPage,
+  } = useMisUbicacionesQuery({
+    bggUsername,
+    q: searchTerm,
+    enabled: !!bggUsername && open,
+  });
+  const items = useMemo(
+    () => data?.pages.flatMap((p) => p.items || []) ?? EMPTY_ITEMS,
+    [data],
   );
-
-  // Reset + primera página cuando cambia el usuario o el término de búsqueda.
-  // Sólo trae datos mientras el dropdown está abierto (evita un fetch inútil al
-  // montar con el selector cerrado).
-  useEffect(() => {
-    if (!bggUsername || !open) return;
-    setItems([]);
-    setPage(1);
-    setPages(1);
-    fetchPage(1, false);
-  }, [bggUsername, searchTerm, open, fetchPage]);
 
   // Cerrar al clickear fuera del campo.
   useClickOutside(fieldRef, () => setOpen(false), open);
 
-  const onLoadMore = useCallback(() => {
-    fetchPage(page + 1, true);
-  }, [fetchPage, page]);
+  const onLoadMore = () => {
+    if (!loadingMore && hasNextPage) fetchNextPage();
+  };
 
   const sentinelRef = useInfiniteScroll(onLoadMore, {
     root: listRef,
-    enabled: open && page < pages && !loading && !loadingMore,
+    enabled: open && hasNextPage && !loading && !loadingMore,
   });
 
   const choose = (loc) => {
@@ -224,7 +186,7 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
                   </li>
                 );
               })}
-              {page < pages && (
+              {hasNextPage && (
                 <li ref={sentinelRef}>
                   <button
                     type="button"

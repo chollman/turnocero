@@ -1,15 +1,19 @@
 import Meeple from "../../components/shared/Meeple";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import EmptyState from "../../components/shared/EmptyState";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { useBrandName } from "../../hooks/useBrandName";
 import { CommunityContext } from "../../context/CommunityContext";
+import {
+  useComunidadJuegosQuery,
+  useComunidadJugadoresQuery,
+  useComunidadHeatmapQuery,
+  useComunidadActividadQuery,
+} from "../../queries/bgWatch";
 import styles from "./BgWatchComunidad.module.css";
 
 const TAB_KEYS = ["juegos", "jugadores", "actividad"];
@@ -18,24 +22,11 @@ const TAB_KEYS = ["juegos", "jugadores", "actividad"];
 function JuegosTab() {
   const { t } = useTranslation("bgwatch");
   const [periodo, setPeriodo] = useState("all");
-  const [games, setGames] = useState(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    setGames(null);
-    setError(false);
-    axios
-      .get(API.bgg.COMUNIDAD_JUEGOS, {
-        params: { periodo },
-        signal: ac.signal,
-      })
-      .then(({ data }) => setGames(data.games || []))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setError(true);
-      });
-    return () => ac.abort();
-  }, [periodo]);
+  const {
+    data: games = null,
+    isPending,
+    isError: error,
+  } = useComunidadJuegosQuery(periodo);
 
   return (
     <div className={styles.tabBody}>
@@ -115,7 +106,7 @@ function JuegosTab() {
         </div>
       )}
 
-      {games === null && !error && (
+      {isPending && !error && (
         <div className={styles.loading}>{t("common.loading")}</div>
       )}
     </div>
@@ -140,24 +131,11 @@ function metricValue(t, metric, p) {
 function JugadoresTab() {
   const { t } = useTranslation("bgwatch");
   const [metric, setMetric] = useState("plays");
-  const [players, setPlayers] = useState(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    setPlayers(null);
-    setError(false);
-    axios
-      .get(API.bgg.COMUNIDAD_JUGADORES, {
-        params: { metric },
-        signal: ac.signal,
-      })
-      .then(({ data }) => setPlayers(data.players || []))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setError(true);
-      });
-    return () => ac.abort();
-  }, [metric]);
+  const {
+    data: players = null,
+    isPending,
+    isError: error,
+  } = useComunidadJugadoresQuery(metric);
 
   return (
     <div className={styles.tabBody}>
@@ -226,7 +204,7 @@ function JugadoresTab() {
         </ol>
       )}
 
-      {players === null && !error && (
+      {isPending && !error && (
         <div className={styles.loading}>{t("common.loading")}</div>
       )}
     </div>
@@ -236,18 +214,7 @@ function JugadoresTab() {
 // ─── Heatmap (días con actividad, último año) ─────────────────────────────
 function HeatmapStrip() {
   const { t } = useTranslation("bgwatch");
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    axios
-      .get(API.bgg.COMUNIDAD_HEATMAP, { signal: ac.signal })
-      .then(({ data: d }) => setData(d.heatmap || []))
-      .catch((err) => {
-        if (!axios.isCancel(err)) setData([]);
-      });
-    return () => ac.abort();
-  }, []);
+  const { data } = useComunidadHeatmapQuery();
 
   if (!data || data.length === 0) return null;
 
@@ -277,53 +244,27 @@ function HeatmapStrip() {
 function ActividadTab() {
   const { t } = useTranslation("bgwatch");
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const load = useCallback((p) => {
-    setLoading(true);
-    const ac = new AbortController();
-    axios
-      .get(API.bgg.COMUNIDAD_ACTIVIDAD, {
-        params: { page: p, limit: 20 },
-        signal: ac.signal,
-      })
-      .then(({ data }) => {
-        setItems((prev) => (p === 1 ? data.items : [...prev, ...data.items]));
-        setPage(data.page);
-        setPages(data.pages);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (!axios.isCancel(err)) {
-          setError(true);
-          setLoading(false);
-        }
-      });
-    return ac;
-  }, []);
-
-  // Carga inicial de la página 1. Sin ref-guard: en StrictMode el primer
-  // efecto se aborta en el cleanup y el segundo completa el fetch (un guard
-  // persistente haría que el segundo montaje saltee la carga y quede colgado).
-  useEffect(() => {
-    const ac = load(1);
-    return () => ac.abort();
-  }, [load]);
+  const {
+    data,
+    isPending,
+    isError: error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useComunidadActividadQuery();
+  const items = data?.pages.flatMap((p) => p.items) || [];
+  const loading = isPending || isFetchingNextPage;
 
   const onLoadMore = useCallback(() => {
-    if (!loading && page < pages) load(page + 1);
-  }, [loading, page, pages, load]);
-  const sentinelRef = useInfiniteScroll(onLoadMore, { enabled: page < pages });
+    if (!isFetchingNextPage && hasNextPage) fetchNextPage();
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
+  const sentinelRef = useInfiniteScroll(onLoadMore, { enabled: hasNextPage });
 
   if (error) {
     return <p className={styles.errorMsg}>{t("comunidad.activityError")}</p>;
   }
 
-  if (!loading && items.length === 0) {
+  if (!isPending && items.length === 0) {
     return (
       <EmptyState
         variant="first"
@@ -381,7 +322,7 @@ function ActividadTab() {
         })}
       </ul>
       {loading && <div className={styles.loading}>{t("common.loading")}</div>}
-      {page < pages && <div ref={sentinelRef} className={styles.sentinel} />}
+      {hasNextPage && <div ref={sentinelRef} className={styles.sentinel} />}
     </div>
   );
 }

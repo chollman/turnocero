@@ -1,9 +1,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import ComunidadJuegoDetail from "./ComunidadJuegoDetail";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const user = {
   _id: "u1",
@@ -33,14 +43,16 @@ beforeEach(() => {
 
 function renderDetail() {
   return render(
-    <MemoryRouter initialEntries={["/bg-watch/comunidad/juego/100"]}>
-      <Routes>
-        <Route
-          path="/bg-watch/comunidad/juego/:gameId"
-          element={<ComunidadJuegoDetail />}
-        />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={["/bg-watch/comunidad/juego/100"]}>
+        <Routes>
+          <Route
+            path="/bg-watch/comunidad/juego/:gameId"
+            element={<ComunidadJuegoDetail />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

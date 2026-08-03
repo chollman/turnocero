@@ -1,10 +1,15 @@
 import Meeple from "../../components/shared/Meeple";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
-import { API } from "../../api/endpoints";
+import { useBggGameQuery } from "../../queries/bgg";
+import {
+  useBgWatchPartidasQuery,
+  bgWatchKeys,
+  deleteBgWatchPlay,
+} from "../../queries/bgWatch";
 import { getLocale } from "../../utils/locale";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import BackButton from "../../components/shared/BackButton";
@@ -40,15 +45,9 @@ export default function BgWatchPerGameView() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation("bgwatch");
+  const queryClient = useQueryClient();
 
-  const [game, setGame] = useState(null);
-  const [gameError, setGameError] = useState(null);
-
-  const [plays, setPlays] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const [deletingPlay, setDeletingPlay] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -57,9 +56,17 @@ export default function BgWatchPerGameView() {
     if (!deletingPlay) return;
     setDeleting(true);
     try {
-      await axios.delete(API.bgg.PARTIDA_DETAIL(deletingPlay.id));
+      await deleteBgWatchPlay(deletingPlay.id);
       setDeletingPlay(null);
-      setRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({
+        queryKey: [...bgWatchKeys.all, "partidas", bggUsername],
+      });
+      queryClient.invalidateQueries({
+        queryKey: bgWatchKeys.juegosJugados(bggUsername),
+      });
+      queryClient.invalidateQueries({
+        queryKey: bgWatchKeys.resumen(bggUsername),
+      });
     } catch (err) {
       alert(err.response?.data?.message || t("profile.deletePlayError"));
     } finally {
@@ -74,48 +81,16 @@ export default function BgWatchPerGameView() {
   const isGuest = !user;
 
   // Fetch game details (uses /game/:id cache — likely hit if user came from Partidas)
-  useEffect(() => {
-    let cancelled = false;
-    setGameError(null);
-    axios
-      .get(API.bgg.GAME(gameId))
-      .then(({ data }) => {
-        if (!cancelled) setGame(data);
-      })
-      .catch((err) => {
-        if (!cancelled)
-          setGameError(
-            err.response?.data?.message || t("perGame.loadGameError"),
-          );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [gameId, t]);
+  const { data: game = null, isError: gameHasError } = useBggGameQuery(gameId);
+  const gameError = gameHasError ? t("perGame.loadGameError") : null;
 
   // Fetch plays of this game
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    axios
-      .get(API.bgg.PARTIDAS(bggUsername), { params: { page, id: gameId } })
-      .then(({ data }) => {
-        if (!cancelled) setPlays(data);
-      })
-      .catch((err) => {
-        if (!cancelled)
-          setError(
-            err.response?.data?.message || t("perGame.loadPlaysError"),
-          );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [bggUsername, gameId, page, refreshKey, t]);
+  const {
+    data: plays = null,
+    isPending: loading,
+    isError: playsHasError,
+  } = useBgWatchPartidasQuery({ bggUsername, page, gameId });
+  const error = playsHasError ? t("perGame.loadPlaysError") : null;
 
   // Map of bggUsernameLower → TurnoCero user for players on the current page.
   const userMap = useBggUserMap(plays?.plays);

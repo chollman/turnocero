@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse, delay } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("./Pagination", () => ({
   default: ({ page, totalPages, onPage }) => (
@@ -22,16 +32,18 @@ import ColeccionPanel from "./ColeccionPanel";
 
 function renderPanel(props = {}) {
   return render(
-    <MemoryRouter>
-      <ColeccionPanel
-        bggUsername={props.bggUsername ?? "CarcaFan"}
-        onLoaded={props.onLoaded}
-        // Default true so existing button-interaction tests can find it.
-        // New tests opt out with canRefresh={false}.
-        canRefresh={props.canRefresh ?? true}
-        canCreate={props.canCreate ?? false}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <ColeccionPanel
+          bggUsername={props.bggUsername ?? "CarcaFan"}
+          onLoaded={props.onLoaded}
+          // Default true so existing button-interaction tests can find it.
+          // New tests opt out with canRefresh={false}.
+          canRefresh={props.canRefresh ?? true}
+          canCreate={props.canCreate ?? false}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

@@ -6,8 +6,18 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../components/shared/Avatar", () => ({
   // Render only the username so it doesn't clash with the name text in queries.
@@ -70,7 +80,9 @@ describe("<EditPlayerModal>", () => {
       }),
     );
     render(
-      <EditPlayerModal bggUsername="alice" player={juan()} onClose={vi.fn()} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal bggUsername="alice" player={juan()} onClose={vi.fn()} />
+      </QueryClientProvider>,
     );
 
     const input = screen.getByDisplayValue("Juan");
@@ -98,7 +110,9 @@ describe("<EditPlayerModal>", () => {
       ),
     );
     render(
-      <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />
+      </QueryClientProvider>,
     );
 
     const bggInput = screen.getByPlaceholderText("@usuario");
@@ -123,7 +137,9 @@ describe("<EditPlayerModal>", () => {
       }),
     );
     render(
-      <EditPlayerModal bggUsername="alice" player={juan()} onClose={vi.fn()} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal bggUsername="alice" player={juan()} onClose={vi.fn()} />
+      </QueryClientProvider>,
     );
 
     // Seleccionar un archivo abre el crop modal (stub), que emite el blob.
@@ -139,17 +155,19 @@ describe("<EditPlayerModal>", () => {
 
   it("muestra un disclaimer para un jugador vinculado a un miembro", () => {
     render(
-      <EditPlayerModal
-        bggUsername="alice"
-        player={juan({
-          username: "bob",
-          name: "Bob",
-          isLinked: true,
-          canEditNameAvatar: false,
-          linkedUser: { _id: "u1", displayName: "Bob", username: "bob" },
-        })}
-        onClose={vi.fn()}
-      />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal
+          bggUsername="alice"
+          player={juan({
+            username: "bob",
+            name: "Bob",
+            isLinked: true,
+            canEditNameAvatar: false,
+            linkedUser: { _id: "u1", displayName: "Bob", username: "bob" },
+          })}
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>,
     );
     expect(
       screen.getByText(/reemplazan los de su perfil/i),
@@ -159,7 +177,9 @@ describe("<EditPlayerModal>", () => {
   it("cerrar sin cambios devuelve false", () => {
     const onClose = vi.fn();
     render(
-      <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />
+      </QueryClientProvider>,
     );
     // El footer "Cerrar" (texto), no el "✕" (que tiene aria-label "Cerrar").
     fireEvent.click(screen.getByText("Cerrar"));
@@ -174,7 +194,9 @@ describe("<EditPlayerModal>", () => {
       ),
     );
     render(
-      <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />
+      </QueryClientProvider>,
     );
     fireEvent.change(screen.getByDisplayValue("Juan"), {
       target: { value: "Juancito" },
@@ -206,7 +228,9 @@ describe("<EditPlayerModal>", () => {
       }),
     );
     render(
-      <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />
+      </QueryClientProvider>,
     );
 
     fireEvent.click(
@@ -243,7 +267,9 @@ describe("<EditPlayerModal>", () => {
       }),
     );
     render(
-      <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />,
+      <QueryClientProvider client={makeQueryClient()}>
+        <EditPlayerModal bggUsername="alice" player={juan()} onClose={onClose} />
+      </QueryClientProvider>,
     );
 
     fireEvent.click(

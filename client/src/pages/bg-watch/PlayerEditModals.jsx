@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import axios from "axios";
-import { API } from "../../api/endpoints";
+import {
+  useJugadoresMergeSearchQuery,
+  renamePlayer,
+  relinkPlayerBgg,
+  uploadPlayerAvatar,
+  removePlayerAvatar,
+  markPlayerSelf,
+  mergePlayers,
+} from "../../queries/bgWatch";
 import Avatar from "../../components/shared/Avatar";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import AvatarCropModal from "../../components/shared/AvatarCropModal";
@@ -77,10 +84,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
     setErr("");
     setMsg("");
     try {
-      await axios.patch(API.bgg.JUGADOR_NOMBRE(bggUsername), {
-        rawKeys: player.rawKeys,
-        name: trimmed,
-      });
+      await renamePlayer(bggUsername, player.rawKeys, trimmed);
       setDirty(true);
       setMsg(t("playerEdit.nameSaved"));
     } catch (e) {
@@ -100,10 +104,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
     setErr("");
     setMsg("");
     try {
-      await axios.patch(API.bgg.JUGADOR_BGG(bggUsername), {
-        rawKeys: player.rawKeys,
-        bggUsername: handle,
-      });
+      await relinkPlayerBgg(bggUsername, player.rawKeys, handle);
       setDirty(true);
       // La identidad cambió de clave → cerramos y refrescamos.
       onClose("updated");
@@ -127,7 +128,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
       const fd = new FormData();
       fd.append("avatar", blob, "avatar.jpg");
       fd.append("rawKeys", JSON.stringify(player.rawKeys));
-      const { data } = await axios.put(API.bgg.JUGADOR_AVATAR(bggUsername), fd);
+      const { data } = await uploadPlayerAvatar(bggUsername, fd);
       setAvatar(data.player?.avatar || null);
       setDirty(true);
       setMsg(t("playerEdit.avatarUpdated"));
@@ -144,9 +145,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
     setErr("");
     setMsg("");
     try {
-      await axios.delete(API.bgg.JUGADOR_AVATAR(bggUsername), {
-        data: { rawKeys: player.rawKeys },
-      });
+      await removePlayerAvatar(bggUsername, player.rawKeys);
       setAvatar(null);
       setDirty(true);
       setMsg(t("playerEdit.avatarRemoved"));
@@ -316,39 +315,20 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
 // ── Fusionar jugador (source → target) ─────────────────────────────────────
 export function MergePlayerModal({ bggUsername, source, onClose }) {
   const { t } = useTranslation("bgwatch");
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [target, setTarget] = useState(null);
   const [merging, setMerging] = useState(false);
   const [err, setErr] = useState("");
   const searchTerm = useSearchTerm(q);
-  const reqIdRef = useRef(0);
-
-  useEffect(() => {
-    const myId = ++reqIdRef.current;
-    setLoading(true);
-    axios
-      .get(API.bgg.JUGADORES(bggUsername), {
-        params: { q: searchTerm || undefined, limit: 50 },
-      })
-      .then(({ data }) => {
-        if (myId !== reqIdRef.current) return;
-        // Excluir el propio jugador (por solapamiento de rawKeys).
-        const srcKeys = new Set(source.rawKeys);
-        setItems(
-          (data.items || []).filter(
-            (it) => !it.rawKeys.some((k) => srcKeys.has(k)),
-          ),
-        );
-      })
-      .catch(() => {
-        if (myId === reqIdRef.current) setItems([]);
-      })
-      .finally(() => {
-        if (myId === reqIdRef.current) setLoading(false);
-      });
-  }, [bggUsername, searchTerm, source.rawKeys]);
+  const { data: rawItems, isPending: loading } = useJugadoresMergeSearchQuery({
+    bggUsername,
+    q: searchTerm,
+  });
+  // Excluir el propio jugador (por solapamiento de rawKeys).
+  const srcKeys = new Set(source.rawKeys);
+  const items = (rawItems || []).filter(
+    (it) => !it.rawKeys.some((k) => srcKeys.has(k)),
+  );
 
   const doMerge = async () => {
     if (!target) return;
@@ -357,15 +337,9 @@ export function MergePlayerModal({ bggUsername, source, onClose }) {
     try {
       if (target.__self) {
         // "Sos vos": marca al jugador como el dueño del perfil (overlay local).
-        await axios.post(API.bgg.JUGADOR_YO_MISMO(bggUsername), {
-          rawKeys: source.rawKeys,
-          value: true,
-        });
+        await markPlayerSelf(bggUsername, source.rawKeys, true);
       } else {
-        await axios.post(API.bgg.JUGADOR_MERGE(bggUsername), {
-          sourceRawKeys: source.rawKeys,
-          targetRawKeys: target.rawKeys,
-        });
+        await mergePlayers(bggUsername, source.rawKeys, target.rawKeys);
       }
       onClose(true);
     } catch (e) {

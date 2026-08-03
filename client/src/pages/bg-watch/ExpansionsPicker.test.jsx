@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import ExpansionsPicker from "./ExpansionsPicker";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 beforeEach(() => {
   server.use(
@@ -20,12 +30,14 @@ beforeEach(() => {
 describe("<ExpansionsPicker>", () => {
   it("lista las expansiones del juego", async () => {
     render(
-      <ExpansionsPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <ExpansionsPicker
         gameId="13"
         selected={[]}
         onToggle={vi.fn()}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     expect(await screen.findByText("Oceania")).toBeInTheDocument();
     expect(screen.getByText("Europe")).toBeInTheDocument();
@@ -34,12 +46,14 @@ describe("<ExpansionsPicker>", () => {
   it("togglea al clickear y marca las seleccionadas con ✓", async () => {
     const onToggle = vi.fn();
     render(
-      <ExpansionsPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <ExpansionsPicker
         gameId="13"
         selected={[{ id: 1, name: "Oceania" }]}
         onToggle={onToggle}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     const oceania = (await screen.findByText("Oceania")).closest("button");
     expect(oceania).toHaveAttribute("aria-pressed", "true");
@@ -60,12 +74,14 @@ describe("<ExpansionsPicker>", () => {
       ),
     );
     render(
-      <ExpansionsPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <ExpansionsPicker
         gameId="13"
         selected={[]}
         onToggle={vi.fn()}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     const img = await screen.findByAltText("Oceania");
     expect(img).toHaveAttribute("src", "https://cdn/oceania.jpg");
@@ -75,12 +91,14 @@ describe("<ExpansionsPicker>", () => {
 
   it("filtra client-side por el buscador", async () => {
     render(
-      <ExpansionsPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <ExpansionsPicker
         gameId="13"
         selected={[]}
         onToggle={vi.fn()}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Oceania");
     fireEvent.change(screen.getByPlaceholderText(/buscá una expansión/i), {
@@ -92,12 +110,14 @@ describe("<ExpansionsPicker>", () => {
 
   it("filtrando sin coincidencias muestra una fila compacta con el término", async () => {
     render(
-      <ExpansionsPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <ExpansionsPicker
         gameId="13"
         selected={[]}
         onToggle={vi.fn()}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Oceania");
     fireEvent.change(screen.getByPlaceholderText(/buscá una expansión/i), {
@@ -115,12 +135,14 @@ describe("<ExpansionsPicker>", () => {
       ),
     );
     render(
-      <ExpansionsPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <ExpansionsPicker
         gameId="13"
         selected={[]}
         onToggle={vi.fn()}
         onClose={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     expect(
       await screen.findByText(/no tiene expansiones/i),
@@ -130,12 +152,14 @@ describe("<ExpansionsPicker>", () => {
   it("la ✕ llama onClose", async () => {
     const onClose = vi.fn();
     render(
-      <ExpansionsPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <ExpansionsPicker
         gameId="13"
         selected={[]}
         onToggle={vi.fn()}
         onClose={onClose}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Oceania");
     fireEvent.click(screen.getByRole("button", { name: /cerrar/i }));

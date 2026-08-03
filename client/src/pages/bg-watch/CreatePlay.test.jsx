@@ -1,8 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+function Providers({ children }) {
+  return (
+    <QueryClientProvider client={makeQueryClient()}>{children}</QueryClientProvider>
+  );
+}
 
 // ── Mocks ────────────────────────────────────────────────────────────
 let mockUser;
@@ -106,7 +121,7 @@ function LocationProbe() {
 
 function renderAt(entry) {
   return render(
-    <MemoryRouter initialEntries={[entry]}>
+    <Providers><MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route
           path="/bg-watch/:bggUsername/partidas/nueva"
@@ -116,13 +131,13 @@ function renderAt(entry) {
         <Route path="/bg-watch/:bggUsername/coleccion" element={<Echo />} />
         <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<Echo />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter></Providers>,
   );
 }
 
 function renderWithState(entry, state) {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: entry, state }]}>
+    <Providers><MemoryRouter initialEntries={[{ pathname: entry, state }]}>
       <Routes>
         <Route
           path="/bg-watch/:bggUsername/partidas/nueva"
@@ -130,7 +145,7 @@ function renderWithState(entry, state) {
         />
         <Route path="/bg-watch/:bggUsername" element={<Echo />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter></Providers>,
   );
 }
 
@@ -159,7 +174,7 @@ describe("<CreatePlay>", () => {
   it("no-dueño con cuenta propia: redirige a SU carga (el link no depende del username)", async () => {
     mockUser = { ...mockUser, bggUsername: "otro" };
     render(
-      <MemoryRouter
+      <Providers><MemoryRouter
         initialEntries={[
           "/bg-watch/meBGG/partidas/nueva?volver=%2Fbg-watch%2FmeBGG%2Fcoleccion",
         ]}
@@ -172,7 +187,7 @@ describe("<CreatePlay>", () => {
           />
           <Route path="/bg-watch/:bggUsername" element={<Echo />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter></Providers>,
     );
     await waitFor(() =>
       expect(screen.getByTestId("path")).toHaveTextContent(
@@ -186,7 +201,7 @@ describe("<CreatePlay>", () => {
   it("sin cuenta de BGG redirige al hub", async () => {
     mockUser = { ...mockUser, bggUsername: "" };
     render(
-      <MemoryRouter initialEntries={["/bg-watch/meBGG/partidas/nueva"]}>
+      <Providers><MemoryRouter initialEntries={["/bg-watch/meBGG/partidas/nueva"]}>
         <LocationProbe />
         <Routes>
           <Route
@@ -195,7 +210,7 @@ describe("<CreatePlay>", () => {
           />
           <Route path="/bg-watch" element={<Echo />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter></Providers>,
     );
     await waitFor(() =>
       expect(screen.getByTestId("path").textContent).toBe("/bg-watch"),

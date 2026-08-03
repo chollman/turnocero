@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
@@ -88,12 +98,14 @@ beforeEach(() => {
 describe("<PlayerPicker>", () => {
   it("muestra los compañeros de BGG por defecto", async () => {
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     expect(await screen.findByText("Bob")).toBeInTheDocument();
     expect(screen.getByText("Tía Susana")).toBeInTheDocument();
@@ -102,12 +114,14 @@ describe("<PlayerPicker>", () => {
 
   it("muestra el avatar del compañero que es miembro de TurnoCero (por BGG)", async () => {
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     // Bob (bobbgg) está vinculado a un usuario de TurnoCero → su avatar resuelve
     // al miembro (bobtc) cuando llega el userMap.
@@ -141,12 +155,14 @@ describe("<PlayerPicker>", () => {
       ),
     );
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Tía Susana");
     // El avatar del overlay se renderiza aunque no haya match en TurnoCero.
@@ -155,12 +171,14 @@ describe("<PlayerPicker>", () => {
 
   it("muestra el loader (dado) mientras carga y lo oculta al llegar los datos", async () => {
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     expect(screen.getByRole("status")).toHaveTextContent(/buscando jugadores/i);
     await screen.findByText("Bob");
@@ -183,12 +201,14 @@ describe("<PlayerPicker>", () => {
       }),
     );
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Bob"); // carga inicial → 1 request
     fireEvent.change(
@@ -215,12 +235,14 @@ describe("<PlayerPicker>", () => {
   it("elegir un compañero llama onPick con name + username", async () => {
     const onPick = vi.fn();
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={onPick}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
     expect(onPick).toHaveBeenCalledWith({ name: "Bob", username: "bobbgg" });
@@ -228,12 +250,14 @@ describe("<PlayerPicker>", () => {
 
   it("al elegir un jugador limpia el input y lo reenfoca para buscar otro", async () => {
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Bob");
     const input = screen.getByPlaceholderText(/buscá o escribí un jugador/i);
@@ -248,12 +272,14 @@ describe("<PlayerPicker>", () => {
   it("ofrece 'Usar «…»' para un nombre nuevo no listado", async () => {
     const onPick = vi.fn();
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={onPick}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Bob");
     fireEvent.change(
@@ -276,12 +302,14 @@ describe("<PlayerPicker>", () => {
       ),
     );
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     // Esperar a que termine la carga (desaparece el loader).
     await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
@@ -294,12 +322,14 @@ describe("<PlayerPicker>", () => {
 
   it("buscando sin coincidencias NO muestra el empty state (queda 'Usar «…»')", async () => {
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Bob");
     fireEvent.change(
@@ -313,12 +343,14 @@ describe("<PlayerPicker>", () => {
 
   it("excluye compañeros ya agregados", async () => {
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[{ name: "Bob", username: "bobbgg" }]}
         onPick={vi.fn()}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     expect(await screen.findByText("Tía Susana")).toBeInTheDocument();
     expect(screen.queryByText("Bob")).toBeNull();
@@ -327,12 +359,14 @@ describe("<PlayerPicker>", () => {
   it("togglea al modo TurnoCero y vincula por bggUsername", async () => {
     const onPick = vi.fn();
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={onPick}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Bob");
     fireEvent.click(
@@ -349,12 +383,14 @@ describe("<PlayerPicker>", () => {
   it("un usuario de TurnoCero sin BGG se agrega solo por nombre", async () => {
     const onPick = vi.fn();
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={onPick}
         onCancel={vi.fn()}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Bob");
     fireEvent.click(
@@ -369,12 +405,14 @@ describe("<PlayerPicker>", () => {
   it("cancela con la ✕", async () => {
     const onCancel = vi.fn();
     render(
-      <PlayerPicker
+      <QueryClientProvider client={makeQueryClient()}>
+        <PlayerPicker
         bggUsername="me"
         existing={[]}
         onPick={vi.fn()}
         onCancel={onCancel}
-      />,
+        />
+      </QueryClientProvider>,
     );
     await screen.findByText("Bob");
     fireEvent.click(screen.getByRole("button", { name: /cancelar/i }));

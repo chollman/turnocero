@@ -6,10 +6,13 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { API } from "../../api/endpoints";
+import { useBggGameQuery } from "../../queries/bgg";
+import {
+  useUltimaJuntadaQuery,
+  createBgWatchPlay,
+} from "../../queries/bgWatch";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { createJuntada, toGamePayload } from "../compartidas/createJuntada";
 import { buildCompartidaShare } from "../../utils/share";
@@ -39,7 +42,6 @@ export default function CreatePlay() {
   const prefill = location.state?.prefill || null;
   const sharedFromNotifId = location.state?.sharedFromNotifId || null;
 
-  const [game, setGame] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   // Multi-partida rápida: al guardar con "Guardar y cargar otra", conservamos el
@@ -47,9 +49,6 @@ export default function CreatePlay() {
   // próxima partida sin salir de la página.
   const [formKey, setFormKey] = useState(0);
   const [carry, setCarry] = useState(null);
-  // Roster + ubicación de la última partida del usuario, para el botón
-  // "Usar última juntada" del form. null = sin partidas previas (no se muestra).
-  const [lastJuntada, setLastJuntada] = useState(null);
 
   const isOwner =
     !!user?.bggUsername &&
@@ -85,35 +84,22 @@ export default function CreatePlay() {
   ]);
 
   // Si vino con ?juego, traer los datos del juego para prefijarlo (locked).
-  useEffect(() => {
-    if (!gameId) return;
-    const ac = new AbortController();
-    axios
-      .get(API.bgg.GAME(gameId), { signal: ac.signal })
-      .then(({ data }) => {
-        setGame({
-          id: data.id,
-          name: data.name,
-          thumbnail: data.thumbnail,
-          year: data.year,
-          playingTime: data.playingTime ?? null,
-        });
-      })
-      .catch(() => {});
-    return () => ac.abort();
-  }, [gameId]);
+  const { data: gameDetails } = useBggGameQuery(gameId, { enabled: !!gameId });
+  const game = gameDetails
+    ? {
+        id: gameDetails.id,
+        name: gameDetails.name,
+        thumbnail: gameDetails.thumbnail,
+        year: gameDetails.year,
+        playingTime: gameDetails.playingTime ?? null,
+      }
+    : null;
 
   // Traer la última juntada (roster + ubicación) para ofrecer precargarla. Solo
   // si el usuario puede cargar partidas (dueño con BGG conectado).
-  useEffect(() => {
-    if (!canCreate) return undefined;
-    const ac = new AbortController();
-    axios
-      .get(API.bgg.ULTIMA_JUNTADA(bggUsername), { signal: ac.signal })
-      .then(({ data }) => setLastJuntada(data.juntada || null))
-      .catch(() => {});
-    return () => ac.abort();
-  }, [canCreate, bggUsername]);
+  const { data: lastJuntada = null } = useUltimaJuntadaQuery(bggUsername, {
+    enabled: canCreate,
+  });
 
   const goBack = () => {
     if (volver && volver.startsWith("/bg-watch/")) navigate(volver);
@@ -175,7 +161,7 @@ export default function CreatePlay() {
 
     // 1. Guardar la partida (paso propio). Si falla, NO se intenta la juntada.
     try {
-      await axios.post(API.bgg.PARTIDAS_LIST, {
+      await createBgWatchPlay({
         ...payload,
         ...(sharedFromNotifId ? { sharedFromNotifId } : {}),
       });

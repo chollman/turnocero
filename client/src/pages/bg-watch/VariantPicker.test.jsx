@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import VariantPicker from "./VariantPicker";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 beforeEach(() => {
   server.use(
@@ -14,13 +24,15 @@ beforeEach(() => {
 
 function renderVP(props = {}) {
   return render(
-    <VariantPicker
-      bggUsername="me"
-      gameId="13"
-      value={props.value || ""}
-      onPick={props.onPick || vi.fn()}
-      onClose={props.onClose || vi.fn()}
-    />,
+    <QueryClientProvider client={makeQueryClient()}>
+      <VariantPicker
+        bggUsername="me"
+        gameId="13"
+        value={props.value || ""}
+        onPick={props.onPick || vi.fn()}
+        onClose={props.onClose || vi.fn()}
+      />
+    </QueryClientProvider>,
   );
 }
 

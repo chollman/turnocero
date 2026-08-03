@@ -1,9 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 import MyGamesPicker from "./MyGamesPicker";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 // 3 juegos ya en orden de recencia (el server ordena). Con limit=2 → 2 páginas.
 const ALL = [
@@ -69,7 +79,11 @@ beforeEach(() => {
 
 describe("<MyGamesPicker>", () => {
   it("renderiza la primera página (no toda la lista)", async () => {
-    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     expect(await screen.findByText("Catán")).toBeInTheDocument();
     expect(screen.getByText("Azul")).toBeInTheDocument();
     // Wingspan está en la página 2 → no debería estar todavía.
@@ -79,7 +93,11 @@ describe("<MyGamesPicker>", () => {
   });
 
   it("muestra el loader (dado) mientras carga y lo oculta al llegar los datos", async () => {
-    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     expect(screen.getByRole("status")).toHaveTextContent(
       /buscando tus juegos/i,
     );
@@ -88,7 +106,11 @@ describe("<MyGamesPicker>", () => {
   });
 
   it("'Ver más' trae la página 2 y la appendea", async () => {
-    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     await screen.findByText("Catán");
     fireEvent.click(screen.getByRole("button", { name: /ver más/i }));
     expect(await screen.findByText("Wingspan")).toBeInTheDocument();
@@ -99,15 +121,19 @@ describe("<MyGamesPicker>", () => {
   });
 
   it("la búsqueda refetchea server-side (debounced) con ?q", async () => {
-    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     await screen.findByText("Catán");
     fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {
       target: { value: "azul" },
     });
     await waitFor(() => {
       expect(screen.queryByText("Catán")).toBeNull();
+      expect(screen.getByText("Azul")).toBeInTheDocument();
     });
-    expect(screen.getByText("Azul")).toBeInTheDocument();
   });
 
   it("no busca con menos de 3 caracteres; sí al llegar a 3", async () => {
@@ -120,7 +146,11 @@ describe("<MyGamesPicker>", () => {
         return misJuegosHandler(ctx);
       }),
     );
-    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     await screen.findByText("Catán"); // carga inicial → 1 request
     fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {
       target: { value: "ca" },
@@ -139,7 +169,11 @@ describe("<MyGamesPicker>", () => {
 
   it("llama onPick con la shape normalizada al clickear un juego", async () => {
     const onPick = vi.fn();
-    render(<MyGamesPicker bggUsername="alice" onPick={onPick} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={onPick} />
+      </QueryClientProvider>,
+    );
     const item = await screen.findByText("Catán");
     fireEvent.click(item.closest("button"));
     expect(onPick).toHaveBeenCalledWith({
@@ -154,7 +188,11 @@ describe("<MyGamesPicker>", () => {
 
   it("togglea a la búsqueda en BGG y forwardea el juego elegido", async () => {
     const onPick = vi.fn();
-    render(<MyGamesPicker bggUsername="alice" onPick={onPick} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={onPick} />
+      </QueryClientProvider>,
+    );
     await screen.findByText("Catán");
     fireEvent.click(screen.getByRole("button", { name: /buscar en bgg/i }));
     fireEvent.change(screen.getByPlaceholderText(/buscá un juego en bgg/i), {
@@ -173,12 +211,20 @@ describe("<MyGamesPicker>", () => {
         HttpResponse.json({ items: [], total: 0, page: 1, pages: 1 }),
       ),
     );
-    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     expect(await screen.findByText(/tu lista está vacía/i)).toBeInTheDocument();
   });
 
   it("filtrando sin coincidencias muestra una fila compacta (no el EmptyState)", async () => {
-    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="alice" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     await screen.findByText("Catán");
     fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {
       target: { value: "zzz" },
@@ -191,7 +237,11 @@ describe("<MyGamesPicker>", () => {
   });
 
   it("sin bggUsername va directo a la búsqueda en BGG", async () => {
-    render(<MyGamesPicker bggUsername="" onPick={vi.fn()} />);
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MyGamesPicker bggUsername="" onPick={vi.fn()} />
+      </QueryClientProvider>,
+    );
     expect(
       await screen.findByPlaceholderText(/buscá un juego en bgg/i),
     ).toBeInTheDocument();

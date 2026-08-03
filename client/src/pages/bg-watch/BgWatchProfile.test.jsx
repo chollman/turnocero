@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
@@ -53,19 +63,21 @@ function renderProfile({
 } = {}) {
   useAuth.mockReturnValue({ user });
   return render(
-    <MemoryRouter initialEntries={[`/bg-watch/${bggUsername}${path}`]}>
-      <Routes>
-        <Route path="/bg-watch/:bggUsername" element={<BgWatchProfile />} />
-        <Route
-          path="/bg-watch/:bggUsername/partidas"
-          element={<BgWatchProfile />}
-        />
-        <Route
-          path="/bg-watch/:bggUsername/coleccion"
-          element={<BgWatchProfile />}
-        />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={[`/bg-watch/${bggUsername}${path}`]}>
+        <Routes>
+          <Route path="/bg-watch/:bggUsername" element={<BgWatchProfile />} />
+          <Route
+            path="/bg-watch/:bggUsername/partidas"
+            element={<BgWatchProfile />}
+          />
+          <Route
+            path="/bg-watch/:bggUsername/coleccion"
+            element={<BgWatchProfile />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

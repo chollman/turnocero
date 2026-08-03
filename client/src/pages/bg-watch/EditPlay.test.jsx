@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 let mockUser;
 vi.mock("../../context/AuthContext", () => ({
@@ -35,15 +45,17 @@ function Echo() {
 
 function renderAt(entry) {
   return render(
-    <MemoryRouter initialEntries={[entry]}>
-      <Routes>
-        <Route
-          path="/bg-watch/:bggUsername/partidas/:playId/editar"
-          element={<EditPlay />}
-        />
-        <Route path="/bg-watch/:bggUsername" element={<Echo />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={[entry]}>
+        <Routes>
+          <Route
+            path="/bg-watch/:bggUsername/partidas/:playId/editar"
+            element={<EditPlay />}
+          />
+          <Route path="/bg-watch/:bggUsername" element={<Echo />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
