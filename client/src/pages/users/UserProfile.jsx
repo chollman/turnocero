@@ -171,7 +171,7 @@ export default function UserProfile() {
   const { lang, setLang } = useLanguage();
   const { addToast } = useNotifications();
 
-  // Cambia el idioma de la UI (LanguageContext) y, si hay sesión, lo persiste
+  // Cambia el idioma de la UI (languageSlice) y, si hay sesión, lo persiste
   // en el server (User.language) para que emails/push respeten la preferencia.
   const changeLanguage = (next) => {
     setLang(next);

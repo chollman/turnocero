@@ -1,5 +1,5 @@
 // Inicialización (side-effect) de i18next para el cliente. Importar este módulo
-// una vez (lo hace LanguageContext, y main.jsx vía el árbol de App) deja el
+// una vez (lo hace languageSlice, y main.jsx vía el árbol de App) deja el
 // singleton global listo para `useTranslation()`/`t()` en toda la app.
 //
 // Recursos bundleados (no HTTP backend): cada namespace es un JSON importado.

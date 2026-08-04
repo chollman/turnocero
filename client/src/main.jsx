@@ -12,7 +12,7 @@ axios.defaults.baseURL = import.meta.env.VITE_API_URL || "";
 
 // Idioma persistido → header Accept-Language por defecto, seteado al boot (antes
 // de cualquier request) para que el primer GET /api/auth/me ya viaje localizado.
-// LanguageContext lo actualiza al togglear.
+// `languageSlice`/`useLanguage()` lo actualiza al togglear.
 let storedLang = "es";
 try {
   storedLang = normalizeLang(localStorage.getItem(STORAGE_KEYS.LANGUAGE));

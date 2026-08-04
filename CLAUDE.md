@@ -98,7 +98,7 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all fron
 2. `POST /api/auth/verify-email { email, code }` validates the code (5-attempt cap, 15-min TTL) and returns `{ user, token }`. Tokens are 24h JWTs.
 3. `POST /api/auth/login` returns `{ user, token }` or **403 with `code: 'email_not_verified'`** if the email hasn't been verified yet (frontend redirects to `/verificar-email?email=...`).
 4. `POST /api/auth/resend-verification` and `POST /api/auth/forgot-password` are rate-limited to **3 attempts / 15 min** (stricter `emailLimiter`) and always respond 200 generically to avoid leaking account existence. `POST /api/auth/reset-password { token, password }` confirms the reset.
-5. `AuthContext` stores the JWT in `localStorage`, sets it as the Axios default `Authorization` header, and re-validates via `GET /api/auth/me` on app load.
+5. `AuthContext` (internally backed by `authSlice`/`queries/auth.js` — see "Global state architecture" below) stores the JWT in `localStorage`, sets it as the Axios default `Authorization` header, and re-validates via `GET /api/auth/me` on app load.
 6. Routes are gated by a combination of `<PublicRoute>` (auth pages), `<PrivateRoute>`, `<AdminRoute>`, and `<SectionGate section="...">` (driven by `SiteConfig` — see below).
 
 **OAuth (Google / Facebook)** — token-based, no Passport/sessions; reuses the same JWT model:
@@ -119,6 +119,15 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all fron
 - `<GuestNavbar />` — top bar shown to unauthenticated visitors (not on login/register pages)
 - `<SplashScreen />` — shown during initial auth load
 - `<BoardGameBackground />` — decorative canvas background rendered behind all content
+
+### Global state architecture
+
+Client state and server state are deliberately split across two libraries — this was a full incremental migration (8 phases, tracked in [plans/redux-toolkit-react-query-migration.md](plans/redux-toolkit-react-query-migration.md), done as directed practice for Redux Toolkit; see `.claude/memory/project_rtk_react_query_migration.md` for the phase-by-phase history):
+
+- **Redux Toolkit** (`client/src/store/`) owns *client* state only — UI preferences and small session flags with no server-side source of truth: `theme` ([slices/themeSlice.js](client/src/store/slices/themeSlice.js)), `language` ([slices/languageSlice.js](client/src/store/slices/languageSlice.js)), and `auth` — `{ token, viewAsUser }` ([slices/authSlice.js](client/src/store/slices/authSlice.js)). Each slice that persists to `localStorage` does it via a `createListenerMiddleware` effect (not inside the reducer) — see any of the three files for the pattern. `store.js` wires `preloadedState` for slices whose initial value depends on `localStorage` read at store-creation time (currently only `auth`, via its exported `getInitialAuthState()`). `useAppDispatch`/`useAppSelector` ([store/hooks.js](client/src/store/hooks.js)) are the typed re-exports; components never import `react-redux` directly.
+- **TanStack Query** (`client/src/queries/*.js`, one file per domain) owns *server* state — anything that ultimately comes from an API call. Reads are `useQuery`/`useInfiniteQuery` hooks; writes are **plain async functions** (no `useMutation`) that the calling component `await`s directly, then either `queryClient.setQueryData(...)` (seed the cache from the mutation's own response — the default, avoids a redundant refetch) or `queryClient.invalidateQueries(...)` (when the response doesn't carry enough to reconstruct the cached shape, e.g. paginated lists). Query keys are exported per domain as `xKeys` objects (`xKeys.all` / `.list(params)` / `.detail(id)` / ...) so cache invalidation always goes through the owning domain's file, never a hand-rolled array literal at the call site.
+- **Context providers survive** for the handful of contexts with real orchestration logic beyond plain state (`AuthContext`, `SiteConfigContext`, `CommunityContext`, `ChatContext`, `NotificationContext`) — each was restructured internally to read from Redux/Query instead of `useState`, but **the Provider/`useX()` shape was deliberately kept unchanged** to avoid rewriting dozens of consumer files for no functional gain (`AuthContext` alone has 65). `ThemeContext`/`LanguageContext` are the only two Contexts actually deleted (Fase 1) — those had no orchestration logic beyond the state itself, so `useTheme()`/`useLanguage()` became thin hooks reading Redux directly, no Context needed at all.
+- **RTK Query was explicitly rejected** in favor of using TanStack Query and Redux Toolkit separately — RTK Query would blur the client-state/server-state split this migration exists to establish.
 
 ### Table lifecycle
 

@@ -9,7 +9,7 @@ export const STORAGE_KEYS = Object.freeze({
   TOKEN: "token",
   VIEW_AS_USER: "viewAsUser",
   THEME: "turnocero_theme",
-  // Idioma de la UI: "es" (default) | "en". Lo maneja LanguageContext y lo
+  // Idioma de la UI: "es" (default) | "en". Lo maneja languageSlice y lo
   // reaplica el script inline de index.html (atributo <html lang>) pre-hidratación.
   LANGUAGE: "turnocero_language",
   SIDEBAR_COLLAPSED: "turnocero_sidebar_collapsed",

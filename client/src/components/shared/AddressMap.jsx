@@ -38,7 +38,7 @@ function MapSync({ lat, lng }) {
  * - Click en el mapa = mueve / coloca el marker en ese punto.
  * - Drag del marker  = actualiza coords.
  * - Si `lat`/`lng` cambian desde afuera, el mapa hace pan a esa coord.
- * - El estilo (dark/light) se toma del ThemeContext vía mapId.
+ * - El estilo (dark/light) se toma de themeSlice vía mapId.
  *
  * Props:
  *   lat, lng   number|null — coordenadas actuales (marker se oculta si null)
