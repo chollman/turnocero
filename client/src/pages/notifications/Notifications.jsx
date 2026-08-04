@@ -5,6 +5,8 @@ import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
 import { API } from "../../api/endpoints";
+import { acceptFriendRequest, rejectFriendRequest } from "../../queries/users";
+import { acceptJoinRequest, rejectJoinRequest } from "../../queries/tables";
 import {
   getDomain,
   isActionable,
@@ -156,11 +158,11 @@ export default function Notifications() {
   const handleAccept = async (n) => {
     try {
       if (n.type === "friend_request") {
-        await axios.post(API.friends.ACCEPT(n.fromUserId));
+        await acceptFriendRequest(n.fromUserId);
         notifyFriendAdded();
       } else if (n.type === "join_request") {
         const userId = n.actors?.[0]?.userId;
-        await axios.post(API.tables.REQUEST_ACCEPT(n.tableId, userId));
+        await acceptJoinRequest(n.tableId, userId);
       }
       resolveLater(n, "accept");
     } catch {
@@ -174,10 +176,10 @@ export default function Notifications() {
   const handleReject = async (n) => {
     try {
       if (n.type === "friend_request") {
-        await axios.post(API.friends.REJECT(n.fromUserId));
+        await rejectFriendRequest(n.fromUserId);
       } else if (n.type === "join_request") {
         const userId = n.actors?.[0]?.userId;
-        await axios.post(API.tables.REQUEST_REJECT(n.tableId, userId));
+        await rejectJoinRequest(n.tableId, userId);
       }
       resolveLater(n, "reject");
     } catch {

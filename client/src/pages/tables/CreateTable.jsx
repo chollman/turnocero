@@ -379,7 +379,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
         base.setHours(h || 0, m || 0, 0, 0);
         dateToSend = toLocalDatetimeInput(base);
       }
-      const { data } = await axios.post(API.tables.LIST, {
+      const { data } = await createTable({
         ...basePayload,
         date: dateToSend,
         boardGame: boardGameSelected.name,
