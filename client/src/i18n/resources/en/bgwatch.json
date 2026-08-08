@@ -250,7 +250,34 @@
     "byGameEmpty": "No games with logged plays in the collection.",
     "gamesCount_one": "{{count}} game",
     "gamesCount_other": "{{count}} games",
-    "gamesPageInfo": " · page {{page}} of {{total}}"
+    "gamesPageInfo": " · page {{page}} of {{total}}",
+    "monthlyRecapBtn": "Plays of the month"
+  },
+  "monthlyRecap": {
+    "title": "Plays of the month",
+    "modalAria": "Monthly plays mosaic",
+    "close": "Close",
+    "subtitle": "Pick a period and generate a mosaic with the covers of what you played.",
+    "rangeThisMonth": "This month",
+    "rangePrevMonth": "Last month",
+    "rangeCustom": "Custom",
+    "fromLabel": "From",
+    "toLabel": "To",
+    "rangeInvalid": "\"From\" can't be later than \"To\".",
+    "generate": "Generate mosaic",
+    "generating": "Generating…",
+    "regenerate": "Generate again",
+    "download": "Download image",
+    "previewAria": "Mosaic preview",
+    "loadError": "Couldn't generate the mosaic.",
+    "emptyTitle": "No plays in this period",
+    "emptyText": "You didn't log any plays between those dates. Try another range.",
+    "canvasEmpty": "No plays in this period",
+    "stats": {
+      "plays": "Plays",
+      "wins": "Wins",
+      "games": "Games"
+    }
   },
   "playCard": {
     "future": "In the future",

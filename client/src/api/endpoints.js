@@ -66,6 +66,14 @@ export const API = {
       `/api/bgg/juegos-jugados/${enc(bggUsername)}`,
     // Agregados para el sidebar del perfil (heatmap de actividad + win-rate)
     RESUMEN: (bggUsername) => `/api/bgg/resumen/${enc(bggUsername)}`,
+    // Agregados de un período (stats + juegos jugados con carátula) para el
+    // mosaico "Partidas del mes".
+    PARTIDAS_DEL_MES: (bggUsername) =>
+      `/api/bgg/partidas-del-mes/${enc(bggUsername)}`,
+    // Reenvía (same-origin) una imagen del CDN de BGG — su CDN no manda
+    // Access-Control-Allow-Origin, así que dibujarla directo en un <canvas>
+    // tainta el canvas. Usado por el mosaico "Partidas del mes".
+    IMAGE_PROXY: (url) => `/api/bgg/image-proxy?url=${encodeURIComponent(url)}`,
     MIS_JUEGOS: (bggUsername) => `/api/bgg/mis-juegos/${enc(bggUsername)}`,
     MIS_UBICACIONES: (bggUsername) =>
       `/api/bgg/mis-ubicaciones/${enc(bggUsername)}`,

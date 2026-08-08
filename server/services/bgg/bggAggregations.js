@@ -18,6 +18,19 @@ const BggPlay = require("../../models/BggPlay");
 const { rawKeyFor } = require("./bggPlayerOverlay");
 const { isAnonymousName, ANON_MONGO_REGEX } = require("./anonymousPlayer");
 
+// Filtro opcional de rango de fechas (YYYY-MM-DD, comparación lexicográfica —
+// mismo criterio que `BggPlay.date`). Usado por computeOverallStats y
+// computePlayedGames para acotar a un período (ej. "Partidas del mes").
+// Devuelve {} si no se pasa ninguno de los dos — no agrega la clave `date`
+// al $match, así los callers existentes (sin mindate/maxdate) no cambian.
+function dateRangeMatch({ mindate, maxdate } = {}) {
+  if (!mindate && !maxdate) return {};
+  const date = {};
+  if (mindate) date.$gte = mindate;
+  if (maxdate) date.$lte = maxdate;
+  return { date };
+}
+
 // Stats globales de un usuario para un juego específico: wins, rated
 // (cantidad de partidas que el user marcó como propias), avgDuration,
 // lastDate. Usado por la vista `/bg-watch/:user/juego/:gameId`.
@@ -128,12 +141,21 @@ async function computeGameStats(
 //
 // Devuelve { totalWins, totalRated, totalPlays, uniqueGames, avgDuration,
 // firstDate, lastDate }. winRate se deriva en el cliente (null si totalRated 0).
+//
+// `mindate`/`maxdate` (YYYY-MM-DD, opcionales): acotan a un período — usado
+// por el resumen "Partidas del mes" (GET /partidas-del-mes). Sin ellos, se
+// computa sobre el log completo (comportamiento original).
 async function computeOverallStats(
   lowerBggUsername,
-  { selfKeys = [`u:${lowerBggUsername}`] } = {},
+  { selfKeys = [`u:${lowerBggUsername}`], mindate, maxdate } = {},
 ) {
   const agg = await BggPlay.aggregate([
-    { $match: { bggUsername: lowerBggUsername } },
+    {
+      $match: {
+        bggUsername: lowerBggUsername,
+        ...dateRangeMatch({ mindate, maxdate }),
+      },
+    },
     {
       $project: {
         duration: 1,
@@ -259,9 +281,18 @@ async function computeActivityHeatmap(
 // ordenada desc. Powers la tab "Por juego" del PartidasPanel —
 // reemplaza la lista derivada de `BggCollection` que era buggy
 // (omitía plays unowned + fallaba con colección privada).
-async function computePlayedGames(lowerBggUsername) {
+// `mindate`/`maxdate` (YYYY-MM-DD, opcionales): acotan a un período — usado
+// por "Partidas del mes" para listar solo los juegos jugados en ese rango
+// (con su numPlays DEL PERÍODO, no histórico).
+async function computePlayedGames(lowerBggUsername, { mindate, maxdate } = {}) {
   const agg = await BggPlay.aggregate([
-    { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
+    {
+      $match: {
+        bggUsername: lowerBggUsername,
+        gameId: { $ne: null },
+        ...dateRangeMatch({ mindate, maxdate }),
+      },
+    },
     {
       $group: {
         _id: "$gameId",

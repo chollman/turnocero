@@ -250,7 +250,34 @@
     "byGameEmpty": "No hay juegos con partidas registradas en la colección.",
     "gamesCount_one": "{{count}} juego",
     "gamesCount_other": "{{count}} juegos",
-    "gamesPageInfo": " · página {{page}} de {{total}}"
+    "gamesPageInfo": " · página {{page}} de {{total}}",
+    "monthlyRecapBtn": "Partidas del mes"
+  },
+  "monthlyRecap": {
+    "title": "Partidas del mes",
+    "modalAria": "Mosaico de partidas del mes",
+    "close": "Cerrar",
+    "subtitle": "Elegí un período y generá un mosaico con las carátulas de lo que jugaste.",
+    "rangeThisMonth": "Este mes",
+    "rangePrevMonth": "Mes anterior",
+    "rangeCustom": "Personalizado",
+    "fromLabel": "Desde",
+    "toLabel": "Hasta",
+    "rangeInvalid": "\"Desde\" no puede ser posterior a \"Hasta\".",
+    "generate": "Generar mosaico",
+    "generating": "Generando…",
+    "regenerate": "Volver a generar",
+    "download": "Descargar imagen",
+    "previewAria": "Vista previa del mosaico",
+    "loadError": "No se pudo generar el mosaico.",
+    "emptyTitle": "Sin partidas en este período",
+    "emptyText": "No registraste partidas entre esas fechas. Probá con otro rango.",
+    "canvasEmpty": "Sin partidas en este período",
+    "stats": {
+      "plays": "Partidas",
+      "wins": "Ganadas",
+      "games": "Juegos"
+    }
   },
   "playCard": {
     "future": "En el futuro",

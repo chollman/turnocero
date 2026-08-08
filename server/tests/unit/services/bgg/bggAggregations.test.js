@@ -275,6 +275,52 @@ describe("computeOverallStats", () => {
     expect((await computeOverallStats("alice")).totalPlays).toBe(1);
     expect((await computeOverallStats("bob")).totalPlays).toBe(1);
   });
+
+  // mindate/maxdate: acotan el agregado a un período — usado por "Partidas
+  // del mes" (GET /partidas-del-mes). Sin ellos, se computa sobre el log
+  // completo (cubierto por los tests de arriba).
+  describe("mindate/maxdate", () => {
+    it("solo cuenta plays dentro del rango [mindate, maxdate] inclusive", async () => {
+      await makePlay({ date: "2026-01-31", quantity: 1 });
+      await makePlay({ date: "2026-02-01", quantity: 2 });
+      await makePlay({ date: "2026-02-15", quantity: 3 });
+      await makePlay({ date: "2026-02-28", quantity: 4 });
+      await makePlay({ date: "2026-03-01", quantity: 5 });
+      const stats = await computeOverallStats("alice", {
+        mindate: "2026-02-01",
+        maxdate: "2026-02-28",
+      });
+      expect(stats.totalPlays).toBe(9); // 2 + 3 + 4
+    });
+
+    it("wins/uniqueGames/firstDate/lastDate también se acotan al período", async () => {
+      await makePlay({
+        date: "2026-01-15",
+        gameId: "100",
+        players: [{ username: "alice", win: true }],
+      });
+      await makePlay({
+        date: "2026-02-10",
+        gameId: "200",
+        players: [{ username: "alice", win: true }],
+      });
+      const stats = await computeOverallStats("alice", {
+        mindate: "2026-02-01",
+        maxdate: "2026-02-28",
+      });
+      expect(stats.totalWins).toBe(1);
+      expect(stats.uniqueGames).toBe(1);
+      expect(stats.firstDate).toBe("2026-02-10");
+      expect(stats.lastDate).toBe("2026-02-10");
+    });
+
+    it("solo mindate (sin maxdate) es un rango abierto hacia adelante", async () => {
+      await makePlay({ date: "2026-01-01" });
+      await makePlay({ date: "2026-06-01" });
+      const stats = await computeOverallStats("alice", { mindate: "2026-02-01" });
+      expect(stats.totalPlays).toBe(1);
+    });
+  });
 });
 
 describe("computeActivityHeatmap", () => {
@@ -358,6 +404,31 @@ describe("computePlayedGames", () => {
     await makePlay({ bggUsername: "bob", gameId: "100" });
     expect(await computePlayedGames("alice")).toHaveLength(1);
     expect(await computePlayedGames("bob")).toHaveLength(1);
+  });
+
+  // mindate/maxdate: usado por "Partidas del mes" para listar solo los juegos
+  // jugados en el rango, con numPlays DEL PERÍODO (no histórico).
+  describe("mindate/maxdate", () => {
+    it("numPlays solo suma quantity de plays dentro del rango", async () => {
+      await makePlay({ gameId: "100", date: "2026-01-15", quantity: 2 });
+      await makePlay({ gameId: "100", date: "2026-02-10", quantity: 3 });
+      await makePlay({ gameId: "100", date: "2026-02-20", quantity: 1 });
+      const games = await computePlayedGames("alice", {
+        mindate: "2026-02-01",
+        maxdate: "2026-02-28",
+      });
+      expect(games).toEqual([{ id: "100", name: "Catan", thumbnail: null, numPlays: 4 }]);
+    });
+
+    it("excluye juegos sin plays en el período", async () => {
+      await makePlay({ gameId: "100", date: "2026-01-15" });
+      await makePlay({ gameId: "200", date: "2026-02-15" });
+      const games = await computePlayedGames("alice", {
+        mindate: "2026-02-01",
+        maxdate: "2026-02-28",
+      });
+      expect(games.map((g) => g.id)).toEqual(["200"]);
+    });
   });
 });
 

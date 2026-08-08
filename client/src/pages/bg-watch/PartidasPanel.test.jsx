@@ -353,6 +353,23 @@ describe("<PartidasPanel>", () => {
     expect(screen.queryByTestId("win-rate")).toBeNull();
   });
 
+  it("'Partidas del mes' button opens the monthly recap modal (list mode only)", async () => {
+    renderPanel();
+    await screen.findAllByTestId("heatmap");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /partidas del mes/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("hides the 'Partidas del mes' button in 'Por juego' mode", async () => {
+    renderPanel({ collection: [{ id: 13, name: "Catán", numPlays: 5 }] });
+    await screen.findAllByTestId("heatmap");
+    fireEvent.click(screen.getByRole("button", { name: "Por juego" }));
+    expect(
+      screen.queryByRole("button", { name: /partidas del mes/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("feeds win-rate from the /resumen aggregation, not the page sample", async () => {
     server.use(
       http.get("/api/bgg/resumen/:bggUsername", () =>

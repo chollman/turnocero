@@ -71,10 +71,13 @@ if (typeof HTMLCanvasElement !== "undefined") {
       scale: () => {},
       rotate: () => {},
       arc: () => {},
+      arcTo: () => {},
       rect: () => {},
       fillText: () => {},
       strokeText: () => {},
       measureText: () => ({ width: 0 }),
+      createLinearGradient: () => ({ addColorStop: () => {} }),
+      clip: () => {},
     };
   };
   HTMLCanvasElement.prototype.toBlob = function toBlob(cb) {

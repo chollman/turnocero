@@ -420,6 +420,48 @@ router.get(
   }),
 );
 
+// GET /api/bgg/image-proxy?url=<url-encoded BGG image URL>
+// Reenvía (same-origin, mismo CORS que el resto de /api) una carátula servida
+// por el CDN de BGG (cf.geekdo-images.com), que NO manda
+// Access-Control-Allow-Origin. Sin este proxy, dibujarla en un <canvas> con
+// crossOrigin="anonymous" falla y "tainta" el canvas — usado por el mosaico
+// "Partidas del mes" de BG Watch (monthlyRecapMosaic.js#loadImage). Allowlist
+// estricta de host: nunca reenviar una URL arbitraria (evita SSRF).
+const ALLOWED_IMAGE_HOST_RE = /(^|\.)geekdo-images\.com$/i;
+router.get(
+  "/image-proxy",
+  asyncHandler(async (req, res) => {
+    let parsed;
+    try {
+      parsed = new URL(String(req.query.url || ""));
+    } catch {
+      throw httpError(400, "URL de imagen inválida");
+    }
+    if (parsed.protocol !== "https:" || !ALLOWED_IMAGE_HOST_RE.test(parsed.hostname)) {
+      throw httpError(400, "Host de imagen no permitido");
+    }
+
+    let upstream;
+    try {
+      upstream = await fetch(parsed.toString(), {
+        headers: { "User-Agent": "Turnocero/1.0" },
+      });
+    } catch {
+      throw httpError(502, "No se pudo obtener la imagen");
+    }
+    if (!upstream.ok) {
+      throw httpError(upstream.status === 404 ? 404 : 502, "No se pudo obtener la imagen");
+    }
+
+    res.setHeader("Content-Type", upstream.headers.get("content-type") || "image/jpeg");
+    // Las carátulas de BGG son efectivamente inmutables (mismo pathing con
+    // hash de contenido) — cache agresivo en el browser/CDN.
+    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  }),
+);
+
 // GET /api/bgg/variantes/:bggUsername/:gameId — variantes/tableros que el
 // usuario ya cargó para ese juego (autocompletado del picker). Texto libre
 // persistido en BggGameVariant.
@@ -535,6 +577,47 @@ router.get(
       computeActivityHeatmap(lower, { sinceDate: daysAgoStr(91) }),
     ]);
     res.json({ overallStats, heatmap });
+  }),
+);
+
+// GET /api/bgg/partidas-del-mes/:bggUsername?mindate=YYYY-MM-DD&maxdate=YYYY-MM-DD
+// Agregados para el mosaico "Partidas del mes": stats del período (partidas,
+// ganadas, juegos distintos, etc.) + la lista de juegos jugados en ese rango,
+// cada uno con su numPlays DEL PERÍODO y la carátula en alta resolución
+// (`image`, no solo `thumbnail` — el mosaico dibuja tiles grandes, ver
+// memory feedback_bgg_image_over_thumbnail). Público (optionalAuth), mismo
+// criterio que /resumen. Ambas fechas son requeridas — el cliente siempre
+// manda un rango concreto (mes completo o rango custom).
+router.get(
+  "/partidas-del-mes/:bggUsername",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+    const { mindate, maxdate } = req.query;
+    if (!dateRe.test(mindate || "") || !dateRe.test(maxdate || "")) {
+      throw httpError(400, "Se requieren mindate y maxdate (YYYY-MM-DD)");
+    }
+    if (mindate > maxdate) {
+      throw httpError(400, "mindate no puede ser posterior a maxdate");
+    }
+
+    const selfKeys = await loadSelfKeys(lower);
+    const [stats, games] = await Promise.all([
+      computeOverallStats(lower, { selfKeys, mindate, maxdate }),
+      computePlayedGames(lower, { mindate, maxdate }),
+    ]);
+
+    let gamesWithImage = games;
+    if (games.length > 0) {
+      const gamesMap = await resolveGamesBatch(games.map((g) => g.id));
+      gamesWithImage = games.map((g) => ({
+        ...g,
+        image: gamesMap.get(Number(g.id))?.image || null,
+      }));
+    }
+
+    res.json({ range: { mindate, maxdate }, stats, games: gamesWithImage });
   }),
 );
 

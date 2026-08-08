@@ -22,6 +22,12 @@ export const bgWatchKeys = {
     bggUsername,
   ],
   resumen: (bggUsername) => [...bgWatchKeys.all, "resumen", bggUsername],
+  partidasDelMes: (bggUsername, range) => [
+    ...bgWatchKeys.all,
+    "partidasDelMes",
+    bggUsername,
+    range,
+  ],
   partidaDetalle: (bggUsername, playId) => [
     ...bgWatchKeys.all,
     "partidaDetalle",
@@ -296,6 +302,30 @@ export function useResumenQuery(bggUsername, { enabled = true } = {}) {
       return data;
     },
     enabled: enabled && !!bggUsername,
+  });
+}
+
+// Agregados de un período (stats + juegos jugados con carátula) para el
+// mosaico "Partidas del mes" (MonthlyRecapModal). `enabled` solo se activa al
+// clickear "Generar" — no queremos pegarle al server en cada cambio de chip
+// de rango, solo cuando el usuario confirma. Cada rango distinto cachea aparte
+// (key incluye mindate/maxdate), así volver a un rango ya generado no
+// re-fetchea.
+export function usePartidasDelMesQuery(
+  bggUsername,
+  { mindate, maxdate } = {},
+  { enabled = true } = {},
+) {
+  return useQuery({
+    queryKey: bgWatchKeys.partidasDelMes(bggUsername, { mindate, maxdate }),
+    queryFn: async ({ signal }) => {
+      const { data } = await axios.get(API.bgg.PARTIDAS_DEL_MES(bggUsername), {
+        params: { mindate, maxdate },
+        signal,
+      });
+      return data;
+    },
+    enabled: enabled && !!bggUsername && !!mindate && !!maxdate,
   });
 }
 

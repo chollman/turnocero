@@ -19,6 +19,7 @@ import Pagination from "./Pagination";
 import Heatmap from "./widgets/Heatmap";
 import TopCollectionWidget from "./widgets/TopCollectionWidget";
 import WinRateWidget from "./widgets/WinRateWidget";
+import MonthlyRecapModal from "./MonthlyRecapModal";
 import useBggUserMap from "./useBggUserMap";
 import { formatExactDateTime } from "../../utils/time";
 import styles from "./BgWatchProfile.module.css";
@@ -80,6 +81,26 @@ function ViewGridIcon() {
       <rect x="8.5" y="1" width="5.5" height="5.5" rx="1" />
       <rect x="1" y="8.5" width="5.5" height="5.5" rx="1" />
       <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1" />
+    </svg>
+  );
+}
+
+function MosaicIcon() {
+  return (
+    <svg
+      className={styles.refreshIcon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
     </svg>
   );
 }
@@ -162,6 +183,8 @@ export default function PartidasPanel({
 
   // ── By-game mode state ──
   const [gamesPage, setGamesPage] = useState(1);
+
+  const [showMonthlyRecap, setShowMonthlyRecap] = useState(false);
 
   const range = dateRangeFor(filter);
   const {
@@ -385,6 +408,18 @@ export default function PartidasPanel({
             </span>
           </button>
         </div>
+        {viewMode === "list" && (
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={() => setShowMonthlyRecap(true)}
+          >
+            <MosaicIcon />
+            <span className={styles.refreshLabel}>
+              {t("partidas.monthlyRecapBtn")}
+            </span>
+          </button>
+        )}
         {canRefresh && (
           <>
             {plays?.sync?.lastProbedAt && (
@@ -542,6 +577,12 @@ export default function PartidasPanel({
           )}
         </>
       )}
+
+      <MonthlyRecapModal
+        isOpen={showMonthlyRecap}
+        onClose={() => setShowMonthlyRecap(false)}
+        bggUsername={bggUsername}
+      />
     </div>
   );
 }
