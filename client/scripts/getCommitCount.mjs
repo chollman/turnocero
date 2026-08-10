@@ -1,5 +1,10 @@
 import { execSync } from "node:child_process";
 
+// Fallback when the git remote can't be read for the slug (e.g. Vercel's
+// internal fetch may not leave a conventional `origin` URL behind — this was
+// the actual cause of the badge showing the shallow-clone cap in production).
+const FALLBACK_REPO_SLUG = "chollman/turnocero";
+
 // Total commit count reachable from HEAD — a monotonically increasing build
 // number with no manual bookkeeping (it just IS the commit count). Vercel's
 // build clone is always shallow (fixed --depth=10, no supported override —
@@ -14,9 +19,14 @@ export async function getCommitCount() {
   if (sha && isShallowRepo()) {
     try {
       return await githubCommitCount(sha);
-    } catch {
+    } catch (err) {
       // GitHub unreachable/rate-limited — fall through to whatever the
       // shallow clone can see, so the badge degrades instead of breaking.
+      // Logged (not silent) so a wrong count is diagnosable from the Vercel
+      // build log instead of just showing up wrong with no trace.
+      console.warn(
+        `[getCommitCount] Falling back to the shallow local count: ${err.message}`,
+      );
     }
   }
   try {
@@ -71,15 +81,14 @@ function repoSlug() {
       .toString()
       .trim();
     const match = url.match(/github\.com[:/]([^/]+\/[^/.]+?)(\.git)?$/);
-    return match ? match[1] : null;
+    return match ? match[1] : FALLBACK_REPO_SLUG;
   } catch {
-    return null;
+    return FALLBACK_REPO_SLUG;
   }
 }
 
 async function githubCommitCount(sha) {
   const slug = repoSlug();
-  if (!slug) throw new Error("Could not resolve GitHub repo slug");
   const res = await fetch(
     `https://api.github.com/repos/${slug}/commits?sha=${sha}&per_page=1`,
     { headers: { "User-Agent": "turnocero-build" } },
