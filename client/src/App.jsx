@@ -22,6 +22,7 @@ import ChatWindowManager from "./components/chat/ChatWindowManager";
 import ChatLauncher from "./components/chat/ChatLauncher";
 import AdminViewToggle from "./components/admin/AdminViewToggle";
 import ViewAsUserBanner from "./components/admin/ViewAsUserBanner";
+import CommitBadge from "./components/admin/CommitBadge";
 import SectionGate from "./components/shared/SectionGate";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -801,6 +802,7 @@ function AppShell() {
       <ColaborarFab onVisibilityChange={setBancanosVisible} />
       <AdminViewToggle bancanosVisible={bancanosVisible} />
       <ViewAsUserBanner />
+      <CommitBadge />
       <PushPrompt />
     </>
   );

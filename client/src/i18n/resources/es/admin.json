@@ -360,5 +360,8 @@
   },
   "viewBanner": {
     "label": "Viendo como usuario · Click para volver"
+  },
+  "commitBadge": {
+    "title": "Commit #{{count}}"
   }
 }

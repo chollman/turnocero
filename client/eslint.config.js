@@ -11,7 +11,9 @@ export default [
   {
     files: ["src/**/*.{js,jsx}"],
     languageOptions: {
-      globals: { ...globals.browser },
+      // __COMMIT_COUNT__ is a build-time constant injected via Vite's `define`
+      // (see vite.config.js / vitest.config.js) — not a runtime global.
+      globals: { ...globals.browser, __COMMIT_COUNT__: "readonly" },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     plugins: { "react-hooks": reactHooks },

@@ -1,9 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { getCommitCount } from "./scripts/getCommitCount.mjs";
 
 export default defineConfig({
   base: "/",
+  // Baked in at build time — powers the admin-only commit badge (top-right).
+  define: {
+    __COMMIT_COUNT__: JSON.stringify(getCommitCount()),
+  },
   plugins: [
     react(),
     VitePWA({

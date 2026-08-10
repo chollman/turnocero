@@ -1,7 +1,13 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { getCommitCount } from "./scripts/getCommitCount.mjs";
 
 export default defineConfig({
+  // Mirrors the `define` in vite.config.js — vitest doesn't merge that file,
+  // so CommitBadge's `__COMMIT_COUNT__` reference needs it here too.
+  define: {
+    __COMMIT_COUNT__: JSON.stringify(getCommitCount()),
+  },
   plugins: [react()],
   test: {
     environment: "jsdom",
