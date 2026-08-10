@@ -65,7 +65,7 @@ export const MOSAIC_LAYOUT_DEFAULTS = {
   canvasWidth: 1080,
   padding: 40,
   gap: 14,
-  headerHeight: 260,
+  headerHeight: 150,
   footerHeight: 50,
   tileRadius: 14,
 };
@@ -266,17 +266,28 @@ export async function renderMonthlyRecapMosaic(
   ctx.font = "500 18px 'Archivo', sans-serif";
   ctx.fillText(`@${bggUsername || ""}`, padding, 128);
 
-  // Pills de stats
+  // Pills de stats — mismo nivel que el título, alineadas a la derecha (así
+  // no queda un renglón vacío debajo del título/subtítulo). Se precalcula el
+  // ancho de cada pill para poder anclar el bloque completo al borde derecho.
   const pills = buildStatPills(stats, t);
-  const pillY = 158;
-  const pillH = 68;
-  let pillX = padding;
-  for (const pill of pills) {
-    ctx.font = "700 26px 'Poppins', sans-serif";
+  const pillGap = 14;
+  const pillH = 58;
+  const pillPadX = 16;
+  const pillWidths = pills.map((pill) => {
+    ctx.font = "700 22px 'Poppins', sans-serif";
     const valueWidth = ctx.measureText(pill.value).width;
-    ctx.font = "600 12px 'JetBrains Mono', monospace";
+    ctx.font = "600 10px 'JetBrains Mono', monospace";
     const labelWidth = ctx.measureText(pill.label.toUpperCase()).width;
-    const pillW = Math.max(valueWidth, labelWidth) + 36;
+    return Math.max(valueWidth, labelWidth) + pillPadX * 2;
+  });
+  const pillsTotalWidth =
+    pillWidths.reduce((sum, w) => sum + w, 0) + pillGap * (pills.length - 1);
+  // Centrado verticalmente sobre la línea base del título (y=100).
+  const pillY = 58;
+  let pillX = layout.canvasWidth - padding - pillsTotalWidth;
+
+  pills.forEach((pill, i) => {
+    const pillW = pillWidths[i];
 
     ctx.fillStyle = colors.bgElevated;
     roundRectPath(ctx, pillX, pillY, pillW, pillH, 12);
@@ -286,15 +297,15 @@ export async function renderMonthlyRecapMosaic(
     ctx.stroke();
 
     ctx.fillStyle = colors.textSecondary;
-    ctx.font = "600 11px 'JetBrains Mono', monospace";
-    ctx.fillText(pill.label.toUpperCase(), pillX + 18, pillY + 24);
+    ctx.font = "600 10px 'JetBrains Mono', monospace";
+    ctx.fillText(pill.label.toUpperCase(), pillX + pillPadX, pillY + 21);
 
     ctx.fillStyle = colors.textPrimary;
-    ctx.font = "700 26px 'Poppins', sans-serif";
-    ctx.fillText(pill.value, pillX + 18, pillY + 52);
+    ctx.font = "700 22px 'Poppins', sans-serif";
+    ctx.fillText(pill.value, pillX + pillPadX, pillY + 44);
 
-    pillX += pillW + 14;
-  }
+    pillX += pillW + pillGap;
+  });
 
   if (list.length === 0) {
     ctx.fillStyle = colors.textSecondary;
