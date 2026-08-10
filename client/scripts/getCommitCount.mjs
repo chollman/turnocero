@@ -1,33 +1,40 @@
 import { execSync } from "node:child_process";
 
-// Total commit count on HEAD, used as a monotonically increasing build number
-// (no manual bookkeeping — it just IS the number of commits). Falls back to 0
-// if git isn't available (e.g. a checkout with no history at all), so a
-// missing history never fails the build.
-//
-// Vercel's default build clone is SHALLOW (--depth=10), which silently caps
-// this count at ~10 forever instead of the real total. Set VERCEL_DEEP_CLONE=1
-// as an env var on the Vercel project (client) to fetch full history during
-// builds — see https://vercel.com/docs/builds/configure-a-build. We warn in
-// the build log below if a shallow clone is detected, so the mismatch doesn't
-// go unnoticed.
-export function getCommitCount() {
-  try {
-    if (isShallowRepo()) {
-      console.warn(
-        "[getCommitCount] Shallow git clone detected — commit count will be truncated to the fetched history. Set VERCEL_DEEP_CLONE=1 on the Vercel project for an accurate count.",
-      );
+// Total commit count reachable from HEAD — a monotonically increasing build
+// number with no manual bookkeeping (it just IS the commit count). Vercel's
+// build clone is always shallow (fixed --depth=10, no supported override —
+// the undocumented VERCEL_DEEP_CLONE trick broke cloning entirely, see commit
+// 354b2a1), so a plain `git rev-list --count HEAD` would be wrong in
+// production. Instead, when the local clone is shallow, ask GitHub's API for
+// the true count via the `Link: rel="last"` pagination trick (per_page=1
+// means the last page number IS the total commit count) — GitHub always has
+// full history regardless of how deep the local clone is.
+export async function getCommitCount() {
+  const sha = currentSha();
+  if (sha && isShallowRepo()) {
+    try {
+      return await githubCommitCount(sha);
+    } catch {
+      // GitHub unreachable/rate-limited — fall through to whatever the
+      // shallow clone can see, so the badge degrades instead of breaking.
     }
-    return parseInt(
-      execSync("git rev-list --count HEAD", {
-        stdio: ["ignore", "pipe", "ignore"],
-      })
-        .toString()
-        .trim(),
-      10,
-    );
+  }
+  try {
+    return localCount();
   } catch {
     return 0;
+  }
+}
+
+function currentSha() {
+  try {
+    return execSync("git rev-parse HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return null;
   }
 }
 
@@ -43,4 +50,44 @@ function isShallowRepo() {
   } catch {
     return false;
   }
+}
+
+function localCount() {
+  return parseInt(
+    execSync("git rev-list --count HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim(),
+    10,
+  );
+}
+
+function repoSlug() {
+  try {
+    const url = execSync("git config --get remote.origin.url", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+    const match = url.match(/github\.com[:/]([^/]+\/[^/.]+?)(\.git)?$/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function githubCommitCount(sha) {
+  const slug = repoSlug();
+  if (!slug) throw new Error("Could not resolve GitHub repo slug");
+  const res = await fetch(
+    `https://api.github.com/repos/${slug}/commits?sha=${sha}&per_page=1`,
+    { headers: { "User-Agent": "turnocero-build" } },
+  );
+  if (!res.ok) throw new Error(`GitHub API responded ${res.status}`);
+  const link = res.headers.get("link") || "";
+  const match = link.match(/[?&]page=(\d+)>;\s*rel="last"/);
+  if (match) return parseInt(match[1], 10);
+  // No "last" link means everything fit on page 1 — exactly one commit total.
+  return 1;
 }

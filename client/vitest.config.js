@@ -2,11 +2,13 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { getCommitCount } from "./scripts/getCommitCount.mjs";
 
-export default defineConfig({
+export default defineConfig(async () => ({
   // Mirrors the `define` in vite.config.js — vitest doesn't merge that file,
-  // so CommitBadge's `__COMMIT_COUNT__` reference needs it here too.
+  // so CommitBadge's `__COMMIT_COUNT__` reference needs it here too. Local/dev
+  // clones are never shallow, so this resolves from git alone — no network
+  // call in the test run (see getCommitCount.mjs).
   define: {
-    __COMMIT_COUNT__: JSON.stringify(getCommitCount()),
+    __COMMIT_COUNT__: JSON.stringify(await getCommitCount()),
   },
   plugins: [react()],
   test: {
@@ -43,4 +45,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
