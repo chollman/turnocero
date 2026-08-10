@@ -173,10 +173,17 @@ function roundRectPath(ctx, x, y, w, h, r) {
 // se reenvuelven con nuestro proxy same-origin (image-proxy) para que el
 // canvas pueda leerlas sin taintearse. Si ya es same-origin (el propio
 // proxy, o un valor relativo en tests), se deja tal cual.
+//
+// El `src` de un <img>/Image() NO pasa por axios, así que su baseURL
+// (VITE_API_URL) no se aplica solo — hay que prefijarlo a mano, igual que
+// el resto del código que arma URLs absolutas hacia el server fuera de
+// axios (ver useNotificationSocket.js, TableChat.jsx, etc.). En dev con el
+// proxy de Vite (client y server mismo origin) esto es un no-op ("").
 export function proxiedImageSrc(url) {
   if (!url) return null;
   if (url.startsWith("/")) return url;
-  return API.bgg.IMAGE_PROXY(url);
+  const apiBase = import.meta.env.VITE_API_URL || "";
+  return `${apiBase}${API.bgg.IMAGE_PROXY(url)}`;
 }
 
 function loadImage(src) {

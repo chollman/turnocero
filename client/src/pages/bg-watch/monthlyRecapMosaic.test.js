@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   toIsoDate,
   monthRange,
@@ -155,10 +155,26 @@ describe("buildStatPills", () => {
 });
 
 describe("proxiedImageSrc", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("reenvuelve una URL absoluta del CDN de BGG con nuestro proxy same-origin", () => {
+    vi.stubEnv("VITE_API_URL", "");
     const src = proxiedImageSrc("https://cf.geekdo-images.com/pic123.jpg");
     const expected = encodeURIComponent("https://cf.geekdo-images.com/pic123.jpg");
     expect(src).toBe(`/api/bgg/image-proxy?url=${expected}`);
+  });
+
+  // El <img>/Image() no pasa por axios, así que su baseURL (VITE_API_URL)
+  // no se aplica sola — si no se prefija a mano, en cualquier deploy donde
+  // client y server NO comparten origin (prod típica) la imagen resuelve
+  // contra el origin equivocado y 404 siempre (bug real reportado).
+  it("prefija con VITE_API_URL cuando client y server no comparten origin", () => {
+    vi.stubEnv("VITE_API_URL", "https://api.turnocero.com");
+    const src = proxiedImageSrc("https://cf.geekdo-images.com/pic123.jpg");
+    const expected = encodeURIComponent("https://cf.geekdo-images.com/pic123.jpg");
+    expect(src).toBe(`https://api.turnocero.com/api/bgg/image-proxy?url=${expected}`);
   });
 
   it("deja intacta una URL relativa (ya same-origin)", () => {

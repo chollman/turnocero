@@ -411,11 +411,11 @@ export default function PartidasPanel({
         {viewMode === "list" && (
           <button
             type="button"
-            className={styles.refreshBtn}
+            className={styles.monthlyRecapBtn}
             onClick={() => setShowMonthlyRecap(true)}
           >
             <MosaicIcon />
-            <span className={styles.refreshLabel}>
+            <span className={styles.monthlyRecapLabel}>
               {t("partidas.monthlyRecapBtn")}
             </span>
           </button>

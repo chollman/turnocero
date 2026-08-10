@@ -894,6 +894,32 @@
   cursor: wait;
 }
 
+/* ─── Monthly recap button ("Partidas del mes") ───
+   Clase propia (NO reusar .refreshBtn): en mobile .refreshBtn tiene su
+   propio grid-area ("sync") dentro de .panelToolbar — compartirla hace que
+   este botón y "Actualizar" se superpongan en la misma celda. */
+.monthlyRecapBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.monthlyRecapBtn:hover {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
 /* "Actualizado hace X" junto al botón Actualizar */
 .lastSynced {
   font-size: 11px;
@@ -3026,14 +3052,14 @@
     gap: 10px;
   }
 
-  /* Toolbar = playsBar del handoff: fila 1 = título · toggle · sync; fila 2 =
-     dropdown de filtro (izquierda) · "Actualizado…" (derecha). */
+  /* Toolbar = playsBar del handoff: fila 1 = título · toggle · recap · sync;
+     fila 2 = dropdown de filtro (izquierda) · "Actualizado…" (derecha). */
   .panelToolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      "title  toggle sync"
-      "filter synced synced";
+      "title  toggle recap  sync"
+      "filter synced synced synced";
     align-items: center;
     gap: 8px;
   }
@@ -3107,6 +3133,21 @@
   }
 
   .refreshLabel {
+    display: none;
+  }
+
+  /* Recap: mismo tratamiento icon-only que sync, celda propia. */
+  .monthlyRecapBtn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 7px;
+    border-radius: 9px;
+    background: transparent;
+    justify-content: center;
+    grid-area: recap;
+  }
+
+  .monthlyRecapLabel {
     display: none;
   }
 
