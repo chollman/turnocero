@@ -1441,8 +1441,9 @@
   height: 1px;
   background: var(--purple);
 }
-/* ⓘ "es solo la vista previa" — solo cuando la preview va arriba del form
-   (mobile/tablet); en la columna lateral de desktop no hace falta. */
+/* ⓘ "es solo la vista previa" — solo en mobile/tablet, donde la preview se
+   apila junto al form (ver abajo) y podría parecer interactiva; en la
+   columna lateral de desktop no hace falta. */
 .previewInfo {
   display: none;
   line-height: 0;
@@ -1748,7 +1749,6 @@
   }
   .preview {
     position: static;
-    order: -1;
   }
   .previewInfo {
     display: inline-flex;

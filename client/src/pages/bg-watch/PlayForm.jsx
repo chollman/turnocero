@@ -1517,7 +1517,7 @@ export default function PlayForm({
         <aside className={styles.preview}>
           <div className={styles.previewLabel}>
             <Meeple /> {t("playForm.previewLabel")}
-            {/* En mobile la preview queda ARRIBA del form y puede parecer
+            {/* En mobile la preview queda al final del form y puede parecer
                 interactiva — el ⓘ aclara que es solo la vista previa. En
                 desktop (columna lateral) se oculta por CSS. */}
             <span className={styles.previewInfo}>
