@@ -35,6 +35,7 @@ import {
   SaveAnotherIcon,
   SortDescIcon,
   BoxTimeIcon,
+  MapPinIcon,
   PlusIcon,
 } from "./playFormIcons";
 import styles from "./PlayForm.module.css";
@@ -234,11 +235,20 @@ export default function PlayForm({
 
   const [adding, setAdding] = useState(false);
   const [suggestedDuration, setSuggestedDuration] = useState(null);
-  // Cierra el popover del picker de jugador / el de expansiones-variante al
-  // clickear fuera de su área (trigger + popover).
+  // Picker de ubicación (sección 3): mismo patrón trigger + popover que
+  // "Agregar jugador" en vez del combobox siempre visible que tenía antes.
+  const [locationPicking, setLocationPicking] = useState(false);
+  // Cierra el popover del picker de jugador / el de expansiones-variante / el
+  // de ubicación al clickear fuera de su área (trigger + popover).
   const addAreaRef = useRef(null);
+  const locationAreaRef = useRef(null);
   useClickOutside(addAreaRef, () => setAdding(false), adding);
   useClickOutside(gameExtrasRef, () => setGamePicker(null), !!gamePicker);
+  useClickOutside(
+    locationAreaRef,
+    () => setLocationPicking(false),
+    locationPicking,
+  );
 
   const toggleExpansion = (exp) =>
     setExpansions((arr) =>
@@ -1302,15 +1312,50 @@ export default function PlayForm({
               </div>
             </div>
 
+            {/* Mismo patrón trigger + popover que "Agregar jugador" (sección
+                2): chip con la ubicación elegida + botón que despliega el
+                picker, en vez del combobox siempre visible que tenía antes. */}
             <div className={styles.field}>
               <label className={styles.fieldLabel}>
                 {t("playForm.locationLabel")}
               </label>
-              <LocationPicker
-                bggUsername={bggUsername}
-                value={details.location}
-                onPick={(loc) => updateDetail("location", loc)}
-              />
+              {details.location && (
+                <div className={styles.gameExtrasChips}>
+                  <span className={styles.extraChip}>
+                    📍 {details.location}
+                    <button
+                      type="button"
+                      onClick={() => updateDetail("location", "")}
+                      aria-label={t("playForm.removeLocation")}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </div>
+              )}
+              <div className={styles.addPlayerArea} ref={locationAreaRef}>
+                <button
+                  type="button"
+                  className={styles.addGuestBtn}
+                  onClick={() => setLocationPicking((v) => !v)}
+                  aria-expanded={locationPicking}
+                >
+                  <MapPinIcon />{" "}
+                  {details.location
+                    ? t("playForm.changeLocation")
+                    : t("playForm.addLocation")}
+                </button>
+                {locationPicking && (
+                  <div className={styles.playerPickerPop}>
+                    <LocationPicker
+                      bggUsername={bggUsername}
+                      value={details.location}
+                      onPick={(loc) => updateDetail("location", loc)}
+                      onClose={() => setLocationPicking(false)}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className={styles.checkboxRow}>
