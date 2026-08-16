@@ -3,9 +3,9 @@ import { render } from "@testing-library/react";
 import * as icons from "./playFormIcons";
 
 describe("playFormIcons", () => {
-  it("exporta los 9 íconos y todos renderizan un <svg> decorativo", () => {
+  it("exporta los 10 íconos y todos renderizan un <svg> decorativo", () => {
     const names = Object.keys(icons);
-    expect(names).toHaveLength(9);
+    expect(names).toHaveLength(10);
     for (const name of names) {
       const Icon = icons[name];
       const { container, unmount } = render(<Icon />);
