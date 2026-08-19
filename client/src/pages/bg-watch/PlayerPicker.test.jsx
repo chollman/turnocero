@@ -269,6 +269,41 @@ describe("<PlayerPicker>", () => {
     expect(input).toHaveFocus();
   });
 
+  it("en touch devices (pointer: coarse) no reenfoca el input al elegir un jugador", async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = (query) => ({
+      matches: query === "(pointer: coarse)",
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    });
+    try {
+      render(
+        <QueryClientProvider client={makeQueryClient()}>
+          <PlayerPicker
+          bggUsername="me"
+          existing={[]}
+          onPick={vi.fn()}
+          onCancel={vi.fn()}
+          />
+        </QueryClientProvider>,
+      );
+      await screen.findByText("Bob");
+      const input = screen.getByPlaceholderText(/buscá o escribí un jugador/i);
+      fireEvent.change(input, { target: { value: "Bob" } });
+      fireEvent.click((await screen.findByText("Bob")).closest("button"));
+      // El input se limpia igual, pero NO se reenfoca (evita abrir el teclado).
+      expect(input).toHaveValue("");
+      expect(input).not.toHaveFocus();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
   it("ofrece 'Usar «…»' para un nombre nuevo no listado", async () => {
     const onPick = vi.fn();
     render(
