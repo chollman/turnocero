@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMisUbicacionesQuery } from "../../queries/bgWatch";
 import useSearchTerm from "../../hooks/useSearchTerm";
@@ -49,6 +49,18 @@ export default function LocationPicker({
   // Debounce + umbral mínimo de 3 caracteres (como el resto de pickers).
   const searchTerm = useSearchTerm(q);
   const listRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Foco automático al abrir, salvo en touch devices — ahí reenfocar dispara
+  // el teclado virtual apenas se abre el picker (igual que PlayerPicker).
+  useEffect(() => {
+    const isTouchDevice =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches;
+    if (!isTouchDevice) {
+      inputRef.current?.focus();
+    }
+  }, []);
 
   const {
     data,
@@ -88,6 +100,7 @@ export default function LocationPicker({
       <div className={styles.modalSection}>
         <div className={styles.playerPickerHead}>
           <input
+            ref={inputRef}
             type="text"
             className={styles.modalInput}
             value={value || ""}
@@ -95,7 +108,6 @@ export default function LocationPicker({
             placeholder={t("locationPicker.freePlaceholder")}
             maxLength={100}
             aria-label={t("locationPicker.freeAria")}
-            autoFocus
           />
           <button
             type="button"
@@ -119,6 +131,7 @@ export default function LocationPicker({
     <div className={styles.modalSection}>
       <div className={styles.playerPickerHead}>
         <input
+          ref={inputRef}
           type="text"
           className={styles.modalInput}
           placeholder={t("locationPicker.placeholder")}
@@ -132,7 +145,6 @@ export default function LocationPicker({
           }}
           maxLength={100}
           aria-label={t("locationPicker.comboAria")}
-          autoFocus
         />
         <button
           type="button"
