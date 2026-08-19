@@ -206,6 +206,31 @@ describe("<LocationPicker>", () => {
     expect(onPick).toHaveBeenCalledWith("Casa de Juan");
   });
 
+  it("hace foco automático en el input al montar en desktop", async () => {
+    renderLP();
+    await screen.findByText("Casa");
+    expect(screen.getByPlaceholderText(PLACEHOLDER)).toHaveFocus();
+  });
+
+  it("NO hace foco automático en el input al montar en touch devices (no dispara el teclado virtual)", async () => {
+    const matchMediaSpy = vi
+      .spyOn(window, "matchMedia")
+      .mockImplementation((query) => ({
+        matches: query === "(pointer: coarse)",
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }));
+    renderLP();
+    await screen.findByText("Casa");
+    expect(screen.getByPlaceholderText(PLACEHOLDER)).not.toHaveFocus();
+    matchMediaSpy.mockRestore();
+  });
+
   it("estado vacío cuando no hay ubicaciones", async () => {
     server.use(
       http.get("/api/bgg/mis-ubicaciones/:user", () =>
