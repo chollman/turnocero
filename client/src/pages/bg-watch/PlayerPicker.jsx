@@ -99,12 +99,18 @@ export default function PlayerPicker({
   });
 
   // Al elegir un jugador el picker NO se cierra (se pueden sumar varios). Para
-  // poder buscar el siguiente al toque, limpiamos el input y lo reenfocamos.
+  // poder buscar el siguiente al toque, limpiamos el input y lo reenfocamos —
+  // pero no en touch devices, donde reenfocar reabre el teclado virtual.
   const handlePick = useCallback(
     (player) => {
       onPick(player);
       setQ("");
-      inputRef.current?.focus();
+      const isTouchDevice =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(pointer: coarse)").matches;
+      if (!isTouchDevice) {
+        inputRef.current?.focus();
+      }
     },
     [onPick],
   );
