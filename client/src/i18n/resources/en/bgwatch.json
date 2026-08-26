@@ -4,6 +4,33 @@
     "loading": "Loading…",
     "bgWatchBrand": "BG WATCH"
   },
+  "heatmap": {
+    "label": "Calendar · last {{weeks}} weeks",
+    "ariaLabel": "Activity over the last {{weeks}} weeks",
+    "cellTitle_one": "{{date}}: {{count}} play",
+    "cellTitle_other": "{{date}}: {{count}} plays",
+    "today": "Today",
+    "less": "Less",
+    "more": "More",
+    "weekdays": {
+      "sun": "S",
+      "mon": "M",
+      "tue": "T",
+      "wed": "W",
+      "thu": "T",
+      "fri": "F",
+      "sat": "S"
+    },
+    "weekdaysFull": {
+      "sun": "Sunday",
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday"
+    }
+  },
   "profile": {
     "eyebrowOwn": "your profile",
     "eyebrowPublic": "public profile",

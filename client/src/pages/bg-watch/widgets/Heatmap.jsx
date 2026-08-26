@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "../BgWatchProfile.module.css";
 
 // Buckets a daily play-count into one of 5 visual levels (0 = sin actividad).
@@ -19,26 +20,49 @@ function toIso(date) {
   return `${y}-${m}-${d}`;
 }
 
+const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
 // Calendario de actividad estilo "contribuciones": una grilla de `weeks`
-// columnas × 7 días que termina hoy. `heatmap` = [{ date 'YYYY-MM-DD', count }]
-// (la agregación del servidor, ventana ~13 semanas). Días sin partidas quedan
-// en nivel 0. Cada celda lleva `data-level` para test/estilo.
+// columnas × 7 filas (domingo arriba, sábado abajo — siempre en ese orden,
+// sin importar en qué día de la semana caiga "hoy"). `heatmap` = [{ date
+// 'YYYY-MM-DD', count }] (la agregación del servidor, ventana ~13 semanas).
+// La ventana se extiende hasta el sábado de la semana en curso para que las
+// columnas queden alineadas a semanas completas; los días posteriores a hoy
+// se muestran vacíos (sin datos, no "sin actividad"). Cada celda lleva
+// `data-level` para test/estilo.
 export default function Heatmap({ heatmap, weeks = 13 }) {
+  const { t } = useTranslation("bgwatch");
+
   const cells = useMemo(() => {
     const byDate = new Map((heatmap || []).map((d) => [d.date, d.count]));
-    const total = weeks * 7;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // start = (total - 1) días atrás, así la última celda es hoy.
-    const start = new Date(today);
+    const todayIso = toIso(today);
+    const todayDow = today.getDay(); // 0 = domingo … 6 = sábado
+    const alignedEnd = new Date(today);
+    alignedEnd.setDate(alignedEnd.getDate() + (6 - todayDow));
+    const total = weeks * 7;
+    const start = new Date(alignedEnd);
     start.setDate(start.getDate() - (total - 1));
+
     const out = [];
-    for (let i = 0; i < total; i += 1) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      const iso = toIso(d);
-      const count = byDate.get(iso) || 0;
-      out.push({ iso, count, level: levelFor(count) });
+    for (let col = 0; col < weeks; col += 1) {
+      for (let row = 0; row < 7; row += 1) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + col * 7 + row);
+        const iso = toIso(d);
+        const isFuture = d > today;
+        const count = isFuture ? 0 : byDate.get(iso) || 0;
+        out.push({
+          iso,
+          count,
+          level: isFuture ? 0 : levelFor(count),
+          row,
+          col,
+          isFuture,
+          isToday: iso === todayIso,
+        });
+      }
     }
     return out;
   }, [heatmap, weeks]);
@@ -46,25 +70,56 @@ export default function Heatmap({ heatmap, weeks = 13 }) {
   return (
     <div className={styles.sideWidget}>
       <div className={styles.sideWidgetLabel}>
-        ◆ Calendario · últimas {weeks} semanas
+        ◆ {t("heatmap.label", { weeks })}
       </div>
-      <div
-        className={styles.heatmap}
-        style={{ gridTemplateColumns: `repeat(${weeks}, 1fr)` }}
-        role="img"
-        aria-label={`Actividad de las últimas ${weeks} semanas`}
-      >
-        {cells.map((c) => (
-          <div
-            key={c.iso}
-            className={`${styles.heatmapCell} ${c.level ? styles[`l${c.level}`] : ""}`}
-            data-level={c.level}
-            title={`${c.iso}: ${c.count} ${c.count === 1 ? "partida" : "partidas"}`}
-          />
-        ))}
+      <div className={styles.heatmapRow}>
+        <div className={styles.weekdayLabels} aria-hidden="true">
+          {WEEKDAY_KEYS.map((key) => (
+            <span
+              key={key}
+              className={styles.weekdayLabel}
+              title={t(`heatmap.weekdaysFull.${key}`)}
+            >
+              {t(`heatmap.weekdays.${key}`)}
+            </span>
+          ))}
+        </div>
+        <div
+          className={styles.heatmap}
+          style={{ gridTemplateColumns: `repeat(${weeks}, 1fr)` }}
+          role="img"
+          aria-label={t("heatmap.ariaLabel", { weeks })}
+        >
+          {cells.map((c) => (
+            <div
+              key={c.iso}
+              className={[
+                styles.heatmapCell,
+                c.level ? styles[`l${c.level}`] : "",
+                c.isFuture ? styles.futureCell : "",
+                c.isToday ? styles.today : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              style={{ gridColumn: c.col + 1, gridRow: c.row + 1 }}
+              data-level={c.level}
+              data-today={c.isToday || undefined}
+              title={
+                c.isFuture
+                  ? undefined
+                  : [
+                      t("heatmap.cellTitle", { date: c.iso, count: c.count }),
+                      c.isToday ? t("heatmap.today") : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+              }
+            />
+          ))}
+        </div>
       </div>
       <div className={styles.heatmapLegend}>
-        <span>Menos</span>
+        <span>{t("heatmap.less")}</span>
         <div className={styles.heatmapScale}>
           <div className={styles.heatmapCell} data-level={0} />
           <div className={`${styles.heatmapCell} ${styles.l1}`} data-level={1} />
@@ -72,7 +127,7 @@ export default function Heatmap({ heatmap, weeks = 13 }) {
           <div className={`${styles.heatmapCell} ${styles.l3}`} data-level={3} />
           <div className={`${styles.heatmapCell} ${styles.l4}`} data-level={4} />
         </div>
-        <span>Más</span>
+        <span>{t("heatmap.more")}</span>
       </div>
     </div>
   );
