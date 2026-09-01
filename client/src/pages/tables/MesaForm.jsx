@@ -138,23 +138,6 @@ const SearchIcon = ({ size = 20 }) => (
   </svg>
 );
 
-const EditIcon = ({ size = 14 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M12 20h9" />
-    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-  </svg>
-);
-
 const TrashIcon = ({ size = 12 }) => (
   <svg
     width={size}
@@ -704,6 +687,24 @@ export default function MesaForm({
                   )}
                   {showDropdown && (suggestions.length > 0 || trimmedGameInput) && (
                     <ul className={styles.suggestions}>
+                      {trimmedGameInput && (
+                        <li>
+                          <button
+                            type="button"
+                            className={styles.suggestionCreateBtn}
+                            onMouseDown={handleUseTypedGame}
+                          >
+                            <span className={styles.suggestionThumbFallback}>
+                              ＋
+                            </span>
+                            <span className={styles.suggestionName}>
+                              {t("form.useTypedGame", {
+                                game: trimmedGameInput,
+                              })}
+                            </span>
+                          </button>
+                        </li>
+                      )}
                       {suggestions.map((g) => (
                         <li key={g.id}>
                           <button
@@ -734,24 +735,6 @@ export default function MesaForm({
                           </button>
                         </li>
                       ))}
-                      {trimmedGameInput && (
-                        <li>
-                          <button
-                            type="button"
-                            className={`${styles.suggestionItem} ${styles.suggestionItemManual}`}
-                            onMouseDown={handleUseTypedGame}
-                          >
-                            <span className={styles.suggestionThumbFallback}>
-                              <EditIcon size={14} />
-                            </span>
-                            <span className={styles.suggestionName}>
-                              {t("form.useTypedGame", {
-                                game: trimmedGameInput,
-                              })}
-                            </span>
-                          </button>
-                        </li>
-                      )}
                     </ul>
                   )}
                 </>
