@@ -550,7 +550,7 @@ export default function MesaForm({
             <Trans
               i18nKey={editMode ? "form.heroTitleEdit" : "form.heroTitleCreate"}
               t={t}
-              components={{ 1: <em /> }}
+              components={{ em: <em /> }}
             />
           </h1>
           <p className={styles.heroSub}>
