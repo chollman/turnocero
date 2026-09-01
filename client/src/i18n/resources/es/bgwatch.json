@@ -4,6 +4,33 @@
     "loading": "Cargando…",
     "bgWatchBrand": "BG WATCH"
   },
+  "heatmap": {
+    "label": "Calendario · últimas {{weeks}} semanas",
+    "ariaLabel": "Actividad de las últimas {{weeks}} semanas",
+    "cellTitle_one": "{{date}}: {{count}} partida",
+    "cellTitle_other": "{{date}}: {{count}} partidas",
+    "today": "Hoy",
+    "less": "Menos",
+    "more": "Más",
+    "weekdays": {
+      "sun": "D",
+      "mon": "L",
+      "tue": "M",
+      "wed": "M",
+      "thu": "J",
+      "fri": "V",
+      "sat": "S"
+    },
+    "weekdaysFull": {
+      "sun": "Domingo",
+      "mon": "Lunes",
+      "tue": "Martes",
+      "wed": "Miércoles",
+      "thu": "Jueves",
+      "fri": "Viernes",
+      "sat": "Sábado"
+    }
+  },
   "profile": {
     "eyebrowOwn": "tu perfil",
     "eyebrowPublic": "perfil público",
@@ -613,6 +640,9 @@
     "useBoxTime": "Usar tiempo de caja: {{n}} min",
     "durationPreset": "{{n}}min",
     "locationLabel": "Dónde se jugó",
+    "addLocation": "Agregar lugar",
+    "changeLocation": "Cambiar lugar",
+    "removeLocation": "Quitar lugar",
     "incomplete": "Incompleta (no se terminó)",
     "noStats": "No contar para estadísticas",
     "section4Title": "Notas",
@@ -672,9 +702,9 @@
     "metaLast": "última: {{date}}",
     "freePlaceholder": "Casa, club, etc.",
     "freeAria": "Ubicación",
-    "selected": "Seleccionada:",
     "placeholder": "Elegí o escribí una ubicación…",
     "comboAria": "Buscar o agregar ubicación",
+    "close": "Cerrar",
     "emptyTitle": "Sin ubicaciones aún",
     "emptyText": "Escribí una arriba para agregarla.",
     "useTerm": "Usar «{{term}}»",

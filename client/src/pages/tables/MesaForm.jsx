@@ -224,6 +224,12 @@ export default function MesaForm({
     initialValues.boardGame || "",
   );
   const [bggData, setBggData] = useState(initialValues.bggData || null);
+  // El user pasó por el buscador BGG pero eligió NO seleccionar un juego de
+  // la lista — clickeó "Usar <texto>" en su lugar. Es puramente informativo
+  // (styling + cierre del dropdown): el paso "Juego" ya es válido con sólo
+  // tener texto (ver stepDone.juego más abajo), pero esto le da al user una
+  // confirmación explícita de que su elección quedó tomada.
+  const [manualGameConfirmed, setManualGameConfirmed] = useState(false);
   // Sin default: el user tiene que elegir explícitamente la fecha/hora. El
   // paso "Cuándo" arranca incompleto (stepDone.cuando = false) y el activeStep
   // se desplaza si Juego ya está hecho. En edit mode initialValues.date llega
@@ -308,15 +314,16 @@ export default function MesaForm({
     debouncedSearch.trim().length >= 3 &&
     suggestions.length === 0;
   const isSearchBusy = searching || selectingGame;
+  const trimmedGameInput = boardGameInput.trim();
 
   // Reabre el dropdown cuando llega una nueva tanda de resultados (nueva
   // búsqueda) — no en cada render, para no pisar un cierre manual del user
-  // (click afuera / focus perdido) mientras los resultados no cambiaron.
+  // (click afuera / focus perdido) mientras los resultados no cambiaron. El
+  // dropdown también se abre con texto tipeado aunque BGG no tenga (todavía)
+  // resultados, para poder ofrecer la opción "Usar <texto>".
   useEffect(() => {
     if (!bggSearchEnabled || searching) return;
-    setShowDropdown(
-      debouncedSearch.trim().length >= 3 && suggestions.length > 0,
-    );
+    setShowDropdown(suggestions.length > 0 || debouncedSearch.trim().length > 0);
   }, [bggSearchEnabled, searching, suggestions, debouncedSearch]);
 
   // Click outside cierra el dropdown.
@@ -333,6 +340,7 @@ export default function MesaForm({
   const handleGameInputChange = (e) => {
     setBoardGameInput(e.target.value);
     if (bggData) setBggData(null); // tipear post-pick limpia la selección
+    if (manualGameConfirmed) setManualGameConfirmed(false);
   };
 
   const handleSelectGame = async (game) => {
@@ -354,6 +362,14 @@ export default function MesaForm({
     } finally {
       setSelectingGame(false);
     }
+  };
+
+  // El user no quiere (o no encontró) un juego de BGG — confirma el texto
+  // tipeado tal cual. Válido para el paso "Juego": la única condición
+  // inválida es dejar el campo vacío (ver stepDone.juego).
+  const handleUseTypedGame = () => {
+    setShowDropdown(false);
+    setManualGameConfirmed(true);
   };
 
   // ── Ubicación ─────────────────────────────────────────────────────
@@ -403,9 +419,12 @@ export default function MesaForm({
 
   // ── Step completion ───────────────────────────────────────────────
   // En edit mode el juego ya viene del server (read-only) — siempre done.
-  // En create el "done" requiere haber seleccionado de la lista de BGG.
+  // En create el "done" sólo requiere texto no vacío: elegir un juego de
+  // BGG o confirmar "Usar <texto>" son las dos formas de completarlo, pero
+  // ninguna es obligatoria — la única condición inválida es dejar el campo
+  // vacío.
   const stepDone = {
-    juego: editMode ? true : !!bggData && !!boardGameInput.trim(),
+    juego: editMode ? true : !!trimmedGameInput,
     cuando: !!date,
     donde:
       !!locationField.texto.trim() ||
@@ -550,7 +569,7 @@ export default function MesaForm({
             <Trans
               i18nKey={editMode ? "form.heroTitleEdit" : "form.heroTitleCreate"}
               t={t}
-              components={{ 1: <em /> }}
+              components={{ em: <em /> }}
             />
           </h1>
           <p className={styles.heroSub}>
@@ -632,11 +651,11 @@ export default function MesaForm({
                   <input
                     id="mesa-game"
                     type="text"
-                    className={`${styles.input} ${bggData ? styles.inputSelected : ""}`}
+                    className={`${styles.input} ${bggData || manualGameConfirmed ? styles.inputSelected : ""}`}
                     value={boardGameInput}
                     onChange={handleGameInputChange}
                     onFocus={() =>
-                      suggestions.length > 0 &&
+                      (suggestions.length > 0 || trimmedGameInput) &&
                       !bggData &&
                       setShowDropdown(true)
                     }
@@ -648,16 +667,44 @@ export default function MesaForm({
                       {t("form.searching")}
                     </span>
                   )}
-                  {noResults && !isSearchBusy && (
+                  {noResults && !isSearchBusy && !manualGameConfirmed && (
                     <span className={styles.fieldHelp}>
                       {t("form.noResults")}
                     </span>
                   )}
-                  {!isSearchBusy && !noResults && !bggData && (
-                    <span className={styles.fieldHelp}>{t("form.gameHelp")}</span>
+                  {!isSearchBusy &&
+                    !noResults &&
+                    !bggData &&
+                    !manualGameConfirmed && (
+                      <span className={styles.fieldHelp}>
+                        {t("form.gameHelp")}
+                      </span>
+                    )}
+                  {manualGameConfirmed && !bggData && (
+                    <span className={styles.fieldHelp}>
+                      {t("form.useTypedGameConfirmed")}
+                    </span>
                   )}
-                  {showDropdown && suggestions.length > 0 && (
+                  {showDropdown && (suggestions.length > 0 || trimmedGameInput) && (
                     <ul className={styles.suggestions}>
+                      {trimmedGameInput && (
+                        <li>
+                          <button
+                            type="button"
+                            className={styles.suggestionCreateBtn}
+                            onMouseDown={handleUseTypedGame}
+                          >
+                            <span className={styles.suggestionThumbFallback}>
+                              ＋
+                            </span>
+                            <span className={styles.suggestionName}>
+                              {t("form.useTypedGame", {
+                                game: trimmedGameInput,
+                              })}
+                            </span>
+                          </button>
+                        </li>
+                      )}
                       {suggestions.map((g) => (
                         <li key={g.id}>
                           <button
