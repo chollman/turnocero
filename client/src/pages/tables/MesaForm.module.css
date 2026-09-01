@@ -446,9 +446,31 @@
 .suggestionItem:hover {
   background: var(--bg-card);
 }
-.suggestionItemManual {
-  color: var(--text-secondary);
-  font-style: italic;
+
+/* Item "Usar «texto»" para un juego no encontrado/elegido en BGG — mismo
+   estilo (chip ámbar punteado) que el botón "Usar «X»" de
+   LocationPicker/VariantPicker en BG Watch, para mantener consistencia
+   entre selectores de texto libre con autocompletado. Va primero en la
+   lista, antes de las sugerencias de BGG. */
+.suggestionCreateBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--amber-10);
+  border: 1px dashed var(--amber);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--amber);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+.suggestionCreateBtn:hover {
+  background: var(--amber-15);
 }
 .suggestionThumb {
   width: 28px;
