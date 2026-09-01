@@ -446,6 +446,10 @@
 .suggestionItem:hover {
   background: var(--bg-card);
 }
+.suggestionItemManual {
+  color: var(--text-secondary);
+  font-style: italic;
+}
 .suggestionThumb {
   width: 28px;
   height: 28px;

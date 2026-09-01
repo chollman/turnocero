@@ -139,6 +139,8 @@
     "searching": "Searching…",
     "noResults": "No results on BGG",
     "gameHelp": "The mosaic and the card image are generated from your BGG choice.",
+    "useTypedGame": "Use “{{game}}” as is",
+    "useTypedGameConfirmed": "We'll use the name you typed, without BGG data.",
     "dateLabel": "Date and time ",
     "dateHelp": "Recommended: give 24h+ notice to fill the table.",
     "placeLabel": "Place ",

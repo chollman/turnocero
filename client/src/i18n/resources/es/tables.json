@@ -139,6 +139,8 @@
     "searching": "Buscando…",
     "noResults": "Sin resultados en BGG",
     "gameHelp": "El mosaico y la imagen de la carta se generan a partir de tu elección de BGG.",
+    "useTypedGame": "Usar «{{game}}» tal cual",
+    "useTypedGameConfirmed": "Vamos a usar el nombre que escribiste, sin datos de BGG.",
     "dateLabel": "Fecha y hora ",
     "dateHelp": "Recomendado: avisar con 24h+ de anticipación para llenar la mesa.",
     "placeLabel": "Lugar ",
