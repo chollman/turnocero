@@ -195,6 +195,50 @@ describe("<CreateTable> (standalone — wizard)", () => {
     expect(cta).not.toBeDisabled();
   });
 
+  it("no requiere elegir un juego de BGG — cualquier texto no vacío completa el paso", async () => {
+    renderPage();
+    fireEvent.change(screen.getByPlaceholderText(/buscá un juego/i), {
+      target: { value: "x" },
+    });
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    // Todavía faltan los otros pasos, pero "Juego" ya no bloquea.
+    expect(cta).toBeDisabled();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+    expect(cta).not.toBeDisabled();
+  });
+
+  it('ofrece "Usar <texto>" cuando el user no pickea de BGG, y lo manda tal cual en el submit', async () => {
+    let postedBody = null;
+    server.use(
+      http.get("/api/bgg/search", () => HttpResponse.json([])),
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    fireEvent.change(screen.getByPlaceholderText(/buscá un juego/i), {
+      target: { value: "Mi juego casero" },
+    });
+    const useTyped = await screen.findByText(
+      /usar.*mi juego casero.*tal cual/i,
+      undefined,
+      { timeout: 3000 },
+    );
+    fireEvent.mouseDown(useTyped);
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).not.toBeDisabled();
+    fireEvent.click(cta);
+    await waitFor(() => expect(postedBody).toBeTruthy());
+    expect(postedBody.boardGame).toBe("Mi juego casero");
+    expect(postedBody.bggId).toBeNull();
+  });
+
   it("posts maxPlayers as total - 1 (UI cuenta al host, server cuenta spots libres)", async () => {
     let postedBody = null;
     server.use(
