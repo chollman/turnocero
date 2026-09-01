@@ -59,16 +59,24 @@ const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
 
+// Sesión de larga duración (180 días) para no forzar re-login frecuente en
+// mobile/PWA. Antes era 24h (ver docs/security-review.md ALTO-3); se relajó
+// a pedido explícito — la app no maneja datos financieros y no hay revocación
+// por token-version, así que el único costo real es la ventana de exposición
+// de un token robado. Logout explícito, ban de cuenta, o token inválido/tampered
+// siguen forzando sesión nueva.
+const SESSION_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 24 * 60 * 60 * 1000,
+  maxAge: SESSION_MAX_AGE_MS,
 };
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "24h",
+    expiresIn: SESSION_MAX_AGE_MS / 1000,
   });
 };
 
@@ -593,6 +601,24 @@ router.post("/logout", (req, res) => {
   res.clearCookie("token", clearOpts);
   res.json({ message: "Logged out" });
 });
+
+// POST /api/auth/logout-all — protected.
+// Stamps passwordChangedAt without touching the password itself, which kills
+// every JWT (and Socket.IO connection) issued before this instant across all
+// devices — including this one, since its token predates the call too — see
+// utils/tokenFreshness.js. Used by the "cerrar sesión en todos los
+// dispositivos" action in /perfil (lost/stolen device, shared computer).
+router.post(
+  "/logout-all",
+  protect,
+  asyncHandler(async (req, res) => {
+    req.user.passwordChangedAt = new Date();
+    await req.user.save({ validateModifiedOnly: true });
+    const { maxAge: _ignore, ...clearOpts } = COOKIE_OPTIONS;
+    res.clearCookie("token", clearOpts);
+    res.json({ message: "Sesión cerrada en todos los dispositivos" });
+  }),
+);
 
 // GET /api/auth/me — protected
 router.get("/me", protect, async (req, res) => {

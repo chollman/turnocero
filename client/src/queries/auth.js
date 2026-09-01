@@ -67,6 +67,12 @@ export const resetPasswordRequest = (email, token, password) =>
 
 export const logoutRequest = () => axios.post(API.auth.LOGOUT).catch(() => {});
 
+// A diferencia de logoutRequest, NO se swallowea el error acá — el caller
+// (botón "Cerrar sesión en todos los dispositivos" en /perfil) necesita
+// distinguir éxito de falla para decidir si limpia la sesión local o no.
+export const logoutAllDevicesRequest = () =>
+  axios.post(API.auth.LOGOUT_ALL).then((r) => r.data);
+
 // Usado por `refreshUser()` — un GET manual fuera del ciclo de useMeQuery,
 // cuyo resultado el caller siembra en la cache con setQueryData.
 export const meRequest = () => axios.get(API.auth.ME).then((r) => r.data);

@@ -16,6 +16,7 @@ const logger = require("./utils/logger");
 const { loadSiteConfig } = require("./utils/siteConfig");
 const { startSchedulers } = require("./jobs/scheduler");
 const { resolveHandshakeToken } = require("./utils/socketHelpers");
+const { isTokenStale } = require("./utils/tokenFreshness");
 const app = require("./app");
 const { socketCorsOptions } = require("./config/cors");
 
@@ -35,7 +36,7 @@ const io = new Server(server, {
 
 app.set("io", io);
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   // Token del handshake (apex: localStorage) con fallback a la cookie httpOnly
   // first-party — habilita el real-time bajo SSO entre subdominios. Ver
   // `resolveHandshakeToken`.
@@ -43,6 +44,12 @@ io.use((socket, next) => {
   if (!token) return next(new Error("Authentication required"));
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Chequeo liviano (un solo campo) para que un cambio de password también
+    // corte sockets ya conectados en otros devices, no solo requests HTTP.
+    const user = await User.findById(decoded.id).select("passwordChangedAt");
+    if (!user || isTokenStale(decoded, user)) {
+      return next(new Error("Invalid token"));
+    }
     socket.userId = decoded.id;
     next();
   } catch {

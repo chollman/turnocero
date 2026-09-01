@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { isSectionEnabled } = require("../utils/siteConfig");
+const { isTokenStale } = require("../utils/tokenFreshness");
 
 async function ensureUserMaybe(req) {
   if (req.user) return;
@@ -10,7 +11,10 @@ async function ensureUserMaybe(req) {
   if (!token) return;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(decoded.id).select("-password");
+    if (user && !isTokenStale(decoded, user)) {
+      req.user = user;
+    }
   } catch (_) {
     /* anon */
   }

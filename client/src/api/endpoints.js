@@ -27,6 +27,7 @@ export const API = {
     LOGIN: "/api/auth/login",
     REGISTER: "/api/auth/register",
     LOGOUT: "/api/auth/logout",
+    LOGOUT_ALL: "/api/auth/logout-all",
     ME: "/api/auth/me",
     PROFILE: "/api/auth/profile",
     AVATAR: "/api/auth/avatar",

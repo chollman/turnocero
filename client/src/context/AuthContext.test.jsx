@@ -51,6 +51,9 @@ function Probe() {
       <span data-testid="view-as-user">{String(a.viewAsUser)}</span>
       <button onClick={() => a.login("e@e", "pw")}>do-login</button>
       <button onClick={() => a.logout()}>do-logout</button>
+      <button onClick={() => a.logoutAllDevices().catch(() => {})}>
+        do-logout-all
+      </button>
       <button onClick={() => a.register("x", "x@x", "pw")}>do-register</button>
       <button
         onClick={() => a.oauthLogin("google", { accessToken: "g-access" })}
@@ -233,6 +236,46 @@ describe("AuthContext", () => {
     expect(screen.getByTestId("view-as-user").textContent).toBe("false");
     // El logout explícito des-suscribe este device de push (best-effort).
     expect(unsubscribeThisDevice).toHaveBeenCalled();
+  });
+
+  it("logoutAllDevices clears token, viewAsUser, and the user on success", async () => {
+    localStorage.setItem("token", "tok");
+    localStorage.setItem("viewAsUser", "true");
+    server.use(
+      http.get("/api/auth/me", () =>
+        HttpResponse.json({ _id: "u1", username: "alice" }),
+      ),
+      http.post("/api/auth/logout-all", () => HttpResponse.json({ ok: true })),
+    );
+    renderApp();
+    await waitFor(() =>
+      expect(screen.getByTestId("user").textContent).toBe("alice"),
+    );
+    await act(async () => screen.getByText("do-logout-all").click());
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(screen.getByTestId("user").textContent).toBe("null");
+    expect(screen.getByTestId("view-as-user").textContent).toBe("false");
+    expect(unsubscribeThisDevice).toHaveBeenCalled();
+  });
+
+  it("logoutAllDevices leaves the session untouched when the server call fails", async () => {
+    localStorage.setItem("token", "tok");
+    server.use(
+      http.get("/api/auth/me", () =>
+        HttpResponse.json({ _id: "u1", username: "alice" }),
+      ),
+      http.post("/api/auth/logout-all", () =>
+        HttpResponse.json({ message: "nope" }, { status: 500 }),
+      ),
+    );
+    renderApp();
+    await waitFor(() =>
+      expect(screen.getByTestId("user").textContent).toBe("alice"),
+    );
+    await act(async () => screen.getByText("do-logout-all").click());
+    expect(localStorage.getItem("token")).toBe("tok");
+    expect(screen.getByTestId("user").textContent).toBe("alice");
+    expect(unsubscribeThisDevice).not.toHaveBeenCalled();
   });
 
   it("verifyEmail stores token and sets the user", async () => {

@@ -22,6 +22,7 @@ import {
   forgotPasswordRequest,
   resetPasswordRequest,
   logoutRequest,
+  logoutAllDevicesRequest,
   meRequest,
   updateProfileRequest,
 } from "../queries/auth";
@@ -166,6 +167,19 @@ export const AuthProvider = ({ children }) => {
     queryClient.setQueryData(authKeys.me, null);
   };
 
+  // Invalida en el server toda sesión emitida antes de este momento (todos
+  // los devices, incl. este — ver POST /api/auth/logout-all) y recién
+  // entonces limpia el estado local. Si el request falla no se toca nada:
+  // no tiene sentido desloguear localmente si el server no invalidó nada.
+  const logoutAllDevices = async () => {
+    await logoutAllDevicesRequest();
+    await unsubscribeThisDevice();
+    dispatch(clearToken());
+    dispatch(setViewAsUserAction(false));
+    session.remove(STORAGE_KEYS.BANNED_MESSAGE);
+    queryClient.setQueryData(authKeys.me, null);
+  };
+
   const refreshUser = async () => {
     const data = await meRequest();
     queryClient.setQueryData(authKeys.me, data);
@@ -201,6 +215,7 @@ export const AuthProvider = ({ children }) => {
         requestPasswordReset,
         resetPassword,
         logout,
+        logoutAllDevices,
         updateProfile,
         refreshUser,
         viewAsUser,

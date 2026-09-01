@@ -1,6 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
@@ -162,7 +162,8 @@ function Rail({ sections, active, onJump, saving, saved, dirty, onSave }) {
 
 export default function UserProfile() {
   const { t } = useTranslation();
-  const { user, updateProfile, refreshUser } = useAuth();
+  const { user, updateProfile, refreshUser, logoutAllDevices } = useAuth();
+  const navigate = useNavigate();
   const { isSectionEnabled } = useSiteConfig();
   const brandName = useBrandName();
   // theme se sigue usando para Apariencia (toggle dark/light); el mapa lo lee
@@ -477,6 +478,26 @@ export default function UserProfile() {
     }
   };
 
+  const [logoutAllBusy, setLogoutAllBusy] = useState(false);
+
+  const handleLogoutAllDevices = async () => {
+    if (!window.confirm(t("usuarios:profile.logoutAllDevicesConfirm"))) return;
+    setLogoutAllBusy(true);
+    try {
+      await logoutAllDevices();
+      navigate("/login");
+    } catch (err) {
+      addToast({
+        type: "error",
+        title: t("usuarios:profile.logoutAllDevicesErrorTitle"),
+        message:
+          err.response?.data?.message ||
+          t("usuarios:profile.logoutAllDevicesError"),
+      });
+      setLogoutAllBusy(false);
+    }
+  };
+
   const handleAvatarPick = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -616,6 +637,11 @@ export default function UserProfile() {
     {
       id: "contacto",
       label: t("usuarios:profile.sections.contacto"),
+      show: true,
+    },
+    {
+      id: "seguridad",
+      label: t("usuarios:profile.sections.seguridad"),
       show: true,
     },
     {
@@ -1127,6 +1153,25 @@ export default function UserProfile() {
                 </div>
               )}
             </div>
+
+              <div className={styles.sec} id="seguridad">
+                {secHead("seguridad", t("usuarios:profile.seguridadHead"))}
+                <p className={styles.hint}>
+                  {t("usuarios:profile.seguridadHint")}
+                </p>
+                <div className={styles.bggActions}>
+                  <button
+                    type="button"
+                    className={styles.btnGhost}
+                    onClick={handleLogoutAllDevices}
+                    disabled={logoutAllBusy}
+                  >
+                    {logoutAllBusy
+                      ? t("usuarios:profile.logoutAllDevicesBusy")
+                      : t("usuarios:profile.logoutAllDevicesButton")}
+                  </button>
+                </div>
+              </div>
 
               {bgwatchEnabled && (
                 <div className={styles.sec} id="bgg">

@@ -9,8 +9,8 @@ const app = require("../../app");
 const User = require("../../models/User");
 const emailMock = require("../mocks/email");
 const cloudMock = require("../mocks/cloudinary");
-const { hashToken } = require("../../utils/authTokens");
-const { createUser, tokenFor } = require("../helpers/auth");
+const { hashToken, generateUrlToken } = require("../../utils/authTokens");
+const { createUser, createAuthedUser, tokenFor } = require("../helpers/auth");
 
 beforeEach(() => {
   emailMock.__resetMocks();
@@ -707,5 +707,143 @@ describe("POST /api/auth/forgot-password", () => {
     expect(res.status).toBe(200);
     expect(emailMock.__sentEmails.length).toBe(1);
     expect(emailMock.__sentEmails[0].to).toBe("fp@test.local");
+  });
+});
+
+describe("POST /api/auth/reset-password", () => {
+  const setupResetToken = async (overrides = {}) => {
+    const rawToken = generateUrlToken();
+    const user = await createUser({
+      passwordResetTokenHash: hashToken(rawToken),
+      passwordResetExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      ...overrides,
+    });
+    return { user, rawToken };
+  };
+
+  it("returns 400 with incomplete data", async () => {
+    const res = await request(app).post("/api/auth/reset-password").send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for an unknown email", async () => {
+    const res = await request(app).post("/api/auth/reset-password").send({
+      email: "nobody@test.local",
+      token: "whatever",
+      password: "NewPass1",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for an expired token", async () => {
+    const { user, rawToken } = await setupResetToken({
+      passwordResetExpiresAt: new Date(Date.now() - 1000),
+    });
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ email: user.email, token: rawToken, password: "NewPass1" });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for a wrong token", async () => {
+    const { user } = await setupResetToken();
+    const res = await request(app).post("/api/auth/reset-password").send({
+      email: user.email,
+      token: "not-the-right-token",
+      password: "NewPass1",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("updates the password and lets the user log in with it", async () => {
+    const { user, rawToken } = await setupResetToken();
+    const resetRes = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ email: user.email, token: rawToken, password: "NewPass1" });
+    expect(resetRes.status).toBe(200);
+
+    const loginRes = await request(app)
+      .post("/api/auth/login")
+      .send({ identifier: user.email, password: "NewPass1" });
+    expect(loginRes.status).toBe(200);
+  });
+
+  // Regression: a password reset must kill sessions opened before it, even
+  // though the JWT itself hasn't expired yet — see User.passwordChangedAt.
+  // Simulates a session opened a full hour before the reset (backdating both
+  // the token's `iat` and the user's `passwordChangedAt` from creation) so
+  // the test doesn't race jwt's second-level `iat` truncation against the
+  // real wall-clock timing of the two requests below.
+  it("invalidates tokens issued before the reset", async () => {
+    const { user, rawToken } = await setupResetToken();
+    const anHourAgo = Math.floor(Date.now() / 1000) - 3600;
+    await User.findByIdAndUpdate(user._id, {
+      passwordChangedAt: new Date(anHourAgo * 1000),
+    });
+    const oldToken = jwt.sign(
+      { id: user._id.toString(), iat: anHourAgo },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
+
+    const before = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${oldToken}`);
+    expect(before.status).toBe(200);
+
+    const resetRes = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ email: user.email, token: rawToken, password: "NewPass1" });
+    expect(resetRes.status).toBe(200);
+
+    const after = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${oldToken}`);
+    expect(after.status).toBe(401);
+  });
+});
+
+describe("POST /api/auth/logout-all", () => {
+  it("returns 401 without a token", async () => {
+    const res = await request(app).post("/api/auth/logout-all");
+    expect(res.status).toBe(401);
+  });
+
+  it("invalidates every token issued before the call, including the caller's own", async () => {
+    const user = await createUser();
+    // Backdated a full hour to avoid racing jwt's second-level `iat`
+    // truncation against real wall-clock timing (see reset-password tests).
+    const anHourAgo = Math.floor(Date.now() / 1000) - 3600;
+    await User.findByIdAndUpdate(user._id, {
+      passwordChangedAt: new Date(anHourAgo * 1000),
+    });
+    const oldToken = jwt.sign(
+      { id: user._id.toString(), iat: anHourAgo },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
+
+    const res = await request(app)
+      .post("/api/auth/logout-all")
+      .set("Authorization", `Bearer ${oldToken}`);
+    expect(res.status).toBe(200);
+    expect(res.headers["set-cookie"]?.[0]).toMatch(/^token=;/);
+
+    const after = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${oldToken}`);
+    expect(after.status).toBe(401);
+  });
+
+  it("does not change the password itself", async () => {
+    const { user, token } = await createAuthedUser({ password: "Password123" });
+    await request(app)
+      .post("/api/auth/logout-all")
+      .set("Authorization", `Bearer ${token}`);
+
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({ identifier: user.email, password: "Password123" });
+    expect(login.status).toBe(200);
   });
 });

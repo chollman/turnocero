@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { isTokenStale } = require("../utils/tokenFreshness");
 
 const protect = async (req, res, next) => {
   let token;
@@ -20,6 +21,10 @@ const protect = async (req, res, next) => {
 
     if (!req.user) {
       return res.status(401).json({ message: "User not found" });
+    }
+
+    if (isTokenStale(decoded, req.user)) {
+      return res.status(401).json({ message: "Token invalid or expired" });
     }
 
     if (req.user.isBanned) {
@@ -51,7 +56,10 @@ const optionalAuth = async (req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select("-password");
+      const user = await User.findById(decoded.id).select("-password");
+      if (user && !isTokenStale(decoded, user)) {
+        req.user = user;
+      }
     } catch (_) {
       /* continue as anon */
     }

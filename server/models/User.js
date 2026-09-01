@@ -215,6 +215,12 @@ const userSchema = new mongoose.Schema(
     emailVerificationAttempts: { type: Number, default: 0, select: false },
     passwordResetTokenHash: { type: String, default: null, select: false },
     passwordResetExpiresAt: { type: Date, default: null, select: false },
+    // Timestamp del último cambio de password. Cualquier JWT emitido ANTES de
+    // este momento (`iat`) se rechaza en middleware/auth.js, aunque su `exp`
+    // todavía no haya vencido — así una password reseteada invalida sesiones
+    // viejas en otros dispositivos. null = nunca cambió (tokens preexistentes
+    // siguen valiendo; no requiere migración).
+    passwordChangedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
@@ -234,6 +240,7 @@ userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  this.passwordChangedAt = new Date();
   next();
 });
 

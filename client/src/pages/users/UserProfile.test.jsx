@@ -24,6 +24,11 @@ vi.mock("../../components/shared/PlaceAutocomplete", () => ({
 }));
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+const navigateMock = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return { ...actual, useNavigate: () => navigateMock };
+});
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
 vi.mock("../../hooks/useTheme", () => ({ useTheme: vi.fn() }));
 vi.mock("../../hooks/useLanguage", () => ({ useLanguage: vi.fn() }));
@@ -82,13 +87,14 @@ function setup({
   user = { _id: "u1", username: "cha", email: "cha@test.local" },
   refreshUser = vi.fn(),
   updateProfile = vi.fn(),
+  logoutAllDevices = vi.fn(),
   sectionEnabled = () => true,
   push = defaultPush(),
   addToast = vi.fn(),
   lang = "es",
   setLang = vi.fn(),
 } = {}) {
-  useAuth.mockReturnValue({ user, updateProfile, refreshUser });
+  useAuth.mockReturnValue({ user, updateProfile, refreshUser, logoutAllDevices });
   useSiteConfig.mockReturnValue({ isSectionEnabled: sectionEnabled });
   useTheme.mockReturnValue({ theme: "dark", setTheme: vi.fn() });
   useLanguage.mockReturnValue({ lang, setLang });
@@ -103,6 +109,7 @@ function setup({
 }
 
 beforeEach(() => {
+  navigateMock.mockClear();
   // Default MSW handler — successful avatar upload returning updated user shape.
   server.use(
     http.put("/api/auth/avatar", () =>
@@ -805,5 +812,62 @@ describe("<UserProfile> — hero (identity header)", () => {
       },
     });
     expect(document.querySelector('[class*="heroAvatarImg"]')).toBeNull();
+  });
+});
+
+describe("<UserProfile> — Seguridad section", () => {
+  it('"Cerrar sesión en todos los dispositivos" does nothing when the confirm is canceled', () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const logoutAllDevices = vi.fn();
+    setup({ logoutAllDevices });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /cerrar sesión en todos los dispositivos/i,
+      }),
+    );
+
+    expect(logoutAllDevices).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("invalidates every session and navigates to /login on confirm", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const logoutAllDevices = vi.fn().mockResolvedValue();
+    setup({ logoutAllDevices });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /cerrar sesión en todos los dispositivos/i,
+      }),
+    );
+
+    await waitFor(() => expect(logoutAllDevices).toHaveBeenCalled());
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/login"));
+    confirmSpy.mockRestore();
+  });
+
+  it("shows an error toast and stays put when the server call fails", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const logoutAllDevices = vi
+      .fn()
+      .mockRejectedValue({ response: { data: { message: "Nope" } } });
+    const addToast = vi.fn();
+    setup({ logoutAllDevices, addToast });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /cerrar sesión en todos los dispositivos/i,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "error", message: "Nope" }),
+      ),
+    );
+    expect(navigateMock).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 });
