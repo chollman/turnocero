@@ -295,6 +295,7 @@ export const API = {
   notifications: {
     LIST: "/api/notifications",
     READ: "/api/notifications/read",
+    READ_ONE: (id) => `/api/notifications/${enc(id)}/read`,
     CLEAR: "/api/notifications",
     DISMISS: (id) => `/api/notifications/${enc(id)}`,
   },

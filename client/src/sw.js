@@ -14,7 +14,10 @@ import {
 } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import { NetworkOnly } from "workbox-strategies";
-import { buildPushNotification } from "./sw/pushNotification";
+import {
+  buildPushNotification,
+  buildNotificationClickUrl,
+} from "./sw/pushNotification";
 
 // ── Cache (idéntico al generateSW anterior) ──────────────────────────────
 precacheAndRoute(self.__WB_MANIFEST);
@@ -64,7 +67,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/notificaciones";
+  const url = buildNotificationClickUrl(event.notification.data || {});
   event.waitUntil(
     (async () => {
       const wins = await self.clients.matchAll({

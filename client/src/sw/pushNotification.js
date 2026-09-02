@@ -50,3 +50,15 @@ export function buildPushNotification(data = {}) {
     },
   };
 }
+
+// Arma la URL a la que navega el click en la notificación OS, agregando
+// `?readNotif=<notifId>` cuando lo hay. El SW no tiene el JWT del usuario
+// para marcar la notif leída pegándole a la API directamente — pasamos el
+// notifId por query y usePushNotifRead (client-side, con sesión) hace el
+// PATCH y limpia la URL una vez que la app bootea/enfoca.
+export function buildNotificationClickUrl({ url, notifId } = {}) {
+  const base = url || "/notificaciones";
+  if (!notifId) return base;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}readNotif=${encodeURIComponent(notifId)}`;
+}

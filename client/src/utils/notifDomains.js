@@ -284,40 +284,46 @@ export function getNotifMeta(n, t) {
         cta: k("cta"),
       };
     }
-    case "compartida_like":
+    case "compartida_like": {
+      const count = n.count || 1;
       return {
         title: k("title", {
-          count: n.count,
+          count,
           username: n.lastSenderUsername,
-          others: n.count - 1,
+          others: count - 1,
         }),
         body: n.compartidaTitle
           ? k("body", { compartidaTitle: n.compartidaTitle })
           : "",
         cta: k("cta"),
       };
-    case "compartida_comment_like":
+    }
+    case "compartida_comment_like": {
+      const count = n.count || 1;
       return {
         title: k("title", {
-          count: n.count,
+          count,
           username: n.lastSenderUsername,
-          others: n.count - 1,
+          others: count - 1,
         }),
         body: n.compartidaTitle
           ? k("body", { compartidaTitle: n.compartidaTitle })
           : "",
         cta: k("cta"),
       };
-    case "comment_like":
+    }
+    case "comment_like": {
+      const count = n.count || 1;
       return {
         title: k("title", {
-          count: n.count,
+          count,
           username: n.lastSenderUsername,
-          others: n.count - 1,
+          others: count - 1,
         }),
         body: n.tableName ? k("body", { tableName: n.tableName }) : "",
         cta: k("cta"),
       };
+    }
     case "tournament_accepted":
       return {
         title: k("title"),

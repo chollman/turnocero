@@ -98,6 +98,7 @@ import PageTransition from "./components/layout/PageTransition";
 import usePageTransition from "./components/layout/usePageTransition";
 import useVisualViewportVars from "./utils/useVisualViewportVars";
 import usePwaRouteRestore from "./hooks/usePwaRouteRestore";
+import usePushNotifRead from "./hooks/usePushNotifRead";
 import PushPrompt from "./components/shared/PushPrompt";
 
 function ScrollToTop() {
@@ -767,6 +768,9 @@ function AppShell() {
   useVisualViewportVars();
   // PWA: restaura el deep-link si el SO recargó el start_url ("/") al refrescar.
   usePwaRouteRestore();
+  // Push del SO: si se llegó acá vía click en una notificación push
+  // (?readNotif=<id> en la URL, agregado por sw.js), marca esa notif leída.
+  usePushNotifRead();
   // El FAB "Bancanos" y el AdminViewToggle comparten el spot bottom-left. El
   // FAB reporta acá si está visible para que el toggle suba (stacked) mientras
   // el FAB ocupa el spot y baje cuando se esconde (timer o ruta /colabora).

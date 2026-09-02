@@ -67,6 +67,7 @@ function Probe() {
       <button onClick={() => n.markReadTorneo("tn1")}>mark-torneo-tn1</button>
       <button onClick={() => n.markReadCompartida("c1")}>mark-comp-c1</button>
       <button onClick={() => n.markReadDm("u1")}>mark-dm-u1</button>
+      <button onClick={() => n.markReadByNotifId("nX")}>mark-notif-nX</button>
       <button onClick={n.markAllRead}>mark-all-read</button>
       <button onClick={n.clearAll}>clear-all</button>
       <button onClick={() => n.setActiveTable("t1")}>active-t1</button>
@@ -133,6 +134,9 @@ beforeEach(() => {
     ),
     http.delete("/api/notifications", () => HttpResponse.json({ ok: true })),
     http.patch("/api/admin-chat/read", () => HttpResponse.json({ ok: true })),
+    http.patch("/api/notifications/:id/read", () =>
+      HttpResponse.json({ ok: true }),
+    ),
   );
 });
 
@@ -949,6 +953,31 @@ describe("NotificationContext", () => {
     );
   });
 
+  it("markReadByNotifId marks a single notif by its notifId and PATCHes /:id/read", async () => {
+    let hitId = null;
+    server.use(
+      http.patch("/api/notifications/:id/read", ({ params }) => {
+        hitId = params.id;
+        return HttpResponse.json({ ok: true });
+      }),
+      http.get("/api/notifications", () =>
+        HttpResponse.json([
+          { notifId: "nX", type: "compartida_like", read: false, timestamp: 1 },
+          { notifId: "nY", type: "compartida_like", read: false, timestamp: 2 },
+        ]),
+      ),
+    );
+    renderApp();
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("2"),
+    );
+    act(() => screen.getByText("mark-notif-nX").click());
+    await waitFor(() =>
+      expect(screen.getByTestId("unread").textContent).toBe("1"),
+    );
+    expect(hitId).toBe("nX");
+  });
+
   it("markReadTorneo marks torneo notifications as read", async () => {
     server.use(
       http.get("/api/notifications", () =>
@@ -1072,6 +1101,7 @@ describe("NotificationContext", () => {
   it("regresión: un anónimo NO pega endpoints protegidos al marcar leído", async () => {
     let readHits = 0;
     let clearHits = 0;
+    let readOneHits = 0;
     server.use(
       http.patch("/api/notifications/read", () => {
         readHits++;
@@ -1079,6 +1109,10 @@ describe("NotificationContext", () => {
       }),
       http.delete("/api/notifications", () => {
         clearHits++;
+        return HttpResponse.json({ ok: true });
+      }),
+      http.patch("/api/notifications/:id/read", () => {
+        readOneHits++;
         return HttpResponse.json({ ok: true });
       }),
     );
@@ -1089,6 +1123,7 @@ describe("NotificationContext", () => {
     act(() => screen.getByText("mark-comp-c1").click()); // markReadCompartida
     act(() => screen.getByText("mark-read-t1").click()); // markRead (mesa)
     act(() => screen.getByText("mark-all-read").click()); // markAllRead
+    act(() => screen.getByText("mark-notif-nX").click()); // markReadByNotifId
     act(() => screen.getByText("clear-all").click()); // clearAll
 
     // Esperar a cualquier request en vuelo antes de afirmar que no hubo ninguno.
@@ -1097,6 +1132,7 @@ describe("NotificationContext", () => {
     });
     expect(readHits).toBe(0);
     expect(clearHits).toBe(0);
+    expect(readOneHits).toBe(0);
   });
 
   it("un usuario autenticado SÍ sincroniza /api/notifications/read al marcar leído", async () => {

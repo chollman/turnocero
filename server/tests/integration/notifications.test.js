@@ -161,6 +161,97 @@ describe("PATCH /api/notifications/read", () => {
     expect(a.count).toBe(0);
     expect(b.read).toBe(false);
   });
+
+  it("marks only matching eventoId as read (regression: eventoId was silently ignored, marking the whole inbox read)", async () => {
+    const { user, token } = await createAuthedUser();
+    await Notification.create({
+      recipient: user._id,
+      type: "evento_reminder",
+      eventoId: "ev1",
+      read: false,
+    });
+    const other = await Notification.create({
+      recipient: user._id,
+      type: "comment",
+      tableId: "t9",
+      read: false,
+    });
+
+    await request(app)
+      .patch("/api/notifications/read")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ eventoId: "ev1" });
+
+    const ns = await Notification.find({ recipient: user._id });
+    const ev = ns.find((n) => n.eventoId === "ev1");
+    const untouched = ns.find(
+      (n) => n._id.toString() === other._id.toString(),
+    );
+    expect(ev.read).toBe(true);
+    expect(ev.count).toBe(0);
+    expect(untouched.read).toBe(false);
+  });
+});
+
+describe("PATCH /api/notifications/:id/read", () => {
+  it("marks a single notification read by its own id and resets count", async () => {
+    const { user, token } = await createAuthedUser();
+    const notif = await Notification.create({
+      recipient: user._id,
+      type: "compartida_like",
+      compartidaId: "c1",
+      count: 5,
+      read: false,
+    });
+    const other = await Notification.create({
+      recipient: user._id,
+      type: "comment",
+      tableId: "t1",
+      read: false,
+    });
+
+    const res = await request(app)
+      .patch(`/api/notifications/${notif._id}/read`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    const updated = await Notification.findById(notif._id);
+    expect(updated.read).toBe(true);
+    expect(updated.count).toBe(0);
+    const untouched = await Notification.findById(other._id);
+    expect(untouched.read).toBe(false);
+  });
+
+  it("returns 404 when marking another user's notification", async () => {
+    const { token } = await createAuthedUser();
+    const { user: other } = await createAuthedUser();
+    const theirs = await Notification.create({
+      recipient: other._id,
+      type: "comment",
+      tableId: "x",
+      read: false,
+    });
+    const res = await request(app)
+      .patch(`/api/notifications/${theirs._id}/read`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(404);
+    expect((await Notification.findById(theirs._id)).read).toBe(false);
+  });
+
+  it("returns 400 on an invalid id", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .patch("/api/notifications/not-an-id/read")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("requires auth", async () => {
+    const res = await request(app).patch(
+      "/api/notifications/000000000000000000000000/read",
+    );
+    expect(res.status).toBe(401);
+  });
 });
 
 describe("DELETE /api/notifications", () => {

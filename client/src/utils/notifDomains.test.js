@@ -170,6 +170,16 @@ describe("notifDomains", () => {
       expect(meta.title).toMatch(/cami y 7 más/i);
     });
 
+    it("compartida_like: count 0 (post mark-as-read) still renders singular, not 'y -1 más'", () => {
+      const meta = nm({
+        type: "compartida_like",
+        count: 0,
+        lastSenderUsername: "cami",
+      });
+      expect(meta.title).toMatch(/a cami le gustó tu compartida/i);
+      expect(meta.title).not.toMatch(/-1/);
+    });
+
     it("compartida_comment_like: copy de like de comentario (singular/plural)", () => {
       const single = nm({
         type: "compartida_comment_like",

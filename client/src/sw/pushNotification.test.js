@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { buildPushNotification } from "./pushNotification";
+import {
+  buildPushNotification,
+  buildNotificationClickUrl,
+} from "./pushNotification";
 import { getNotifMeta, notifLink } from "../utils/notifDomains";
 import { notifT } from "./swI18n";
 
@@ -79,5 +82,36 @@ describe("buildPushNotification", () => {
       expect(options.body).toMatch(/funcionan/i);
       expect(options.data.url).toBe("/panel-admin");
     });
+  });
+});
+
+describe("buildNotificationClickUrl", () => {
+  it("agrega ?readNotif=<notifId> cuando hay notifId", () => {
+    expect(
+      buildNotificationClickUrl({ url: "/mesas/t1", notifId: "n1" }),
+    ).toBe("/mesas/t1?readNotif=n1");
+  });
+
+  it("usa & si la url ya trae query string", () => {
+    expect(
+      buildNotificationClickUrl({ url: "/mesas/t1?tab=chat", notifId: "n1" }),
+    ).toBe("/mesas/t1?tab=chat&readNotif=n1");
+  });
+
+  it("no agrega el param cuando no hay notifId", () => {
+    expect(buildNotificationClickUrl({ url: "/mesas/t1" })).toBe(
+      "/mesas/t1",
+    );
+  });
+
+  it("cae a /notificaciones cuando no hay url ni notifId", () => {
+    expect(buildNotificationClickUrl({})).toBe("/notificaciones");
+    expect(buildNotificationClickUrl()).toBe("/notificaciones");
+  });
+
+  it("encodea el notifId", () => {
+    expect(
+      buildNotificationClickUrl({ url: "/mesas/t1", notifId: "a b/c" }),
+    ).toBe("/mesas/t1?readNotif=a%20b%2Fc");
   });
 });

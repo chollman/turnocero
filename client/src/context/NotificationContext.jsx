@@ -295,6 +295,20 @@ export function NotificationProvider({ children }) {
     if (authedRef.current) axios.patch(API.adminChat.READ).catch(() => {});
   }, [setNotifications]);
 
+  // Marca UNA notif puntual por su propio notifId — a diferencia de los
+  // markRead* de arriba, no depende de conocer el campo-recurso (tableId,
+  // compartidaId, etc.). Lo usa el flujo de click en una notificación push del
+  // sistema operativo (ver usePushNotifRead), donde el service worker solo
+  // sabe el notifId.
+  const markReadByNotifId = useCallback((notifId) => {
+    if (!notifId) return;
+    setNotifications((prev) =>
+      markReadByPredicate(prev, (n) => (n.notifId || n._id) === notifId),
+    );
+    if (authedRef.current)
+      axios.patch(API.notifications.READ_ONE(notifId)).catch(() => {});
+  }, [setNotifications]);
+
   const clearAll = useCallback(() => {
     setNotifications([]);
     if (authedRef.current) axios.delete(API.notifications.CLEAR).catch(() => {});
@@ -460,6 +474,7 @@ export function NotificationProvider({ children }) {
       markReadCommunity,
       markReadDm,
       markReadAdminChat,
+      markReadByNotifId,
       markAllRead,
       loadOlder,
       clearAll,
@@ -490,6 +505,7 @@ export function NotificationProvider({ children }) {
       markReadCommunity,
       markReadDm,
       markReadAdminChat,
+      markReadByNotifId,
       markAllRead,
       loadOlder,
       clearAll,
