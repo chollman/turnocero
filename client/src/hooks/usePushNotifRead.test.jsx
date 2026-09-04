@@ -56,14 +56,18 @@ describe("usePushNotifRead", () => {
 
   it("does nothing when there's no readNotif param", async () => {
     renderAt("/mesas/t1");
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
     expect(markReadByNotifId).not.toHaveBeenCalled();
     expect(screen.getByTestId("path").textContent).toBe("/mesas/t1");
   });
 
   it("waits for auth to resolve before consuming the param (cold boot)", async () => {
     renderAt("/mesas/t1?readNotif=n1", { user: null, loading: true });
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
     expect(markReadByNotifId).not.toHaveBeenCalled();
     // La URL sigue intacta — no se perdió el param mientras auth resolvía.
     expect(screen.getByTestId("search").textContent).toBe("?readNotif=n1");

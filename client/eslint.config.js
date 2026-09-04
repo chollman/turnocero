@@ -34,6 +34,13 @@ export default [
     },
     rules: sharedRules,
   },
+  // Build/tooling config files and scripts — run under Node, not the browser.
+  {
+    files: ["*.config.{js,mjs,cjs}", "scripts/**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
   // Vitest tests run under Node — grant node globals (e.g. `process`) on top of
   // the browser globals from the src block above.
   {
