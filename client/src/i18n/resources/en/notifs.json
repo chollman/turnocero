@@ -252,5 +252,20 @@
     "title": "{{who}} logged your play",
     "body": "They recorded {{game}} in their account. Thanks for sharing it!",
     "cta": "View profile"
+  },
+  "instagram_post_success": {
+    "targetFeed": "Feed",
+    "targetStory": "Stories",
+    "fallbackTitle": "your post",
+    "title": "Published to Instagram ({{target}})",
+    "body": "{{compartidaTitle}} is now on your Instagram.",
+    "cta": "View post"
+  },
+  "instagram_post_failed": {
+    "targetFeed": "Feed",
+    "targetStory": "Stories",
+    "title": "Couldn't publish to Instagram ({{target}})",
+    "body": "We couldn't publish your post to Instagram. Try again from your profile.",
+    "cta": "View post"
   }
 }

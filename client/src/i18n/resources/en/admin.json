@@ -330,6 +330,15 @@
         "Hides the \"BGG connection\" section in /perfil"
       ]
     },
+    "instagramCrosspost": {
+      "label": "Instagram cross-post",
+      "desc": "Also publish Compartidas to Instagram (Feed/Stories) via each user's connected Business/Creator account.",
+      "affects": [
+        "Hides the \"Instagram connection\" section in /perfil",
+        "Hides the Instagram cross-post toggle when creating a Compartida",
+        "Blocks POST /api/compartidas/:id/instagram-post"
+      ]
+    },
     "utilidades": {
       "label": "Utilities",
       "desc": "Helper tools (dice, timer, finger picker).",

@@ -12,10 +12,12 @@ export const toGamePayload = (g) => ({
   year: g.year,
 });
 
-// Crea una compartida en DOS pasos: primero el POST de la compartida (sin
-// imágenes), y después la subida de cada imagen a /compartidas/:id/images (la
-// ruta de creación no acepta multipart). Si algo falla DESPUÉS de crear, borra
-// la compartida a medio crear para no dejar huérfanos y re-lanza el error.
+// Crea una compartida en DOS (o TRES) pasos: primero el POST de la compartida
+// (sin imágenes), después la subida de cada imagen a /compartidas/:id/images
+// (la ruta de creación no acepta multipart), y —si se pidió cross-post— un
+// tercer paso que encola la publicación en Instagram. Si algo falla DESPUÉS de
+// crear, borra la compartida a medio crear para no dejar huérfanos y re-lanza
+// el error.
 //
 // Es el flujo que estaba inline en CreateCompartidaForm; extraído para que tanto
 // esa pantalla como la sección "Compartí esta partida" del form de BG Watch lo
@@ -25,8 +27,14 @@ export const toGamePayload = (g) => ({
 //   privacy, community, linkedTable, playResult, …). Campos `undefined` se
 //   omiten por axios.
 // - files: array de `{ file }` (o `File`) a subir, en orden.
+// - crosspostInstagram: `{ feed, story }` opcional. El paso 3 SOLO corre si
+//   hay al menos 1 imagen subida (Instagram necesita media) y se pidió algún
+//   target. Es una acción secundaria AISLADA: si falla, la compartida ya creada
+//   NO se revierte (mismo criterio que CreatePlay.jsx#runShare) — el error se
+//   devuelve en `instagramCrosspostError` para que el caller lo muestre como
+//   toast no bloqueante.
 // Devuelve la compartida final (con `images` poblada).
-export async function createJuntada({ payload, files = [] }) {
+export async function createJuntada({ payload, files = [], crosspostInstagram }) {
   const { data: created } = await axios.post(API.compartidas.LIST, payload);
 
   let finalPost = created;
@@ -50,6 +58,24 @@ export async function createJuntada({ payload, files = [] }) {
       /* ignore cleanup failure */
     }
     throw err;
+  }
+
+  if (
+    finalPost.images?.length &&
+    (crosspostInstagram?.feed || crosspostInstagram?.story)
+  ) {
+    try {
+      const { data: updated } = await axios.post(
+        API.compartidas.INSTAGRAM_POST(created._id),
+        crosspostInstagram,
+      );
+      finalPost = updated;
+    } catch (err) {
+      finalPost = {
+        ...finalPost,
+        instagramCrosspostError: err.response?.data?.message,
+      };
+    }
   }
 
   return finalPost;

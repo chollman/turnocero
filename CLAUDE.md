@@ -151,6 +151,53 @@ Social posts that users create to share moments from their sessions. Stored in t
 - Feed returns a `featured` post (most-liked in last 24 h) alongside paginated results
 - Public compartidas are browsable without login; `GET /api/compartidas/:id/og` serves OG metadata for crawlers
 
+### Instagram cross-post (Compartidas)
+
+Opt-in per-user feature: a public juntada with at least one photo can also be published to the
+author's own Instagram Feed and/or Stories. Gated behind the `instagramCrosspost` SiteConfig
+section (default **OFF** — turning it on for regular users requires Meta App Review, see below).
+
+- **Connection is per-user, not login OAuth.** `User.instagramCredentials` stores an
+  AES-256-GCM-encrypted Facebook **Page Access Token** (never the user's own token — Graph API
+  publish calls use the Page's token) plus `igUserId`/`igUsername`/`pageId`/`pageName` and an
+  `invalid` flag (same shape/purpose as `bggCredentials`). `POST /api/auth/instagram-connect`
+  (body `{ accessToken }`, a Facebook user access token obtained client-side via `useFacebookSdk`
+  with an extended scope — see `UserProfile.jsx`'s "Conexión con Instagram" section) validates the
+  token, exchanges it for a long-lived one, and walks the user's Facebook Pages
+  (`server/services/instagramService.js#findInstagramPage`) to find the first one with a linked
+  Instagram Business/Creator account — Instagram cross-posting **only works with Business/Creator
+  accounts**, never personal ones. `DELETE /api/auth/instagram-connection` clears it.
+  `server/utils/encryption.js#encrypt/decrypt` takes an optional env-var-name argument (default
+  `BGG_CREDS_KEY`) so this reuses the same AES module under its own `INSTAGRAM_CREDS_KEY`.
+- **The toggle lives in `JuntadaFields.jsx`** (shared by the Compartidas composer and BG Watch's
+  "Compartí esta partida" section) as two checkboxes, Feed/Historias — visible only when the
+  section is enabled, the author's Instagram connection is valid, the post is `privacy: "public"`,
+  and it has ≥1 photo (Instagram is inherently public; Stories don't support a caption/carousel).
+- **Publishing is fully async, never blocks the create request.** `createJuntada.js`'s existing
+  2-step (create → upload images) flow gets an optional 3rd step: once images are uploaded,
+  `POST /api/compartidas/:id/instagram-post` just flips `Compartida.instagram.feed/story.status`
+  to `"pending"` and returns immediately (202). A cron job
+  (`server/jobs/instagramPublish.js`, registered in `scheduler.js` every 2 min, `withLease`-guarded
+  like the other jobs) picks up pending targets, does the actual Graph API dance (create media
+  container(s) — a carousel for 2-3 Feed photos — → poll `status_code` until `FINISHED` → publish),
+  and updates the status to `posted` (with `mediaId`/`permalink` for Feed) or `failed` (with
+  `error`). An OAuthException marks `instagramCredentials.invalid = true` so `/perfil` prompts a
+  reconnect instead of retrying forever.
+- **Notifications**: `instagram_post_success`/`instagram_post_failed` (types on `Notification`,
+  gated to the `instagramCrosspost` section same as everything else here) are emitted per-target —
+  Feed and Historias of the *same* Compartida are independent notifications
+  (`Notification.instagramTarget` is part of the upsert key, alongside `compartidaId`).
+  `CompartidaCard.jsx` renders a small author-only status row below the photos ("Publicando…" /
+  a "Ver en Instagram" link when a permalink exists / "No se pudo publicar" + a **Reintentar**
+  button that just re-POSTs `/instagram-post`, re-queueing the same target for the next cron tick).
+- **Env vars**: reuses the existing `FB_APP_ID`/`FB_APP_SECRET` (the same Facebook app as OAuth
+  login) — it just needs the "Instagram Graph API" product + `instagram_basic`,
+  `instagram_content_publish`, `pages_show_list`, `pages_read_engagement` permissions added to that
+  app. New: `INSTAGRAM_CREDS_KEY` (64-char hex, same generation command as `BGG_CREDS_KEY`).
+- **Meta App Review**: publishing for accounts other than the app's own Admin/Developer/Testers
+  requires Meta's review of the permissions above — a manual, external process. Until that's done,
+  keep `instagramCrosspost` off in `/panel-admin` for everyone but the developer's own testing.
+
 ### Noticias
 
 Admin-only announcements. `Noticia` model: title, body, image (Cloudinary, `turnocero/noticias/`), optional link + linkLabel. Read publicly; write requires `isAdmin`.
@@ -228,7 +275,7 @@ Small standalone tabletop tools, intentionally **forced-dark** regardless of the
 
 ### Panel Admin and SiteConfig (section toggles)
 
-`SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`, `colabora`, `calendario`, `mathtrade`, `comunidades`, `push`. The **`push`** key is a master switch for Web Push delivery (default `true`); turning it off stops outbound pushes and hides the push opt-in UI, but does NOT affect in-app notifications. Note the two community keys: **`comunidades`** (plural) gates the Comunidades directory; **`comunidad`** (singular) gates the per-community member list (see Comunidades above). Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, `miFeed`, and `mathtrade` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
+`SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`, `colabora`, `calendario`, `mathtrade`, `comunidades`, `push`, `instagramCrosspost`. The **`push`** key is a master switch for Web Push delivery (default `true`); turning it off stops outbound pushes and hides the push opt-in UI, but does NOT affect in-app notifications. The **`instagramCrosspost`** key is a master switch (no dedicated nav route, same shape as `push`) for the Compartidas → Instagram cross-post feature (see "Instagram cross-post (Compartidas)" above); default `false` pending Meta App Review. Note the two community keys: **`comunidades`** (plural) gates the Comunidades directory; **`comunidad`** (singular) gates the per-community member list (see Comunidades above). Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, `miFeed`, `mathtrade`, and `instagramCrosspost` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
 
 `SiteConfigContext` loads the config once on app boot and exposes `isSectionEnabled(key)`. Routes wrapped in `<SectionGate>` redirect/hide for disabled sections; admins always see disabled sections (with a banner) unless they enable "view as user".
 
@@ -336,6 +383,8 @@ PUT    /api/auth/avatar                         — multipart: 'avatar' file; se
 DELETE /api/auth/avatar                         — clears stored avatar
 POST   /api/auth/bgg-connect                    — validate BGG password and store encrypted
 DELETE /api/auth/bgg-connection                 — remove stored BGG credentials
+POST   /api/auth/instagram-connect              — validate FB token, resolve IG Business page, store encrypted
+DELETE /api/auth/instagram-connection           — remove stored Instagram credentials
 
 GET    /api/bgg/search?q=                       — game name search (top 15, sorted by year)
 GET    /api/bgg/game/:id                        — game details (cached 30 min; incl. playingTime/min/maxPlayTime = box time)
@@ -381,6 +430,7 @@ DELETE /api/compartidas/:id                     — author or admin
 POST   /api/compartidas/:id/like                — toggle like
 POST   /api/compartidas/:id/images              — author only, max 3
 DELETE /api/compartidas/:id/images/:imgId
+POST   /api/compartidas/:id/instagram-post      — author only; queues Feed/Historias for the cron (202, doesn't block)
 GET    /api/compartidas/:id/comments            — optionalAuth
 POST   /api/compartidas/:id/comments
 PUT    /api/compartidas/:id/comments/:cid       — own comment only

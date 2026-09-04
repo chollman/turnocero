@@ -252,5 +252,20 @@
     "title": "{{who}} cargó tu partida",
     "body": "Registró {{game}} en su cuenta. ¡Gracias por compartirla!",
     "cta": "Ver perfil"
+  },
+  "instagram_post_success": {
+    "targetFeed": "Feed",
+    "targetStory": "Historias",
+    "fallbackTitle": "tu compartida",
+    "title": "Se publicó en Instagram ({{target}})",
+    "body": "{{compartidaTitle}} ya está en tu Instagram.",
+    "cta": "Ver compartida"
+  },
+  "instagram_post_failed": {
+    "targetFeed": "Feed",
+    "targetStory": "Historias",
+    "title": "No se pudo publicar en Instagram ({{target}})",
+    "body": "No pudimos publicar tu compartida en Instagram. Reintentá desde tu perfil.",
+    "cta": "Ver compartida"
   }
 }

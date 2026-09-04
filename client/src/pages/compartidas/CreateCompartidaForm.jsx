@@ -2,6 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useTableQuery } from "../../queries/tables";
 import { useEventoQuery } from "../../queries/eventos";
 import { getLocale } from "../../utils/locale";
@@ -45,6 +46,11 @@ export default function CreateCompartidaForm({
 }) {
   const { t } = useTranslation("compartidas");
   const { user } = useAuth();
+  const { isSectionEnabled } = useSiteConfig();
+  const instagramAvailable =
+    isSectionEnabled("instagramCrosspost") &&
+    !!user?.instagramConnected &&
+    !user?.instagramInvalid;
   const [category, setCategory] = useState("juntada");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -82,6 +88,9 @@ export default function CreateCompartidaForm({
         prev.forEach((img) => URL.revokeObjectURL(img.preview));
         return [];
       });
+      // El cross-post a Instagram solo aplica a juntadas (necesita el array
+      // `images` de nivel superior, que la reseña no usa).
+      setCrosspostInstagram({ feed: false, story: false });
     }
   };
 
@@ -103,6 +112,10 @@ export default function CreateCompartidaForm({
   const [linkedTable, setLinkedTable] = useState(null);
   const [linkedEvento, setLinkedEvento] = useState(null);
   const [images, setImages] = useState([]); // [{ file, preview }]
+  const [crosspostInstagram, setCrosspostInstagram] = useState({
+    feed: false,
+    story: false,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
@@ -218,6 +231,11 @@ export default function CreateCompartidaForm({
           linkedEvento: linkedEventoId || undefined,
         },
         files: images,
+        // Solo tiene sentido para juntadas públicas (mismo gate que valida el
+        // server) — evita mandar un intent stale si el usuario tildó algo y
+        // después cambió de categoría/privacidad.
+        crosspostInstagram:
+          !isResena && privacy === "public" ? crosspostInstagram : undefined,
       });
       images.forEach((img) => URL.revokeObjectURL(img.preview));
       onCreated?.(finalPost);
@@ -534,6 +552,56 @@ export default function CreateCompartidaForm({
               onChange={handleImageSelect}
             />
           </div>
+
+          {/* Cross-post a Instagram — solo juntadas públicas con al menos 1
+              foto (Instagram es inherentemente público). */}
+          {instagramAvailable && (
+            <div className={styles.instagramSection}>
+              {privacy === "public" && images.length > 0 ? (
+                <>
+                  <span className={styles.fieldLabel}>
+                    {t("juntada.instagramLabel")}
+                  </span>
+                  <div className={styles.instagramOptions}>
+                    <label className={styles.instagramCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={crosspostInstagram.feed}
+                        onChange={(e) =>
+                          setCrosspostInstagram((prev) => ({
+                            ...prev,
+                            feed: e.target.checked,
+                          }))
+                        }
+                        disabled={loading}
+                      />
+                      {t("juntada.instagramFeed")}
+                    </label>
+                    <label className={styles.instagramCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={crosspostInstagram.story}
+                        onChange={(e) =>
+                          setCrosspostInstagram((prev) => ({
+                            ...prev,
+                            story: e.target.checked,
+                          }))
+                        }
+                        disabled={loading}
+                      />
+                      {t("juntada.instagramStory")}
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <p className={styles.instagramHint}>
+                  {privacy !== "public"
+                    ? t("juntada.instagramNeedsPublic")
+                    : t("juntada.instagramNeedsPhoto")}
+                </p>
+              )}
+            </div>
+          )}
         </>
       )}
 

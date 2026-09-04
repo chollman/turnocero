@@ -7,6 +7,8 @@ process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret-for-vitest";
 process.env.BGG_CREDS_KEY =
   process.env.BGG_CREDS_KEY || crypto.randomBytes(32).toString("hex");
+process.env.INSTAGRAM_CREDS_KEY =
+  process.env.INSTAGRAM_CREDS_KEY || crypto.randomBytes(32).toString("hex");
 process.env.CORS_ORIGIN = "http://localhost:3000";
 // Stub Cloudinary creds so the SDK config call doesn't blow up at load time.
 process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";

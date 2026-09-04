@@ -39,6 +39,11 @@ describe("notifDomains", () => {
       expect(getDomainLabel("bgg_play_shared", i18n.t)).toBe("BG Watch");
     });
 
+    it("maps Instagram cross-post types to the compartida domain", () => {
+      expect(getDomain("instagram_post_success")).toBe("compartida");
+      expect(getDomain("instagram_post_failed")).toBe("compartida");
+    });
+
     it("returns brand colorVar + icon per domain", () => {
       expect(getDomainMeta("chat").colorVar).toBe("--amber");
       expect(getDomainMeta("compartida_like").colorVar).toBe("--red");
@@ -263,6 +268,33 @@ describe("notifDomains", () => {
         gameName: "Catán",
       });
       expect(accepted.title).toMatch(/bob cargó tu partida/i);
+    });
+
+    it("Instagram cross-post copy: éxito (Feed/Historias) y fallo (mensaje del server)", () => {
+      const feedOk = nm({
+        type: "instagram_post_success",
+        compartidaTitle: "Noche de Catán",
+        instagramTarget: "feed",
+      });
+      expect(feedOk.title).toMatch(/feed/i);
+      expect(feedOk.body).toMatch(/noche de catán/i);
+      expect(feedOk.cta).toBeTruthy();
+
+      const storyOk = nm({
+        type: "instagram_post_success",
+        compartidaTitle: "Noche de Catán",
+        instagramTarget: "story",
+      });
+      expect(storyOk.title).toMatch(/historias/i);
+
+      const failed = nm({
+        type: "instagram_post_failed",
+        instagramTarget: "feed",
+        instagramError: "Conectá tu cuenta de Instagram",
+      });
+      expect(failed.title).toMatch(/no se pudo publicar/i);
+      // El body prioriza el mensaje real del server sobre el genérico.
+      expect(failed.body).toBe("Conectá tu cuenta de Instagram");
     });
   });
 

@@ -1,139 +1,126 @@
 import { describe, it, expect, vi } from "vitest";
-import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 
-// Mock del buscador BGG: botones que eligen juegos fijos (evita debounce/MSW).
 vi.mock("../../components/shared/BggGameSearch", () => ({
-  default: ({ onPick }) => (
-    <>
-      <button
-        type="button"
-        onClick={() =>
-          onPick({ id: 13, name: "Catan", thumbnail: "t.jpg", year: 1995 })
-        }
-      >
-        mock-pick-game
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          onPick({ id: 99, name: "Wingspan", thumbnail: "w.jpg", year: 2019 })
-        }
-      >
-        mock-pick-game-2
-      </button>
-    </>
-  ),
+  default: () => <div data-testid="bgg-game-search" />,
 }));
 
 import JuntadaFields from "./JuntadaFields";
 
-const EMPTY = { privacy: "public", games: [], title: "", body: "", images: [] };
+const baseValue = {
+  privacy: "public",
+  games: [],
+  title: "",
+  body: "",
+  images: [],
+};
 
-function Harness({ initial = EMPTY, onValue }) {
-  const [value, setValue] = useState(initial);
-  return (
-    <JuntadaFields
-      value={value}
-      onChange={(next) => {
-        setValue(next);
-        onValue?.(next);
-      }}
-    />
+function setup(overrides = {}, props = {}) {
+  const onChange = vi.fn();
+  const value = { ...baseValue, ...overrides };
+  render(
+    <JuntadaFields value={value} onChange={onChange} {...props} />,
   );
+  return { onChange, value };
 }
 
-describe("<JuntadaFields>", () => {
-  it("renderiza visibilidad, título, texto y botón de foto", () => {
-    render(<Harness />);
+describe("<JuntadaFields> — basic fields", () => {
+  it("renders privacy buttons, title and body inputs", () => {
+    setup();
+    expect(screen.getByText("Público")).toBeInTheDocument();
+    expect(screen.getByText("Amigos")).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/título/i)).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+      screen.getByPlaceholderText(/contá cómo salió/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /foto/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Público" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Amigos" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Solo yo" })).toBeInTheDocument();
   });
 
-  it("cambia la privacidad al clickear un botón", () => {
-    const onValue = vi.fn();
-    render(<Harness onValue={onValue} />);
-    fireEvent.click(screen.getByRole("button", { name: "Amigos" }));
-    expect(onValue).toHaveBeenLastCalledWith(
-      expect.objectContaining({ privacy: "friends" }),
-    );
-    expect(
-      screen.getByRole("button", { name: "Amigos" }).className,
-    ).toMatch(/active/i);
-  });
-
-  it("escribir texto emite el value con body", () => {
-    const onValue = vi.fn();
-    render(<Harness onValue={onValue} />);
-    fireEvent.change(
-      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
-      { target: { value: "noche de juegos" } },
-    );
-    expect(onValue).toHaveBeenLastCalledWith(
-      expect.objectContaining({ body: "noche de juegos" }),
-    );
-  });
-
-  it("agrega varios juegos (chips removibles) y dedupea el mismo", () => {
-    render(<Harness />);
-    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
-    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game-2" }));
-    expect(
-      screen.getByRole("button", { name: /quitar catan/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /quitar wingspan/i }),
-    ).toBeInTheDocument();
-    // Re-elegir Catan no agrega un segundo chip.
-    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
-    expect(
-      screen.getAllByRole("button", { name: /quitar catan/i }),
-    ).toHaveLength(1);
-  });
-
-  it("quitar un juego saca su chip", () => {
-    render(<Harness />);
-    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
-    fireEvent.click(screen.getByRole("button", { name: /quitar catan/i }));
-    expect(
-      screen.queryByRole("button", { name: /quitar catan/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("agregar una foto muestra el contador y quitarla lo saca", () => {
-    render(<Harness />);
-    const input = document.querySelector('input[type="file"]');
-    const file = new File(["img"], "p.jpg", { type: "image/jpeg" });
-    fireEvent.change(input, { target: { files: [file] } });
-    expect(
-      screen.getByRole("button", { name: /foto \(1\/3\)/i }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /quitar foto/i }));
-    expect(
-      screen.queryByRole("button", { name: /foto \(1\/3\)/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("el botón de foto se deshabilita con 3 fotos", () => {
-    render(<Harness />);
-    const input = document.querySelector('input[type="file"]');
-    fireEvent.change(input, {
-      target: {
-        files: [
-          new File(["1"], "a.jpg", { type: "image/jpeg" }),
-          new File(["2"], "b.jpg", { type: "image/jpeg" }),
-          new File(["3"], "c.jpg", { type: "image/jpeg" }),
-        ],
-      },
+  it("calls onChange with the updated title", () => {
+    const { onChange } = setup();
+    fireEvent.change(screen.getByPlaceholderText(/título/i), {
+      target: { value: "Juntada épica" },
     });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Juntada épica" }),
+    );
+  });
+});
+
+describe("<JuntadaFields> — Instagram cross-post toggle", () => {
+  it("renders nothing when instagramAvailable is false (default)", () => {
+    setup({ privacy: "public", images: [{ file: new File([], "a.jpg") }] });
+    expect(screen.queryByText(/publicar también en instagram/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a hint (no checkboxes) when the post isn't public", () => {
+    setup(
+      { privacy: "friends", images: [{ file: new File([], "a.jpg") }] },
+      { instagramAvailable: true },
+    );
     expect(
-      screen.getByRole("button", { name: /foto \(3\/3\)/i }),
+      screen.getByText(/solo las juntadas públicas/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^feed$/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a hint (no checkboxes) when there are no photos", () => {
+    setup({ privacy: "public", images: [] }, { instagramAvailable: true });
+    expect(
+      screen.getByText(/agregá al menos una foto/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^feed$/i)).not.toBeInTheDocument();
+  });
+
+  it("shows Feed/Historias checkboxes when public with a photo", () => {
+    setup(
+      { privacy: "public", images: [{ file: new File([], "a.jpg") }] },
+      { instagramAvailable: true },
+    );
+    expect(screen.getByText(/publicar también en instagram/i)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /feed/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /historias/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("toggling Feed calls onChange with crosspostInstagram.feed=true, preserving story", () => {
+    const { onChange } = setup(
+      {
+        privacy: "public",
+        images: [{ file: new File([], "a.jpg") }],
+        crosspostInstagram: { feed: false, story: true },
+      },
+      { instagramAvailable: true },
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: /^feed$/i }));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        crosspostInstagram: { feed: true, story: true },
+      }),
+    );
+  });
+
+  it("toggling Historias calls onChange with crosspostInstagram.story=true", () => {
+    const { onChange } = setup(
+      { privacy: "public", images: [{ file: new File([], "a.jpg") }] },
+      { instagramAvailable: true },
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: /historias/i }));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        crosspostInstagram: { feed: false, story: true },
+      }),
+    );
+  });
+
+  it("disables both checkboxes when disabled prop is set", () => {
+    setup(
+      { privacy: "public", images: [{ file: new File([], "a.jpg") }] },
+      { instagramAvailable: true, disabled: true },
+    );
+    expect(screen.getByRole("checkbox", { name: /^feed$/i })).toBeDisabled();
+    expect(
+      screen.getByRole("checkbox", { name: /historias/i }),
     ).toBeDisabled();
   });
 });

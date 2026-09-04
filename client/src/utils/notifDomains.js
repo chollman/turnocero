@@ -52,6 +52,10 @@ export const TYPE_DOMAIN = {
   // BG Watch — partida compartida
   bgg_play_shared: "bgwatch",
   bgg_play_accepted: "bgwatch",
+  // Instagram cross-post — es sobre una Compartida, reusa ese dominio
+  // (color/ícono) en vez de sumar uno nuevo solo para esto.
+  instagram_post_success: "compartida",
+  instagram_post_failed: "compartida",
   // Admin chat
   admin_chat: "admin",
 };
@@ -479,6 +483,22 @@ export function getNotifMeta(n, t) {
       return {
         title: k("title", { who: n.fromUsername || k("fallbackWho") }),
         body: k("body", { game }),
+        cta: k("cta"),
+      };
+    }
+    case "instagram_post_success": {
+      const target = n.instagramTarget === "story" ? k("targetStory") : k("targetFeed");
+      return {
+        title: k("title", { target }),
+        body: k("body", { compartidaTitle: n.compartidaTitle || k("fallbackTitle") }),
+        cta: k("cta"),
+      };
+    }
+    case "instagram_post_failed": {
+      const target = n.instagramTarget === "story" ? k("targetStory") : k("targetFeed");
+      return {
+        title: k("title", { target }),
+        body: n.instagramError || k("body"),
         cta: k("cta"),
       };
     }

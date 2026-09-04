@@ -9,6 +9,7 @@ const { uploadToCloudinary, cloudinary } = require("../config/cloudinary");
 const logger = require("../utils/logger");
 const { encrypt } = require("../utils/encryption");
 const { loginToBgg, clearSession } = require("../utils/bggAuth");
+const instagramService = require("../services/instagramService");
 const {
   generateCode,
   generateUrlToken,
@@ -811,6 +812,73 @@ router.delete(
     user.bggCredentials.invalid = false;
     await user.save();
     clearSession(user._id);
+
+    res.json(user);
+  }),
+);
+
+// POST /api/auth/instagram-connect — validates a Facebook access token
+// (obtenido client-side vía el SDK de Facebook con los scopes de Instagram),
+// resuelve la Página + cuenta de Instagram Business vinculada, y guarda el
+// Page Access Token cifrado. Nunca persiste nada si la validación falla.
+router.post(
+  "/instagram-connect",
+  protect,
+  asyncHandler(async (req, res) => {
+    const { accessToken } = req.body || {};
+    if (!accessToken || typeof accessToken !== "string") {
+      throw httpError(400, "Falta el token de Facebook");
+    }
+
+    await instagramService.validateAccessToken(accessToken);
+    const longLivedToken =
+      await instagramService.exchangeLongLivedToken(accessToken);
+    const page = await instagramService.findInstagramPage(longLivedToken);
+    if (!page) {
+      throw httpError(
+        400,
+        "Ninguna de tus Páginas de Facebook tiene una cuenta de Instagram " +
+          "Business o Creator vinculada. Vinculá tu cuenta de Instagram a una " +
+          "Página desde la configuración de Instagram y volvé a intentar.",
+      );
+    }
+    const igUsername = await instagramService
+      .fetchIgUsername(page.igUserId, page.pageAccessToken)
+      .catch(() => "");
+
+    const user = req.user;
+    user.instagramCredentials.encryptedPageAccessToken = encrypt(
+      page.pageAccessToken,
+      "INSTAGRAM_CREDS_KEY",
+    );
+    user.instagramCredentials.igUserId = page.igUserId;
+    user.instagramCredentials.igUsername = igUsername;
+    user.instagramCredentials.pageId = page.pageId;
+    user.instagramCredentials.pageName = page.pageName;
+    user.instagramCredentials.connectedAt = new Date();
+    user.instagramCredentials.lastValidatedAt = new Date();
+    user.instagramCredentials.invalid = false;
+    await user.save();
+
+    res.json(user);
+  }),
+);
+
+// DELETE /api/auth/instagram-connection — removes stored Instagram credentials
+router.delete(
+  "/instagram-connection",
+  protect,
+  asyncHandler(async (req, res) => {
+    const user = req.user;
+    user.instagramCredentials.encryptedPageAccessToken = "";
+    user.instagramCredentials.igUserId = "";
+    user.instagramCredentials.igUsername = "";
+    user.instagramCredentials.pageId = "";
+    user.instagramCredentials.pageName = "";
+    user.instagramCredentials.connectedAt = null;
+    user.instagramCredentials.lastValidatedAt = null;
+    user.instagramCredentials.invalid = false;
+    await user.save();
 
     res.json(user);
   }),

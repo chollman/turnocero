@@ -21,6 +21,7 @@ const SECTION_KEYS = [
   "calendario",
   "mathtrade",
   "comunidades",
+  "instagramCrosspost",
 ];
 
 const DEFAULT_ENABLED = {
@@ -28,6 +29,7 @@ const DEFAULT_ENABLED = {
   torneos: false,
   miFeed: false,
   mathtrade: false,
+  instagramCrosspost: false,
 };
 
 const defaultFor = (key) => DEFAULT_ENABLED[key] !== false;

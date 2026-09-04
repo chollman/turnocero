@@ -39,6 +39,8 @@ export const API = {
     OAUTH_FACEBOOK: "/api/auth/oauth/facebook",
     BGG_CONNECT: "/api/auth/bgg-connect",
     BGG_CONNECTION: "/api/auth/bgg-connection",
+    INSTAGRAM_CONNECT: "/api/auth/instagram-connect",
+    INSTAGRAM_CONNECTION: "/api/auth/instagram-connection",
   },
 
   // ── BGG (BG Watch) ───────────────────────────────────────────────────
@@ -175,6 +177,7 @@ export const API = {
       `/api/compartidas/${enc(id)}/comments/${enc(cid)}/like`,
     COMMENT_LIKES: (id, cid) =>
       `/api/compartidas/${enc(id)}/comments/${enc(cid)}/likes`,
+    INSTAGRAM_POST: (id) => `/api/compartidas/${enc(id)}/instagram-post`,
   },
 
   // ── Noticias ─────────────────────────────────────────────────────────

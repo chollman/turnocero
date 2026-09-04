@@ -64,7 +64,9 @@ export function useFacebookSdk() {
   }, [enabled]);
 
   // Resuelve con el accessToken; rechaza si el usuario cancela o no da permiso.
-  const login = () =>
+  // `scope` es opcional (default "email", el que usa el login del sitio) —
+  // la conexión de Instagram pide un scope más amplio (ver useInstagramConnect).
+  const login = (scope = "email") =>
     new Promise((resolve, reject) => {
       const FB = fbRef.current;
       if (!FB) {
@@ -80,7 +82,7 @@ export function useFacebookSdk() {
             reject(new Error("Login con Facebook cancelado"));
           }
         },
-        { scope: "email" },
+        { scope },
       );
     });
 

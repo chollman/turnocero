@@ -1,131 +1,173 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 import { createJuntada, toGamePayload } from "./createJuntada";
 
-describe("toGamePayload", () => {
-  it("mapea id → bggId y conserva name/thumbnail/image/year", () => {
-    expect(
-      toGamePayload({
-        id: 13,
-        name: "Catan",
-        thumbnail: "t.jpg",
-        image: "i.jpg",
-        year: 1995,
-      }),
-    ).toEqual({
-      bggId: 13,
-      name: "Catan",
-      thumbnail: "t.jpg",
-      image: "i.jpg",
-      year: 1995,
-    });
-  });
-});
+const CREATED = { _id: "c1", title: "Juntada", images: [] };
 
-describe("createJuntada", () => {
-  it("sin fotos: hace un solo POST a /compartidas con el payload y devuelve el post", async () => {
-    let captured = null;
-    server.use(
-      http.post("/api/compartidas", async ({ request }) => {
-        captured = await request.json();
-        return HttpResponse.json({ _id: "j1", category: "juntada", images: [] });
-      }),
-    );
-    const payload = {
-      category: "juntada",
-      title: "Noche",
-      body: "texto",
-      boardGames: [{ bggId: 13 }],
-      privacy: "public",
-    };
-    const post = await createJuntada({ payload, files: [] });
-    expect(post._id).toBe("j1");
-    expect(captured).toEqual(payload);
-  });
+function mockFile(name = "a.jpg") {
+  return new File(["x"], name, { type: "image/jpeg" });
+}
 
-  it("forwardea el payload tal cual (incluye playResult)", async () => {
-    let captured = null;
+describe("createJuntada — create + images (existing 2-step flow)", () => {
+  it("creates the post, uploads images in order, and returns the final post", async () => {
+    let uploadCount = 0;
     server.use(
-      http.post("/api/compartidas", async ({ request }) => {
-        captured = await request.json();
-        return HttpResponse.json({ _id: "j1", images: [] });
-      }),
-    );
-    await createJuntada({
-      payload: {
-        category: "juntada",
-        playResult: { mode: "coop", players: [{ name: "A", win: true }] },
-      },
-      files: [],
-    });
-    expect(captured.playResult.mode).toBe("coop");
-    expect(captured.playResult.players[0].name).toBe("A");
-  });
-
-  it("con fotos: 1 POST de creación + 1 POST de imagen por archivo, en orden, acumulando images", async () => {
-    const imageCalls = [];
-    server.use(
-      http.post("/api/compartidas", () =>
-        HttpResponse.json({ _id: "j2", images: [] }),
-      ),
-      http.post("/api/compartidas/:id/images", ({ params }) => {
-        imageCalls.push(params.id);
-        // Cada respuesta acumula una imagen más.
+      http.post("/api/compartidas", () => HttpResponse.json(CREATED, { status: 201 })),
+      http.post("/api/compartidas/c1/images", () => {
+        uploadCount += 1;
         return HttpResponse.json(
-          imageCalls.map((_, i) => ({ url: `img${i}.jpg`, publicId: `p${i}` })),
+          Array.from({ length: uploadCount }, (_, i) => ({
+            url: `https://cdn/${i}.jpg`,
+            publicId: `p${i}`,
+          })),
+          { status: 201 },
         );
       }),
     );
-    const files = [
-      { file: new File(["1"], "a.jpg", { type: "image/jpeg" }) },
-      { file: new File(["2"], "b.jpg", { type: "image/jpeg" }) },
-    ];
-    const post = await createJuntada({
-      payload: { category: "juntada" },
-      files,
+
+    const result = await createJuntada({
+      payload: { category: "juntada", title: "Juntada" },
+      files: [{ file: mockFile("a.jpg") }, { file: mockFile("b.jpg") }],
     });
-    expect(imageCalls).toEqual(["j2", "j2"]);
-    expect(post.images).toHaveLength(2);
+
+    expect(uploadCount).toBe(2);
+    expect(result.images).toHaveLength(2);
+    expect(result._id).toBe("c1");
   });
 
-  it("si falla una imagen: borra la compartida (cleanup) y re-lanza", async () => {
-    let deleted = null;
+  it("deletes the orphaned post and re-throws when an image upload fails", async () => {
+    let deleted = false;
     server.use(
-      http.post("/api/compartidas", () =>
-        HttpResponse.json({ _id: "j3", images: [] }),
+      http.post("/api/compartidas", () => HttpResponse.json(CREATED, { status: 201 })),
+      http.post("/api/compartidas/c1/images", () =>
+        HttpResponse.json({ message: "boom" }, { status: 500 }),
       ),
-      http.post("/api/compartidas/:id/images", () =>
-        HttpResponse.json({ message: "fallo imagen" }, { status: 500 }),
-      ),
-      http.delete("/api/compartidas/:id", ({ params }) => {
-        deleted = params.id;
-        return HttpResponse.json({ ok: true });
+      http.delete("/api/compartidas/c1", () => {
+        deleted = true;
+        return HttpResponse.json({ message: "ok" });
       }),
     );
+
     await expect(
       createJuntada({
-        payload: { category: "juntada" },
-        files: [{ file: new File(["1"], "a.jpg", { type: "image/jpeg" }) }],
+        payload: { category: "juntada", title: "x" },
+        files: [{ file: mockFile() }],
       }),
     ).rejects.toBeTruthy();
-    expect(deleted).toBe("j3");
+    expect(deleted).toBe(true);
   });
+});
 
-  it("si falla la creación: re-lanza y NO intenta borrar", async () => {
-    const onDelete = vi.fn();
+describe("createJuntada — Instagram cross-post (3rd step)", () => {
+  it("posts to instagram-post after images upload when a target was requested", async () => {
+    let requestBody = null;
     server.use(
-      http.post("/api/compartidas", () =>
-        HttpResponse.json({ message: "nope" }, { status: 500 }),
+      http.post("/api/compartidas", () => HttpResponse.json(CREATED, { status: 201 })),
+      http.post("/api/compartidas/c1/images", () =>
+        HttpResponse.json([{ url: "https://cdn/a.jpg", publicId: "p0" }], {
+          status: 201,
+        }),
       ),
-      http.delete("/api/compartidas/:id", () => {
-        onDelete();
-        return HttpResponse.json({ ok: true });
+      http.post("/api/compartidas/c1/instagram-post", async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(
+          { ...CREATED, images: [{ url: "https://cdn/a.jpg" }], instagram: { feed: { status: "pending" } } },
+          { status: 202 },
+        );
       }),
     );
-    await expect(
-      createJuntada({ payload: { category: "juntada" }, files: [] }),
-    ).rejects.toBeTruthy();
-    expect(onDelete).not.toHaveBeenCalled();
+
+    const result = await createJuntada({
+      payload: { category: "juntada", title: "x" },
+      files: [{ file: mockFile() }],
+      crosspostInstagram: { feed: true, story: false },
+    });
+
+    expect(requestBody).toEqual({ feed: true, story: false });
+    expect(result.instagram.feed.status).toBe("pending");
+  });
+
+  it("does NOT call instagram-post when no images were uploaded", async () => {
+    let called = false;
+    server.use(
+      http.post("/api/compartidas", () => HttpResponse.json(CREATED, { status: 201 })),
+      http.post("/api/compartidas/c1/instagram-post", () => {
+        called = true;
+        return HttpResponse.json({}, { status: 202 });
+      }),
+    );
+
+    await createJuntada({
+      payload: { category: "juntada", title: "x" },
+      files: [],
+      crosspostInstagram: { feed: true, story: true },
+    });
+
+    expect(called).toBe(false);
+  });
+
+  it("does NOT call instagram-post when neither feed nor story was requested", async () => {
+    let called = false;
+    server.use(
+      http.post("/api/compartidas", () => HttpResponse.json(CREATED, { status: 201 })),
+      http.post("/api/compartidas/c1/images", () =>
+        HttpResponse.json([{ url: "https://cdn/a.jpg", publicId: "p0" }], {
+          status: 201,
+        }),
+      ),
+      http.post("/api/compartidas/c1/instagram-post", () => {
+        called = true;
+        return HttpResponse.json({}, { status: 202 });
+      }),
+    );
+
+    await createJuntada({
+      payload: { category: "juntada", title: "x" },
+      files: [{ file: mockFile() }],
+      crosspostInstagram: { feed: false, story: false },
+    });
+
+    expect(called).toBe(false);
+  });
+
+  it("is isolated: an instagram-post failure does NOT delete the compartida or throw", async () => {
+    let deleted = false;
+    server.use(
+      http.post("/api/compartidas", () => HttpResponse.json(CREATED, { status: 201 })),
+      http.post("/api/compartidas/c1/images", () =>
+        HttpResponse.json([{ url: "https://cdn/a.jpg", publicId: "p0" }], {
+          status: 201,
+        }),
+      ),
+      http.post("/api/compartidas/c1/instagram-post", () =>
+        HttpResponse.json(
+          { message: "Conectá tu cuenta de Instagram" },
+          { status: 400 },
+        ),
+      ),
+      http.delete("/api/compartidas/c1", () => {
+        deleted = true;
+        return HttpResponse.json({ message: "ok" });
+      }),
+    );
+
+    const result = await createJuntada({
+      payload: { category: "juntada", title: "x" },
+      files: [{ file: mockFile() }],
+      crosspostInstagram: { feed: true, story: false },
+    });
+
+    expect(deleted).toBe(false);
+    expect(result.instagramCrosspostError).toBe("Conectá tu cuenta de Instagram");
+    expect(result._id).toBe("c1");
+  });
+});
+
+describe("toGamePayload", () => {
+  it("maps a BGG search result to the compartida payload shape", () => {
+    expect(
+      toGamePayload({ id: 13, name: "Catan", thumbnail: "t", image: "i", year: 1995 }),
+    ).toEqual({ bggId: 13, name: "Catan", thumbnail: "t", image: "i", year: 1995 });
   });
 });

@@ -125,6 +125,7 @@ export default function CreatePlay() {
           playResult: share.playResult || undefined,
         },
         files: share.images,
+        crosspostInstagram: share.crosspostInstagram,
       });
       share.images.forEach(
         (img) => img.preview && URL.revokeObjectURL(img.preview),
@@ -149,7 +150,7 @@ export default function CreatePlay() {
       } catch {
         /* clipboard no disponible — la juntada igual existe */
       }
-      return { ok: true, url };
+      return { ok: true, url, instagramError: finalPost.instagramCrosspostError };
     } catch {
       return { error: true };
     }
@@ -208,6 +209,8 @@ export default function CreatePlay() {
           type: "error",
           message: t("createPlay.shareFailed"),
         });
+      } else if (shareResult?.instagramError) {
+        addToast({ type: "error", message: shareResult.instagramError });
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
@@ -222,6 +225,8 @@ export default function CreatePlay() {
           type: "error",
           message: t("createPlay.shareFailed"),
         });
+      } else if (shareResult?.instagramError) {
+        addToast({ type: "error", message: shareResult.instagramError });
       }
       goBack();
     }

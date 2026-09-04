@@ -20,17 +20,33 @@ const MAX_IMAGES = 3;
  * tanto en la página de Compartidas como en el form de carga de partidas de BG Watch.
  *
  * Props:
- * - value: { privacy, games:[{id,name,thumbnail,image,year}], title, body, images:[{file,preview}] }
+ * - value: { privacy, games:[{id,name,thumbnail,image,year}], title, body,
+ *   images:[{file,preview}], crosspostInstagram:{feed,story} }
  * - onChange(next): recibe el value completo actualizado.
  * - disabled: deshabilita todos los controles (mientras se envía).
+ * - instagramAvailable: el padre ya resolvió que la sección está prendida Y
+ *   el usuario tiene Instagram conectado y válido — el componente solo decide
+ *   si además se cumplen las condiciones propias del post (público + con foto).
  *
  * Las fotos viven como `{ file, preview }` con `preview` = objectURL para el
  * thumbnail; se crean al agregar y se revocan al quitar. El consumidor debe
  * revocar las que queden tras un submit exitoso.
  */
-export default function JuntadaFields({ value, onChange, disabled = false }) {
+export default function JuntadaFields({
+  value,
+  onChange,
+  disabled = false,
+  instagramAvailable = false,
+}) {
   const { t } = useTranslation("compartidas");
-  const { privacy, games, title, body, images } = value;
+  const {
+    privacy,
+    games,
+    title,
+    body,
+    images,
+    crosspostInstagram = { feed: false, story: false },
+  } = value;
   const fileInputRef = useRef(null);
   const set = (patch) => onChange({ ...value, ...patch });
 
@@ -209,6 +225,60 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
           onChange={handleImageSelect}
         />
       </div>
+
+      {/* Cross-post a Instagram — solo aplica a juntadas públicas con al
+          menos 1 foto (Instagram es inherentemente público). */}
+      {instagramAvailable && (
+        <div className={shared.instagramSection}>
+          {privacy === "public" && images.length > 0 ? (
+            <>
+              <span className={shared.fieldLabel}>
+                {t("juntada.instagramLabel")}
+              </span>
+              <div className={shared.instagramOptions}>
+                <label className={shared.instagramCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={!!crosspostInstagram.feed}
+                    onChange={(e) =>
+                      set({
+                        crosspostInstagram: {
+                          ...crosspostInstagram,
+                          feed: e.target.checked,
+                        },
+                      })
+                    }
+                    disabled={disabled}
+                  />
+                  {t("juntada.instagramFeed")}
+                </label>
+                <label className={shared.instagramCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={!!crosspostInstagram.story}
+                    onChange={(e) =>
+                      set({
+                        crosspostInstagram: {
+                          ...crosspostInstagram,
+                          story: e.target.checked,
+                        },
+                      })
+                    }
+                    disabled={disabled}
+                  />
+                  {t("juntada.instagramStory")}
+                </label>
+              </div>
+            </>
+          ) : (
+            <p className={shared.instagramHint}>
+              {privacy !== "public"
+                ? t("juntada.instagramNeedsPublic")
+                : t("juntada.instagramNeedsPhoto")}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

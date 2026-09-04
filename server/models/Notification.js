@@ -50,6 +50,9 @@ const NOTIFICATION_TYPES = [
   // BG Watch — partida compartida
   "bgg_play_shared", // a un co-jugador usuario de TurnoCero cuando el autor carga una partida
   "bgg_play_accepted", // al autor cuando un co-jugador carga la partida que compartió
+  // Instagram cross-post — resultado del cron jobs/instagramPublish.js
+  "instagram_post_success",
+  "instagram_post_failed",
 ];
 
 const notificationSchema = new mongoose.Schema(
@@ -181,6 +184,13 @@ const notificationSchema = new mongoose.Schema(
       },
       default: null,
     },
+    // Instagram cross-post (instagram_post_success / instagram_post_failed).
+    // `instagramTarget` entra en la clave de upsert (junto a compartidaId) —
+    // sin esto, publicar Feed y luego Historia de la MISMA compartida
+    // colapsarían en una sola notif y se pisarían entre sí.
+    instagramTarget: { type: String, enum: ["feed", "story", null], default: null },
+    instagramPermalink: { type: String, default: "" },
+    instagramError: { type: String, default: "" },
     // Comunidad a la que pertenece el CONTENIDO de esta notificación (mesa,
     // evento, torneo, compartida, etc.). Distinto de `communityId`, que es el
     // SUJETO de las notifs `community_*`. Lo usa el scoping por subdominio

@@ -137,6 +137,8 @@ export const EVENT_SECTION = {
   "community:join-resolved": "comunidades",
   "bgg:play-shared": "bgwatch",
   "bgg:play-accepted": "bgwatch",
+  "instagram:post-success": "instagramCrosspost",
+  "instagram:post-failed": "instagramCrosspost",
 };
 
 // Eventos de socket PERSONALES (persona-a-persona): no pertenecen a ninguna
@@ -1065,6 +1067,63 @@ export function applyBggPlayAcceptedNotif({
       gameName: payload.gameName,
     }),
   );
+}
+
+// ── Instagram cross-post ─────────────────────────────────────────────
+// Non-aggregating, keyed por (compartidaId, target) — Feed e Historias de la
+// MISMA compartida son notifs independientes en el server (ver
+// Notification.js instagramTarget), y replaceResource() solo soporta una
+// clave simple — filtramos por el par directamente en vez de forzar una key
+// compuesta ahí.
+function applyInstagramPostNotif({ setNotifications, setToasts, type, payload }) {
+  const { compartidaId, target } = payload;
+  setNotifications((prev) => {
+    const rest = prev.filter(
+      (n) => !(n.type === type && n.compartidaId === compartidaId && n.instagramTarget === target),
+    );
+    return [
+      ...rest,
+      {
+        _id: payload.notifId,
+        notifId: payload.notifId,
+        type,
+        compartidaId,
+        compartidaTitle: payload.compartidaTitle,
+        instagramTarget: target,
+        instagramPermalink: payload.instagramPermalink || "",
+        instagramError: payload.instagramError || "",
+        count: 1,
+        read: false,
+        timestamp: payload.timestamp || new Date().toISOString(),
+      },
+    ];
+  });
+  setToasts((prev) =>
+    pushToast(prev, {
+      type,
+      compartidaId,
+      compartidaTitle: payload.compartidaTitle,
+      target,
+    }),
+  );
+}
+
+export function applyInstagramPostSuccessNotif({ setNotifications, setToasts, payload }) {
+  applyInstagramPostNotif({
+    setNotifications,
+    setToasts,
+    type: "instagram_post_success",
+    payload,
+  });
+}
+
+export function applyInstagramPostFailedNotif({ setNotifications, setToasts, payload }) {
+  applyInstagramPostNotif({
+    setNotifications,
+    setToasts,
+    type: "instagram_post_failed",
+    payload,
+  });
 }
 
 // ── markRead helpers ─────────────────────────────────────────────────

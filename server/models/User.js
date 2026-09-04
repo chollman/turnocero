@@ -136,6 +136,22 @@ const userSchema = new mongoose.Schema(
       lastValidatedAt: { type: Date, default: null },
       invalid: { type: Boolean, default: false },
     },
+    // Conexión con Instagram (cross-post de Compartidas — Feed/Historias).
+    // El token guardado es el del la Página de Facebook vinculada (no el del
+    // usuario) porque las llamadas de publish de la Graph API usan el Page
+    // Access Token. `invalid` se marca cuando la Graph API rechaza el token
+    // (revocado/expirado) para pedirle al usuario que reconecte, mismo patrón
+    // que bggCredentials.invalid.
+    instagramCredentials: {
+      encryptedPageAccessToken: { type: String, default: "" },
+      igUserId: { type: String, default: "" },
+      igUsername: { type: String, default: "" },
+      pageId: { type: String, default: "" },
+      pageName: { type: String, default: "" },
+      connectedAt: { type: Date, default: null },
+      lastValidatedAt: { type: Date, default: null },
+      invalid: { type: Boolean, default: false },
+    },
     bggSync: {
       lastFullSyncAt: { type: Date, default: null },
       lastFullSyncCount: { type: Number, default: 0 },
@@ -271,6 +287,12 @@ userSchema.methods.toJSON = function () {
   obj.bggInvalid = !!(creds && creds.invalid);
   obj.bggConnectedAt = creds?.connectedAt || null;
   delete obj.bggCredentials;
+  const igCreds = obj.instagramCredentials;
+  obj.instagramConnected = !!(igCreds && igCreds.encryptedPageAccessToken);
+  obj.instagramInvalid = !!(igCreds && igCreds.invalid);
+  obj.instagramUsername = igCreds?.igUsername || "";
+  obj.instagramConnectedAt = igCreds?.connectedAt || null;
+  delete obj.instagramCredentials;
   delete obj.emailVerificationCodeHash;
   delete obj.emailVerificationExpiresAt;
   delete obj.emailVerificationAttempts;

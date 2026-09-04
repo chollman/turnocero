@@ -17,6 +17,7 @@ const SECTION_KEYS = [
   "mathtrade",
   "comunidades",
   "push",
+  "instagramCrosspost",
 ];
 
 // Defaults que preservan el comportamiento actual hardcodeado:
@@ -27,6 +28,7 @@ const DEFAULT_ENABLED = {
   torneos: false,
   miFeed: false,
   mathtrade: false,
+  instagramCrosspost: false,
 };
 
 function defaultFor(key) {

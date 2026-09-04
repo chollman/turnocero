@@ -15,6 +15,7 @@ import { useCompartidaNotificationListeners } from "./useCompartidaNotificationL
 import { useNoticiaNotificationListeners } from "./useNoticiaNotificationListeners";
 import { useEventoNotificationListeners } from "./useEventoNotificationListeners";
 import { useCommunityNotificationListeners } from "./useCommunityNotificationListeners";
+import { useInstagramNotificationListeners } from "./useInstagramNotificationListeners";
 import { useSiteConfigSocketListener } from "./useSiteConfigSocketListener";
 
 function makeSocket() {
@@ -201,6 +202,22 @@ describe("notification listener hooks — event registration", () => {
     expect([...socket._events.keys()].sort()).toEqual([
       "community:join-request",
       "community:join-resolved",
+    ]);
+  });
+
+  it("useInstagramNotificationListeners registra los 2 eventos de cross-post", () => {
+    const socket = makeSocket();
+    renderHook(() =>
+      useInstagramNotificationListeners({
+        socket,
+        gated,
+        setNotifications,
+        setToasts,
+      }),
+    );
+    expect([...socket._events.keys()].sort()).toEqual([
+      "instagram:post-failed",
+      "instagram:post-success",
     ]);
   });
 

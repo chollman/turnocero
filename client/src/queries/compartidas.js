@@ -134,3 +134,11 @@ export const deleteCompartidaComment = (compartidaId, commentId) =>
   axios.delete(API.compartidas.COMMENT_DETAIL(compartidaId, commentId));
 export const toggleCompartidaCommentLike = (compartidaId, commentId) =>
   axios.post(API.compartidas.COMMENT_LIKE(compartidaId, commentId));
+
+// Reintenta un target de cross-post a Instagram que falló — re-encola
+// (status vuelve a "pending", el cron jobs/instagramPublish.js lo retoma).
+// Único caller: el badge de estado en CompartidaCard.jsx.
+export const retryInstagramPost = (compartidaId, target) =>
+  axios.post(API.compartidas.INSTAGRAM_POST(compartidaId), {
+    [target]: true,
+  });

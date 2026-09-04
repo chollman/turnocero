@@ -36,6 +36,7 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: vi.fn(),
 }));
 vi.mock("../../hooks/usePushNotifications", () => ({ default: vi.fn() }));
+vi.mock("../../hooks/useFacebookSdk", () => ({ useFacebookSdk: vi.fn() }));
 
 // AvatarCropModal: skip the real react-easy-crop flow and immediately confirm with a fake blob.
 vi.mock("../../components/shared/AvatarCropModal", () => ({
@@ -71,6 +72,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useNotifications } from "../../context/NotificationContext";
 import usePushNotifications from "../../hooks/usePushNotifications";
+import { useFacebookSdk } from "../../hooks/useFacebookSdk";
 
 const defaultPush = () => ({
   isSupported: false,
@@ -83,6 +85,12 @@ const defaultPush = () => ({
   unsubscribe: vi.fn(),
 });
 
+const defaultFacebook = () => ({
+  enabled: true,
+  ready: true,
+  login: vi.fn().mockResolvedValue("fb-access-token"),
+});
+
 function setup({
   user = { _id: "u1", username: "cha", email: "cha@test.local" },
   refreshUser = vi.fn(),
@@ -90,6 +98,7 @@ function setup({
   logoutAllDevices = vi.fn(),
   sectionEnabled = () => true,
   push = defaultPush(),
+  facebook = defaultFacebook(),
   addToast = vi.fn(),
   lang = "es",
   setLang = vi.fn(),
@@ -100,6 +109,7 @@ function setup({
   useLanguage.mockReturnValue({ lang, setLang });
   useNotifications.mockReturnValue({ addToast });
   usePushNotifications.mockReturnValue(push);
+  useFacebookSdk.mockReturnValue(facebook);
 
   return render(
     <MemoryRouter>
@@ -521,6 +531,179 @@ describe("UserProfile — Reconciliar todo con BGG", () => {
       await screen.findByText(/BGG no respondió o falló a mitad de la sincronización/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/se conserva/i)).toBeInTheDocument();
+  });
+});
+
+describe("<UserProfile> — Instagram connection section", () => {
+  const notConnected = {
+    _id: "u1",
+    username: "cha",
+    email: "cha@test.local",
+    instagramConnected: false,
+    instagramInvalid: false,
+    instagramUsername: "",
+    instagramConnectedAt: null,
+  };
+  const connected = {
+    ...notConnected,
+    instagramConnected: true,
+    instagramUsername: "mesa.de.juegos",
+    instagramConnectedAt: "2026-05-01T00:00:00Z",
+  };
+  const invalid = { ...connected, instagramInvalid: true };
+
+  it("is hidden entirely when the instagramCrosspost section is disabled", () => {
+    setup({
+      user: notConnected,
+      sectionEnabled: (name) => name !== "instagramCrosspost",
+    });
+    expect(
+      screen.queryByText(/conexión con instagram/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows "Conectar con Instagram" when not connected', () => {
+    setup({ user: notConnected });
+    expect(
+      screen.getByRole("button", { name: /conectar con instagram/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^desconectar$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("disables the connect button when the Facebook SDK isn't configured", () => {
+    setup({
+      user: notConnected,
+      facebook: { enabled: false, ready: false, login: vi.fn() },
+    });
+    expect(
+      screen.getByRole("button", { name: /conectar con instagram/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/no está disponible en este momento/i),
+    ).toBeInTheDocument();
+  });
+
+  it("connects: calls facebook.login with the extended scope, then POSTs the token and refreshes the user", async () => {
+    let requestBody = null;
+    server.use(
+      http.post("/api/auth/instagram-connect", async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json({
+          ...connected,
+        });
+      }),
+    );
+    const login = vi.fn().mockResolvedValue("fb-access-token");
+    const refreshUser = vi.fn();
+    setup({
+      user: notConnected,
+      refreshUser,
+      facebook: { enabled: true, ready: true, login },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /conectar con instagram/i }),
+    );
+
+    await waitFor(() => expect(refreshUser).toHaveBeenCalled());
+    expect(login).toHaveBeenCalledWith(
+      expect.stringContaining("instagram_content_publish"),
+    );
+    expect(requestBody).toEqual({ accessToken: "fb-access-token" });
+  });
+
+  it("shows a non-blocking error when the popup is cancelled — no error text rendered", async () => {
+    const login = vi.fn().mockRejectedValue(new Error("Login con Facebook cancelado"));
+    setup({ user: notConnected, facebook: { enabled: true, ready: true, login } });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /conectar con instagram/i }),
+    );
+
+    await waitFor(() => expect(login).toHaveBeenCalled());
+    expect(
+      screen.queryByText(/no pudimos conectar tu cuenta de instagram/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows an error when the connect request fails", async () => {
+    server.use(
+      http.post("/api/auth/instagram-connect", () =>
+        HttpResponse.json(
+          { message: "Ninguna Página tiene Instagram vinculado" },
+          { status: 400 },
+        ),
+      ),
+    );
+    setup({ user: notConnected });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /conectar con instagram/i }),
+    );
+
+    expect(
+      await screen.findByText(/ninguna página tiene instagram vinculado/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the connected state with @handle and a Disconnect button", () => {
+    setup({ user: connected });
+    expect(screen.getByText("@mesa.de.juegos")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /desconectar/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /conectar con instagram/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("disconnects after window.confirm and refreshes the user", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    let called = false;
+    server.use(
+      http.delete("/api/auth/instagram-connection", () => {
+        called = true;
+        return HttpResponse.json({ ...notConnected });
+      }),
+    );
+    const refreshUser = vi.fn();
+    setup({ user: connected, refreshUser });
+
+    fireEvent.click(screen.getByRole("button", { name: /desconectar/i }));
+
+    await waitFor(() => expect(refreshUser).toHaveBeenCalled());
+    expect(called).toBe(true);
+  });
+
+  it("does NOT disconnect when window.confirm is cancelled", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    let called = false;
+    server.use(
+      http.delete("/api/auth/instagram-connection", () => {
+        called = true;
+        return HttpResponse.json({ ...notConnected });
+      }),
+    );
+    setup({ user: connected });
+
+    fireEvent.click(screen.getByRole("button", { name: /desconectar/i }));
+
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
+    expect(called).toBe(false);
+  });
+
+  it("shows the invalid-connection warning and a Reconectar button", () => {
+    setup({ user: invalid });
+    expect(
+      screen.getByText(/tu conexión con instagram caducó/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /reconectar/i }),
+    ).toBeInTheDocument();
   });
 });
 

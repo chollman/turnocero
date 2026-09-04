@@ -15,6 +15,7 @@ function makeQueryClient() {
 }
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
 
 // Tiptap rompe en jsdom → mock simple con un textarea que llama onChange.
 vi.mock("../../components/shared/RichTextEditor", () => ({
@@ -71,6 +72,7 @@ vi.mock("../../components/shared/CommunitySelect", () => ({
 
 import CreateCompartidaForm from "./CreateCompartidaForm";
 import { useAuth } from "../../context/AuthContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 
 const baseUser = {
   _id: "me",
@@ -78,8 +80,9 @@ const baseUser = {
   avatar: { url: "", publicId: "" },
 };
 
-function renderForm(props = {}) {
-  useAuth.mockReturnValue({ user: baseUser });
+function renderForm(props = {}, { user = baseUser, sectionEnabled = () => false } = {}) {
+  useAuth.mockReturnValue({ user });
+  useSiteConfig.mockReturnValue({ isSectionEnabled: sectionEnabled });
   return render(
     <QueryClientProvider client={makeQueryClient()}>
       <MemoryRouter>
@@ -570,5 +573,143 @@ describe("<CreateCompartidaForm>", () => {
     expect(
       screen.getByRole("button", { name: /publicar compartida/i }),
     ).toBeEnabled();
+  });
+});
+
+const connectedUser = {
+  ...baseUser,
+  instagramConnected: true,
+  instagramInvalid: false,
+};
+
+function addPhoto() {
+  const input = document.querySelector('input[type="file"]');
+  const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+  fireEvent.change(input, { target: { files: [file] } });
+}
+
+describe("<CreateCompartidaForm> — Instagram cross-post toggle", () => {
+  it("is hidden when the instagramCrosspost section is disabled", () => {
+    renderForm({}, { user: connectedUser, sectionEnabled: () => false });
+    addPhoto();
+    expect(
+      screen.queryByText(/publicar también en instagram/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("is hidden when the user hasn't connected Instagram", () => {
+    renderForm(
+      {},
+      { user: baseUser, sectionEnabled: () => true },
+    );
+    addPhoto();
+    expect(
+      screen.queryByText(/publicar también en instagram/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("is hidden when the user's Instagram connection is invalid", () => {
+    renderForm(
+      {},
+      {
+        user: { ...connectedUser, instagramInvalid: true },
+        sectionEnabled: () => true,
+      },
+    );
+    addPhoto();
+    expect(
+      screen.queryByText(/publicar también en instagram/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a hint instead of checkboxes when there's no photo yet", () => {
+    renderForm({}, { user: connectedUser, sectionEnabled: () => true });
+    expect(
+      screen.getByText(/agregá al menos una foto/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("shows a hint instead of checkboxes when the post isn't public", () => {
+    renderForm({}, { user: connectedUser, sectionEnabled: () => true });
+    addPhoto();
+    fireEvent.click(screen.getByText("Amigos"));
+    expect(
+      screen.getByText(/solo las juntadas públicas/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("shows Feed/Historias checkboxes when public with a photo", () => {
+    renderForm({}, { user: connectedUser, sectionEnabled: () => true });
+    addPhoto();
+    expect(
+      screen.getByRole("checkbox", { name: /^feed$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /historias/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("sends the checked targets to instagram-post after the image uploads", async () => {
+    let requestBody = null;
+    server.use(
+      http.post("/api/compartidas", () =>
+        HttpResponse.json({ _id: "new", body: "", images: [] }, { status: 201 }),
+      ),
+      http.post("/api/compartidas/new/images", () =>
+        HttpResponse.json([{ url: "https://cdn/a.jpg", publicId: "p0" }], {
+          status: 201,
+        }),
+      ),
+      http.post("/api/compartidas/new/instagram-post", async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(
+          { _id: "new", instagram: { feed: { status: "pending" } } },
+          { status: 202 },
+        );
+      }),
+    );
+    const onCreated = vi.fn();
+    renderForm({ onCreated }, { user: connectedUser, sectionEnabled: () => true });
+    addPhoto();
+    fireEvent.click(screen.getByRole("checkbox", { name: /^feed$/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    );
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(requestBody).toEqual({ feed: true, story: false });
+  });
+
+  it("does not send crosspostInstagram when the post isn't public, even if a target was checked earlier", async () => {
+    let called = false;
+    server.use(
+      http.post("/api/compartidas", () =>
+        HttpResponse.json({ _id: "new", body: "", images: [] }, { status: 201 }),
+      ),
+      http.post("/api/compartidas/new/images", () =>
+        HttpResponse.json([{ url: "https://cdn/a.jpg", publicId: "p0" }], {
+          status: 201,
+        }),
+      ),
+      http.post("/api/compartidas/new/instagram-post", () => {
+        called = true;
+        return HttpResponse.json({}, { status: 202 });
+      }),
+    );
+    const onCreated = vi.fn();
+    renderForm({ onCreated }, { user: connectedUser, sectionEnabled: () => true });
+    addPhoto();
+    fireEvent.click(screen.getByRole("checkbox", { name: /^feed$/i }));
+    // Volver a privado antes de publicar — el checkbox queda oculto pero el
+    // estado interno seguía en true; el submit debe igual omitirlo.
+    fireEvent.click(screen.getByText("Solo yo"));
+    fireEvent.click(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    );
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(called).toBe(false);
   });
 });

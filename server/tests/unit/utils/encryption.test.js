@@ -88,4 +88,37 @@ describe("utils/encryption", () => {
     const { decrypt } = freshModule();
     expect(() => decrypt(ct)).toThrow();
   });
+
+  describe("custom envVar (e.g. INSTAGRAM_CREDS_KEY)", () => {
+    let originalIgKey;
+
+    beforeEach(() => {
+      originalIgKey = process.env.INSTAGRAM_CREDS_KEY;
+    });
+
+    afterEach(() => {
+      process.env.INSTAGRAM_CREDS_KEY = originalIgKey;
+    });
+
+    it("roundtrips using a different env var than the default", () => {
+      const { encrypt, decrypt } = freshModule();
+      const ct = encrypt("ig-token", "INSTAGRAM_CREDS_KEY");
+      expect(decrypt(ct, "INSTAGRAM_CREDS_KEY")).toBe("ig-token");
+    });
+
+    it("keys are independent — BGG_CREDS_KEY can't decrypt an INSTAGRAM_CREDS_KEY payload", () => {
+      const { encrypt, decrypt } = freshModule();
+      const ct = encrypt("ig-token", "INSTAGRAM_CREDS_KEY");
+      expect(() => decrypt(ct, "BGG_CREDS_KEY")).toThrow();
+    });
+
+    it("throws clearly when the named env var is missing", () => {
+      delete process.env.INSTAGRAM_CREDS_KEY;
+      delete require.cache[require.resolve("../../../utils/encryption")];
+      const { encrypt } = freshModule();
+      expect(() => encrypt("x", "INSTAGRAM_CREDS_KEY")).toThrow(
+        /INSTAGRAM_CREDS_KEY/,
+      );
+    });
+  });
 });

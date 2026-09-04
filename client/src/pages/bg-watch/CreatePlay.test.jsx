@@ -87,7 +87,9 @@ vi.mock("./PlayForm", () => ({
 }));
 
 // Bloque "Compartí esta partida" que el form pasaría en onSubmit cuando la
-// sección 5 está activada con contenido. Sin fotos para no lidiar con FormData.
+// sección 5 está activada con contenido. Sin fotos para no lidiar con FormData
+// (crosspostInstagram viaja igual — createJuntada lo omite solo si el POST
+// de creación no devuelve `images` no vacío, ver tests de instagram más abajo).
 const SHARE = {
   privacy: "public",
   community: "",
@@ -95,6 +97,7 @@ const SHARE = {
   body: "ganamos",
   games: [{ id: "13", name: "Catán" }],
   images: [],
+  crosspostInstagram: { feed: true, story: false },
   playResult: {
     mode: "versus",
     game: { name: "Catán", thumbnail: "" },
@@ -445,6 +448,70 @@ describe("<CreatePlay>", () => {
       expect.objectContaining({
         type: "error",
         message: expect.stringMatching(/no se pudo crear la compartida/i),
+      }),
+    );
+  });
+
+  it("con crosspostInstagram: la juntada creada con foto dispara POST instagram-post", async () => {
+    let igBody = null;
+    server.use(
+      http.post("/api/bgg/partidas", () => HttpResponse.json({ ok: true })),
+      // La compartida ya nace con `images` no vacío (simula que el usuario
+      // subió una foto — evitamos FormData real, ver comentario de SHARE).
+      http.post("/api/compartidas", () =>
+        HttpResponse.json({ _id: "j1", images: [{ url: "https://cdn/a.jpg" }] }),
+      ),
+      http.post("/api/shortlinks", () =>
+        HttpResponse.json({ code: "Jun7ad", path: "/x" }, { status: 201 }),
+      ),
+      http.post("/api/compartidas/j1/instagram-post", async ({ request }) => {
+        igBody = await request.json();
+        return HttpResponse.json(
+          { _id: "j1", instagram: { feed: { status: "pending" } } },
+          { status: 202 },
+        );
+      }),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByRole("button", { name: "submit-share" }));
+    await waitFor(() => expect(igBody).not.toBeNull());
+    expect(igBody).toEqual({ feed: true, story: false });
+    // La partida y la juntada ya se crearon con éxito — no hay toast de error.
+    await waitFor(() =>
+      expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),
+    );
+    expect(addToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" }),
+    );
+  });
+
+  it("si el cross-post a Instagram falla, la partida y la juntada quedan guardadas + toast específico", async () => {
+    server.use(
+      http.post("/api/bgg/partidas", () => HttpResponse.json({ ok: true })),
+      http.post("/api/compartidas", () =>
+        HttpResponse.json({ _id: "j1", images: [{ url: "https://cdn/a.jpg" }] }),
+      ),
+      http.post("/api/shortlinks", () =>
+        HttpResponse.json({ code: "Jun7ad", path: "/x" }, { status: 201 }),
+      ),
+      http.post("/api/compartidas/j1/instagram-post", () =>
+        HttpResponse.json(
+          { message: "Conectá tu cuenta de Instagram" },
+          { status: 400 },
+        ),
+      ),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByRole("button", { name: "submit-share" }));
+    // No se revierte nada: navega igual y el link corto se copió.
+    await waitFor(() =>
+      expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),
+    );
+    await waitFor(() => expect(clipboardWrite).toHaveBeenCalled());
+    expect(addToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        message: "Conectá tu cuenta de Instagram",
       }),
     );
   });

@@ -29,6 +29,8 @@ import {
   applyCommunityJoinResolvedNotif,
   applyBggPlaySharedNotif,
   applyBggPlayAcceptedNotif,
+  applyInstagramPostSuccessNotif,
+  applyInstagramPostFailedNotif,
   markReadByPredicate,
   markPlayLoadedById,
   EVENT_SECTION,
@@ -605,6 +607,95 @@ describe("applyBggPlayAcceptedNotif", () => {
   });
 });
 
+describe("applyInstagramPostSuccessNotif / applyInstagramPostFailedNotif", () => {
+  const basePayload = {
+    notifId: "ig1",
+    compartidaId: "c1",
+    compartidaTitle: "Noche de Catán",
+    target: "feed",
+    instagramPermalink: "https://instagram.com/p/abc123",
+    timestamp: "2026-06-06T10:00:00Z",
+  };
+
+  it("agrega la notif de éxito con el permalink", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyInstagramPostSuccessNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: basePayload,
+    });
+    expect(setN.state()[0]).toMatchObject({
+      type: "instagram_post_success",
+      compartidaId: "c1",
+      instagramTarget: "feed",
+      instagramPermalink: "https://instagram.com/p/abc123",
+      count: 1,
+      read: false,
+    });
+    expect(setT.state()[0].type).toBe("instagram_post_success");
+  });
+
+  it("agrega la notif de fallo con el mensaje de error", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyInstagramPostFailedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        ...basePayload,
+        notifId: "ig2",
+        instagramPermalink: undefined,
+        instagramError: "Conectá tu cuenta de Instagram",
+      },
+    });
+    expect(setN.state()[0]).toMatchObject({
+      type: "instagram_post_failed",
+      instagramError: "Conectá tu cuenta de Instagram",
+    });
+  });
+
+  it("Feed e Historias de la MISMA compartida coexisten (no se pisan)", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyInstagramPostSuccessNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: { ...basePayload, notifId: "ig-feed", target: "feed" },
+    });
+    applyInstagramPostSuccessNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: { ...basePayload, notifId: "ig-story", target: "story" },
+    });
+    const notifs = setN.state();
+    expect(notifs).toHaveLength(2);
+    expect(notifs.map((n) => n.instagramTarget).sort()).toEqual([
+      "feed",
+      "story",
+    ]);
+  });
+
+  it("reemplaza por (compartidaId, target) del MISMO tipo — no duplica", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyInstagramPostFailedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: { ...basePayload, notifId: "ig-a", instagramError: "primer intento" },
+    });
+    applyInstagramPostFailedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: { ...basePayload, notifId: "ig-b", instagramError: "segundo intento" },
+    });
+    const notifs = setN.state();
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].notifId).toBe("ig-b");
+    expect(notifs[0].instagramError).toBe("segundo intento");
+  });
+});
+
 describe("applyTableCancelledNotif", () => {
   it("agrega notif table_cancelled", () => {
     const setN = makeSetterSpy([]);
@@ -1052,6 +1143,8 @@ describe("EVENT_SECTION", () => {
     expect(EVENT_SECTION["evento:notification"]).toBe("eventos");
     expect(EVENT_SECTION["bgg:play-shared"]).toBe("bgwatch");
     expect(EVENT_SECTION["bgg:play-accepted"]).toBe("bgwatch");
+    expect(EVENT_SECTION["instagram:post-success"]).toBe("instagramCrosspost");
+    expect(EVENT_SECTION["instagram:post-failed"]).toBe("instagramCrosspost");
   });
 });
 

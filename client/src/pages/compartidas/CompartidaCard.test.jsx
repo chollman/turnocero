@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -26,6 +26,9 @@ function Providers({ children }) {
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: vi.fn(),
+}));
 // BggGameSearch (en el editor de juegos) — botón que elige un juego fijo.
 vi.mock("../../components/shared/BggGameSearch", () => ({
   default: ({ onPick }) => (
@@ -49,6 +52,14 @@ vi.mock("../../components/shared/BggGameSearch", () => ({
 import CompartidaCard from "./CompartidaCard";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useNotifications } from "../../context/NotificationContext";
+
+// Default para todos los tests — CompartidaCard llama useNotifications() para
+// el toast de error del retry de Instagram. Los tests que necesiten inspeccionar
+// addToast lo re-mockean con su propio spy.
+beforeEach(() => {
+  useNotifications.mockReturnValue({ addToast: vi.fn() });
+});
 
 function makePost(overrides = {}) {
   return {
@@ -1287,6 +1298,127 @@ describe("<CompartidaCard>", () => {
       expect(
         screen.queryByRole("button", { name: /ver a quién le gustó/i }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("badge de estado del cross-post a Instagram", () => {
+    const AUTHOR = { _id: "a1", username: "cha" };
+
+    it("no se muestra si no hay instagram, aunque sea el autor", () => {
+      renderCard(makePost(), { user: AUTHOR });
+      expect(screen.queryByText(/instagram/i)).not.toBeInTheDocument();
+    });
+
+    it("no se muestra a un usuario que no es el autor", () => {
+      renderCard(
+        makePost({ instagram: { feed: { status: "pending" } } }),
+        { user: { _id: "otro" } },
+      );
+      expect(screen.queryByText(/instagram/i)).not.toBeInTheDocument();
+    });
+
+    it("muestra 'Publicando…' mientras el target está pending", () => {
+      renderCard(
+        makePost({ instagram: { feed: { status: "pending" } } }),
+        { user: AUTHOR },
+      );
+      expect(screen.getByText(/publicando en instagram \(feed\)/i)).toBeInTheDocument();
+    });
+
+    it("muestra un link 'Ver en Instagram' cuando posted trae permalink", () => {
+      renderCard(
+        makePost({
+          instagram: {
+            feed: {
+              status: "posted",
+              permalink: "https://instagram.com/p/abc123",
+            },
+          },
+        }),
+        { user: AUTHOR },
+      );
+      const link = screen.getByRole("link", { name: /ver en instagram \(feed\)/i });
+      expect(link).toHaveAttribute("href", "https://instagram.com/p/abc123");
+    });
+
+    it("posted sin permalink (historias) se muestra como texto, no link", () => {
+      renderCard(
+        makePost({ instagram: { story: { status: "posted" } } }),
+        { user: AUTHOR },
+      );
+      expect(
+        screen.getByText(/ver en instagram \(historias\)/i),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: /instagram/i })).not.toBeInTheDocument();
+    });
+
+    it("feed e historias se muestran a la vez cuando ambos tienen estado", () => {
+      renderCard(
+        makePost({
+          instagram: {
+            feed: { status: "pending" },
+            story: { status: "posted" },
+          },
+        }),
+        { user: AUTHOR },
+      );
+      expect(screen.getByText(/publicando en instagram \(feed\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/ver en instagram \(historias\)/i)).toBeInTheDocument();
+    });
+
+    it("failed muestra el mensaje + botón Reintentar que re-encola el target", async () => {
+      let requestBody = null;
+      server.use(
+        http.post("/api/compartidas/c1/instagram-post", async ({ request }) => {
+          requestBody = await request.json();
+          return HttpResponse.json(
+            {
+              ...makePost({
+                instagram: { feed: { status: "pending" } },
+              }),
+            },
+            { status: 202 },
+          );
+        }),
+      );
+      renderCard(
+        makePost({ instagram: { feed: { status: "failed" } } }),
+        { user: AUTHOR },
+      );
+      expect(
+        screen.getByText(/no se pudo publicar en instagram \(feed\)/i),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /reintentar/i }));
+      await waitFor(() => expect(requestBody).toEqual({ feed: true }));
+      await waitFor(() =>
+        expect(
+          screen.getByText(/publicando en instagram \(feed\)/i),
+        ).toBeInTheDocument(),
+      );
+    });
+
+    it("failed + reintento con error muestra un toast, sin romper la tarjeta", async () => {
+      const addToast = vi.fn();
+      useNotifications.mockReturnValue({ addToast });
+      server.use(
+        http.post("/api/compartidas/c1/instagram-post", () =>
+          HttpResponse.json({ message: "boom" }, { status: 500 }),
+        ),
+      );
+      renderCard(
+        makePost({ instagram: { feed: { status: "failed" } } }),
+        { user: AUTHOR },
+      );
+      fireEvent.click(screen.getByRole("button", { name: /reintentar/i }));
+      await waitFor(() =>
+        expect(addToast).toHaveBeenCalledWith(
+          expect.objectContaining({ type: "error", message: "boom" }),
+        ),
+      );
+      // El badge de fallo sigue ahí — no se rompió nada.
+      expect(
+        screen.getByText(/no se pudo publicar en instagram \(feed\)/i),
+      ).toBeInTheDocument();
     });
   });
 });

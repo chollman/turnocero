@@ -18,6 +18,7 @@ function makeQueryClient() {
 vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
 }));
+vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
 
 // Sección 5 ("Compartí esta partida"): CommunitySelect usa CommunityContext y
 // BggGameSearch debouncea/fetchea; los stubeamos (el form de partida usa
@@ -39,6 +40,7 @@ vi.mock("../../components/shared/BggGameSearch", () => ({
 }));
 
 import PlayForm from "./PlayForm";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 
 function makeUser(overrides = {}) {
   return {
@@ -52,6 +54,9 @@ function makeUser(overrides = {}) {
 }
 
 function renderForm(props = {}) {
+  useSiteConfig.mockReturnValue({
+    isSectionEnabled: props.sectionEnabled || (() => false),
+  });
   return render(
     <QueryClientProvider client={makeQueryClient()}>
       <MemoryRouter>
@@ -452,6 +457,70 @@ describe("<PlayForm>", () => {
     fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][1].share.body).toBe("Gané por un pelo");
+  });
+
+  // ── Sección 5 + cross-post a Instagram ───────────────────────────────
+  const addSharePhoto = () => {
+    const input = document.querySelector('input[type="file"]');
+    const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(input, { target: { files: [file] } });
+  };
+
+  it("no muestra el toggle de Instagram cuando la sección está apagada", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      user: makeUser({ instagramConnected: true, instagramInvalid: false }),
+      sectionEnabled: () => false,
+    });
+    checkSolo();
+    openShare();
+    addSharePhoto();
+    expect(
+      screen.queryByText(/publicar también en instagram/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("muestra el toggle y lo manda en share.crosspostInstagram al tildar Feed", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+      user: makeUser({ instagramConnected: true, instagramInvalid: false }),
+      sectionEnabled: (key) => key === "instagramCrosspost",
+    });
+    checkSolo();
+    openShare();
+    addSharePhoto();
+    fireEvent.click(screen.getByRole("checkbox", { name: /^feed$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][1].share.crosspostInstagram).toEqual({
+      feed: true,
+      story: false,
+    });
+  });
+
+  it("omite crosspostInstagram del share si la juntada no es pública", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+      user: makeUser({ instagramConnected: true, instagramInvalid: false }),
+      sectionEnabled: (key) => key === "instagramCrosspost",
+    });
+    checkSolo();
+    openShare();
+    addSharePhoto();
+    fireEvent.click(screen.getByRole("checkbox", { name: /^feed$/i }));
+    fireEvent.click(screen.getByText("Amigos"));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(
+      onSubmit.mock.calls[0][1].share.crosspostInstagram,
+    ).toBeUndefined();
   });
 
   // ── Autodetección "Nuevo" ─────────────────────────────────────────────

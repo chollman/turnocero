@@ -162,6 +162,42 @@
   display: none;
 }
 
+/* ── Cross-post a Instagram — checkboxes Feed/Historias, o un hint cuando
+   falta una condición (privacidad pública / al menos 1 foto). Compartido
+   con JuntadaFields (embebida en BG Watch), que la importa como `shared`. ── */
+.instagramSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.instagramOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.instagramCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.instagramCheckbox input {
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+.instagramHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* ── Chip de mesa/evento enlazado (contextual, quitable) ── */
 .linkChip {
   display: grid;

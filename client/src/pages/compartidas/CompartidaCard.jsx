@@ -5,12 +5,14 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
 import {
   updateCompartida,
   deleteCompartida,
   addCompartidaImage,
   removeCompartidaImage,
+  retryInstagramPost,
 } from "../../queries/compartidas";
 import GameTile from "../../components/shared/GameTile";
 import BggGameSearch from "../../components/shared/BggGameSearch";
@@ -249,6 +251,7 @@ export default function CompartidaCard({
 }) {
   const { t } = useTranslation("compartidas");
   const { user } = useAuth();
+  const { addToast } = useNotifications();
   const { isSectionEnabled } = useSiteConfig();
   const mesasEnabled = isSectionEnabled("mesas");
   const bgwatchEnabled = isSectionEnabled("bgwatch");
@@ -292,6 +295,77 @@ export default function CompartidaCard({
     post.author &&
     (post.author._id?.toString() === user._id.toString() ||
       post.author.toString?.() === user._id.toString());
+
+  // ── Badge de estado del cross-post a Instagram (solo el autor lo ve) ──
+  const [igRetryBusy, setIgRetryBusy] = useState(null); // null | "feed" | "story"
+  const handleInstagramRetry = async (target) => {
+    setIgRetryBusy(target);
+    try {
+      const { data: updated } = await retryInstagramPost(post._id, target);
+      setPost(updated);
+    } catch (err) {
+      addToast({
+        type: "error",
+        message:
+          err.response?.data?.message || t("card.instagramRetryError"),
+      });
+    } finally {
+      setIgRetryBusy(null);
+    }
+  };
+  const renderInstagramStatus = (target) => {
+    const info = post.instagram?.[target];
+    if (!info?.status) return null;
+    const label = t(
+      target === "feed" ? "card.instagramFeed" : "card.instagramStory",
+    );
+    if (info.status === "pending") {
+      return (
+        <span key={target} className={styles.igStatus}>
+          {t("card.instagramPending", { label })}
+        </span>
+      );
+    }
+    if (info.status === "posted") {
+      return info.permalink ? (
+        <a
+          key={target}
+          href={info.permalink}
+          target="_blank"
+          rel="noreferrer"
+          className={styles.igStatusLink}
+        >
+          {t("card.instagramPosted", { label })}
+        </a>
+      ) : (
+        <span key={target} className={styles.igStatus}>
+          {t("card.instagramPosted", { label })}
+        </span>
+      );
+    }
+    return (
+      <span key={target} className={styles.igStatus}>
+        {t("card.instagramFailed", { label })}
+        <button
+          type="button"
+          className={styles.igRetryBtn}
+          onClick={() => handleInstagramRetry(target)}
+          disabled={igRetryBusy === target}
+        >
+          {igRetryBusy === target
+            ? t("card.instagramRetrying")
+            : t("card.instagramRetry")}
+        </button>
+      </span>
+    );
+  };
+  const instagramStatusRow =
+    isAuthor && (post.instagram?.feed?.status || post.instagram?.story?.status) ? (
+      <div className={styles.igStatusRow}>
+        {renderInstagramStatus("feed")}
+        {renderInstagramStatus("story")}
+      </div>
+    ) : null;
 
   useEffect(() => {
     const handler = (e) => {
@@ -974,6 +1048,7 @@ export default function CompartidaCard({
           )}
 
           {featuredLinkedTickets}
+          {instagramStatusRow}
 
           {showComments && (
             <CompartidaComments
@@ -1289,6 +1364,7 @@ export default function CompartidaCard({
         </div>
       )}
 
+      {instagramStatusRow}
       {linkedTickets}
     </>
   );

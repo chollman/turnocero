@@ -109,6 +109,9 @@ const TYPE_TO_SECTION = {
   // BG Watch
   bgg_play_shared: "bgwatch",
   bgg_play_accepted: "bgwatch",
+  // Instagram cross-post
+  instagram_post_success: "instagramCrosspost",
+  instagram_post_failed: "instagramCrosspost",
 };
 
 /**
@@ -141,6 +144,9 @@ async function saveNotification(recipientId, type, fields) {
     if (fields.fromUserId) filter.fromUserId = fields.fromUserId;
     if (fields.torneoId) filter.torneoId = fields.torneoId;
     if (fields.compartidaId) filter.compartidaId = fields.compartidaId;
+    // Instagram cross-post: feed y story de la misma compartida son notifs
+    // separadas (ver comentario en el schema).
+    if (fields.instagramTarget) filter.instagramTarget = fields.instagramTarget;
     // Like de comentario: agrega por comentario (no por compartida/mesa).
     if (fields.commentId) filter.commentId = fields.commentId;
     if (fields.eventoId) filter.eventoId = fields.eventoId;

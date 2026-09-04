@@ -918,6 +918,65 @@ router.delete(
   }),
 );
 
+// ── POST /api/compartidas/:id/instagram-post — encola el cross-post ────────
+// Solo cambia el estado a "pending" y responde de inmediato — el trabajo
+// pesado (crear contenedor → poll → publish contra la Graph API) lo hace el
+// cron `jobs/instagramPublish.js`, así esta request nunca bloquea en una API
+// externa. Gate adicional (además del `compartidas` de todo el router) sobre
+// la sección específica de la feature.
+router.post(
+  "/:id/instagram-post",
+  protect,
+  requireSection("instagramCrosspost"),
+  asyncHandler(async (req, res) => {
+    const { feed, story } = req.body || {};
+    if (!feed && !story) {
+      throw httpError(400, "Elegí Feed y/o Historias para publicar");
+    }
+
+    const compartida = await Compartida.findById(req.params.id);
+    if (!compartida) throw httpError(404, "Compartida no encontrada");
+    if (!isSameId(compartida.author, req.user._id)) {
+      throw httpError(403, "Solo el autor puede cross-postear esta compartida");
+    }
+    if (compartida.privacy !== "public") {
+      throw httpError(
+        400,
+        "Solo las compartidas públicas se pueden publicar en Instagram",
+      );
+    }
+    if (compartida.images.length === 0) {
+      throw httpError(
+        400,
+        "Agregá al menos una foto para publicar en Instagram",
+      );
+    }
+    // `instagramConnected`/`instagramInvalid` son derivados que sólo existen
+    // en `User.toJSON()` — acá `req.user` es el doc de Mongoose crudo, así que
+    // se inspecciona el subdocumento directamente (mismo criterio que
+    // bggAuth.js#getSessionCookie con bggCredentials).
+    const igCreds = req.user.instagramCredentials;
+    if (!igCreds?.encryptedPageAccessToken || igCreds.invalid) {
+      throw httpError(
+        400,
+        "Conectá tu cuenta de Instagram en tu perfil antes de publicar",
+      );
+    }
+
+    if (feed) {
+      compartida.instagram.feed.status = "pending";
+      compartida.instagram.feed.error = "";
+    }
+    if (story) {
+      compartida.instagram.story.status = "pending";
+      compartida.instagram.story.error = "";
+    }
+    await compartida.save();
+
+    res.status(202).json(compartida);
+  }),
+);
+
 // ── GET /api/compartidas/:id/comments ───────────────────────────────────────
 // Paginado por comentarios de NIVEL SUPERIOR (más nuevos primero). Cada uno
 // trae sus `replies` (respuestas) anidadas, ordenadas de más viejas a más

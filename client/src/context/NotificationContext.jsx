@@ -33,6 +33,7 @@ import { useNoticiaNotificationListeners } from "./notificationListeners/useNoti
 import { useEventoNotificationListeners } from "./notificationListeners/useEventoNotificationListeners";
 import { useCommunityNotificationListeners } from "./notificationListeners/useCommunityNotificationListeners";
 import { useBggNotificationListeners } from "./notificationListeners/useBggNotificationListeners";
+import { useInstagramNotificationListeners } from "./notificationListeners/useInstagramNotificationListeners";
 import { useSiteConfigSocketListener } from "./notificationListeners/useSiteConfigSocketListener";
 
 const NotificationContext = createContext(null);
@@ -218,6 +219,12 @@ export function NotificationProvider({ children }) {
     reloadCommunity,
   });
   useBggNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    setToasts,
+  });
+  useInstagramNotificationListeners({
     socket,
     gated,
     setNotifications,

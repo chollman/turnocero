@@ -6,6 +6,7 @@ import { useTranslation, Trans } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import {
   useCompartidasFeedQuery,
@@ -81,6 +82,7 @@ export default function Compartidas() {
   const { t } = useTranslation("compartidas");
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
+  const { addToast } = useNotifications();
   const brandName = useBrandName();
   const bgwatchEnabled = isSectionEnabled("bgwatch");
   const mesasEnabled = isSectionEnabled("mesas");
@@ -171,6 +173,12 @@ export default function Compartidas() {
       pages[0] = { ...first, compartidas: [newPost, ...first.compartidas] };
       return { ...old, pages };
     });
+    // Acción secundaria aislada (ver createJuntada.js): la compartida ya se
+    // creó con éxito, un fallo del cross-post a Instagram solo se avisa acá,
+    // no bloquea ni revierte nada.
+    if (newPost.instagramCrosspostError) {
+      addToast({ type: "error", message: newPost.instagramCrosspostError });
+    }
     closeCreate();
   };
 

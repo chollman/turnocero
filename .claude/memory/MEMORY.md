@@ -96,3 +96,4 @@
 - [TanStack Query test timing](feedback_tanstack_query_test_timing.md) — setQueryData notifica por microtask, tests post-acción necesitan await waitFor()
 - [QueryClient test isolation](feedback_query_client_test_isolation.md) — tests que renderizan <App/> 2+ veces necesitan queryClient.clear() en beforeEach
 - [Redux preloadedState per-test](feedback_redux_preloaded_state_per_test.md) — slice cuyo initialState depende de localStorage por caller necesita getInitialXState() + preloadedState, no bakeado en createSlice
+- [Instagram cross-post](project_instagram_crosspost.md) — Compartidas→Instagram, detalle completo en CLAUDE.md; código 100% cerrado, falta solo App Review de Meta (externo)

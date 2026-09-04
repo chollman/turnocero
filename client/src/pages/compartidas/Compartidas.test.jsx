@@ -18,6 +18,9 @@ function makeQueryClient() {
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: vi.fn(),
+}));
 
 // Heavy children — stubbed with minimal callbacks for focused feed-logic testing.
 vi.mock("./CompartidaCard", () => ({
@@ -66,6 +69,26 @@ vi.mock("./CreateCompartidaForm", () => ({
       >
         crear
       </button>
+      <button
+        onClick={() =>
+          onCreated?.({
+            _id: "npost-ig-error",
+            body: "Con error de Instagram",
+            images: [{ url: "https://cdn/a.jpg" }],
+            likes: [],
+            privacy: "public",
+            author: {
+              _id: "a1",
+              username: "a",
+              avatar: { url: "", publicId: "" },
+            },
+            createdAt: new Date().toISOString(),
+            instagramCrosspostError: "Conectá tu cuenta de Instagram",
+          })
+        }
+      >
+        crear-con-error-ig
+      </button>
       <button onClick={() => onCancel?.()}>cancelar-form</button>
     </div>
   ),
@@ -81,14 +104,17 @@ vi.mock("./BgWatchHomeWidget", () => ({ default: () => null }));
 import Compartidas from "./Compartidas";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 function renderPage({
   user = { _id: "me", username: "me" },
   initialEntries = ["/"],
   isSectionEnabled = () => true,
+  addToast = vi.fn(),
 } = {}) {
   useAuth.mockReturnValue({ user });
   useSiteConfig.mockReturnValue({ isSectionEnabled });
+  useNotifications.mockReturnValue({ addToast });
   return render(
     <QueryClientProvider client={makeQueryClient()}>
       <HelmetProvider>
@@ -309,6 +335,25 @@ describe("<Compartidas>", () => {
       expect(screen.getByText("Nuevo post")).toBeInTheDocument(),
     );
     expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
+  });
+
+  it("handleCreated: surfaces a non-blocking toast when the post carries instagramCrosspostError, without blocking creation", async () => {
+    const addToast = vi.fn();
+    renderPage({ addToast });
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("compartida-card").length,
+      ).toBeGreaterThanOrEqual(2),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /compartir una juntada o reseña/i }));
+    fireEvent.click(screen.getByRole("button", { name: "crear-con-error-ig" }));
+    await waitFor(() =>
+      expect(screen.getByText("Con error de Instagram")).toBeInTheDocument(),
+    );
+    expect(addToast).toHaveBeenCalledWith({
+      type: "error",
+      message: "Conectá tu cuenta de Instagram",
+    });
   });
 
   it("handleDeleted: clicking delete removes the post from the feed", async () => {

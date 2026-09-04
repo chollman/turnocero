@@ -13,9 +13,12 @@ import {
   connectBgg,
   syncBgg,
   disconnectBgg,
+  connectInstagram,
+  disconnectInstagram,
   uploadAvatar,
   removeAvatar,
 } from "../../queries/users";
+import { useFacebookSdk } from "../../hooks/useFacebookSdk";
 import MiBgWatchCard from "./MiBgWatchCard";
 import CommunityPrefs from "./CommunityPrefs";
 import Avatar from "../../components/shared/Avatar";
@@ -39,6 +42,17 @@ const AVATAR_MIME = ["image/jpeg", "image/png", "image/webp"];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 const BGWATCH_BANNER_DISMISS_KEY = "turnocero_bgwatch_profile_banner_dismissed";
+
+// Scopes que necesitamos del SDK de Facebook para poder publicar en la
+// Instagram Business/Creator account vinculada a una Página — más amplios
+// que el "email" que pide el login del sitio (ver useFacebookSdk).
+const INSTAGRAM_CONNECT_SCOPE = [
+  "instagram_basic",
+  "instagram_content_publish",
+  "pages_show_list",
+  "pages_read_engagement",
+  "business_management",
+].join(",");
 
 const probeOutcomeLabel = (t) => ({
   no_drift: t("usuarios:profile.probeNoDrift"),
@@ -180,6 +194,7 @@ export default function UserProfile() {
   };
   const bgwatchEnabled = isSectionEnabled("bgwatch");
   const pushEnabled = isSectionEnabled("push");
+  const instagramEnabled = isSectionEnabled("instagramCrosspost");
   const push = usePushNotifications();
 
   const handlePushSubscribe = async () => {
@@ -270,6 +285,11 @@ export default function UserProfile() {
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncError, setSyncError] = useState("");
   const [syncSuccess, setSyncSuccess] = useState("");
+
+  // ── Instagram connection state ──
+  const facebook = useFacebookSdk();
+  const [igBusy, setIgBusy] = useState(false);
+  const [igError, setIgError] = useState("");
 
   // ── BG Watch promo banner (F.1) ──
   const [bgWatchBannerDismissed, setBgWatchBannerDismissed] = useState(() => {
@@ -478,6 +498,44 @@ export default function UserProfile() {
     }
   };
 
+  const handleInstagramConnect = async () => {
+    setIgBusy(true);
+    setIgError("");
+    try {
+      const accessToken = await facebook.login(INSTAGRAM_CONNECT_SCOPE);
+      await connectInstagram(accessToken);
+      await refreshUser();
+    } catch (err) {
+      // Cancelar el popup no es un error que valga la pena mostrar.
+      if (err?.message !== "Login con Facebook cancelado") {
+        setIgError(
+          err.response?.data?.message ||
+            t("usuarios:profile.instagramConnectError"),
+        );
+      }
+    } finally {
+      setIgBusy(false);
+    }
+  };
+
+  const handleInstagramDisconnect = async () => {
+    if (!window.confirm(t("usuarios:profile.instagramDisconnectConfirm")))
+      return;
+    setIgBusy(true);
+    setIgError("");
+    try {
+      await disconnectInstagram();
+      await refreshUser();
+    } catch (err) {
+      setIgError(
+        err.response?.data?.message ||
+          t("usuarios:profile.instagramDisconnectError"),
+      );
+    } finally {
+      setIgBusy(false);
+    }
+  };
+
   const [logoutAllBusy, setLogoutAllBusy] = useState(false);
 
   const handleLogoutAllDevices = async () => {
@@ -650,6 +708,11 @@ export default function UserProfile() {
       show: bgwatchEnabled,
     },
     {
+      id: "instagram",
+      label: t("usuarios:profile.sections.instagram"),
+      show: instagramEnabled,
+    },
+    {
       id: "comunidades",
       label: t("usuarios:profile.sections.comunidades"),
       show: true,
@@ -697,9 +760,9 @@ export default function UserProfile() {
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
     // Re-observa cuando cambian las secciones visibles o al cargar el user
-    // (aparece la sección BGG).
+    // (aparece la sección BGG/Instagram).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pushEnabled, bgwatchEnabled, user?._id]);
+  }, [pushEnabled, bgwatchEnabled, instagramEnabled, user?._id]);
 
   const jumpTo = (id) => {
     setActiveSection(id);
@@ -1343,6 +1406,93 @@ export default function UserProfile() {
                   )}
               </div>
             )}
+
+              {instagramEnabled && (
+                <div className={styles.sec} id="instagram">
+                  {secHead("instagram", t("usuarios:profile.instagramHead"))}
+                  <p className={styles.hint}>
+                    {t("usuarios:profile.instagramHint", { brand: brandName })}
+                  </p>
+
+                  {igError && (
+                    <div className={styles.errorBox}>{igError}</div>
+                  )}
+
+                  {user?.instagramConnected && !user?.instagramInvalid && (
+                    <>
+                      <div className={styles.bggStatusGrid}>
+                        <div className={styles.bggStatusCell}>
+                          <span className={styles.bggStatusLabel}>
+                            {t("usuarios:profile.instagramConnectedAs")}
+                          </span>
+                          <span
+                            className={`${styles.bggStatusValue} ${styles.bggStatusValueGreen}`}
+                          >
+                            @{user.instagramUsername || "—"}
+                          </span>
+                        </div>
+                        {user.instagramConnectedAt && (
+                          <div className={styles.bggStatusCell}>
+                            <span className={styles.bggStatusLabel}>
+                              {t("usuarios:profile.instagramSince")}
+                            </span>
+                            <span className={styles.bggStatusValue}>
+                              {new Date(
+                                user.instagramConnectedAt,
+                              ).toLocaleDateString(getLocale(), {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className={styles.bggActions}>
+                        <button
+                          type="button"
+                          className={styles.btnGhost}
+                          onClick={handleInstagramDisconnect}
+                          disabled={igBusy}
+                        >
+                          {t("usuarios:profile.instagramDisconnect")}
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {(!user?.instagramConnected || user?.instagramInvalid) && (
+                    <>
+                      {user?.instagramInvalid && (
+                        <div className={styles.bggInvalidBox}>
+                          {t("usuarios:profile.instagramInvalidBox")}
+                        </div>
+                      )}
+                      <div className={styles.bggConnectForm}>
+                        <button
+                          type="button"
+                          className={styles.btnPrimary}
+                          onClick={handleInstagramConnect}
+                          disabled={
+                            igBusy || !facebook.enabled || !facebook.ready
+                          }
+                        >
+                          {igBusy
+                            ? t("usuarios:profile.instagramConnecting")
+                            : user?.instagramInvalid
+                              ? t("usuarios:profile.instagramReconnect")
+                              : t("usuarios:profile.instagramConnect")}
+                        </button>
+                      </div>
+                      {!facebook.enabled && (
+                        <p className={styles.hint}>
+                          {t("usuarios:profile.instagramNotConfigured")}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className={styles.sec} id="comunidades">
                 {secHead("comunidades", t("usuarios:profile.comunidadesHead"))}

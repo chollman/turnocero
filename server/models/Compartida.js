@@ -155,6 +155,34 @@ const compartidaSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    // Cross-post a Instagram (opt-in, solo juntadas públicas con foto — ver
+    // routes/compartidas.js#POST /:id/instagram-post). No es contenido
+    // browsable, así que no lleva el plugin communityScoped: es metadata de
+    // publish que el cron `jobs/instagramPublish.js` procesa de forma
+    // asincrónica (nunca bloquea la creación de la Compartida).
+    instagram: {
+      feed: {
+        status: {
+          type: String,
+          enum: ["pending", "posted", "failed", null],
+          default: null,
+        },
+        mediaId: { type: String, default: "" },
+        permalink: { type: String, default: "" },
+        postedAt: { type: Date, default: null },
+        error: { type: String, default: "" },
+      },
+      story: {
+        status: {
+          type: String,
+          enum: ["pending", "posted", "failed", null],
+          default: null,
+        },
+        mediaId: { type: String, default: "" },
+        postedAt: { type: Date, default: null },
+        error: { type: String, default: "" },
+      },
+    },
   },
   { timestamps: true },
 );

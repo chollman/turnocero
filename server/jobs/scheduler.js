@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 const eventoReminders = require("./eventoReminders");
 const closePastEventos = require("./closePastEventos");
+const instagramPublish = require("./instagramPublish");
 const logger = require("../utils/logger");
 const { withLease } = require("../utils/cronLease");
 
@@ -56,6 +57,25 @@ function startSchedulers({ io } = {}) {
       }
     } catch (err) {
       logger.error("[closePastEventos] tick failed", { error: err.message });
+    }
+  });
+
+  // Cross-post de Compartidas a Instagram — corre cada 2 minutos (más seguido
+  // que los otros jobs: el usuario espera ver su post publicado poco después
+  // de tildar la opción, no al final del día). Cada tick procesa un batch
+  // acotado (BATCH_SIZE en instagramPublish.js) para no colgarse si la cola
+  // crece.
+  cron.schedule("*/2 * * * *", async () => {
+    try {
+      const outcome = await withLease("instagramPublish", () =>
+        instagramPublish.runOnce({ io }),
+      );
+      if (!outcome.acquired) return;
+      if (outcome.value.processed > 0) {
+        logger.info("[instagramPublish] tick", outcome.value);
+      }
+    } catch (err) {
+      logger.error("[instagramPublish] tick failed", { error: err.message });
     }
   });
 

@@ -89,6 +89,14 @@ export const connectBgg = (password) =>
   axios.post(API.auth.BGG_CONNECT, { password });
 export const syncBgg = () => axios.post(API.bgg.SYNC).then((r) => r.data);
 export const disconnectBgg = () => axios.delete(API.auth.BGG_CONNECTION);
+
+// Conexión Instagram (/perfil, sección "Conexión con Instagram") — mismo
+// criterio que BGG: único caller es UserProfile.jsx, cada una dispara
+// refreshUser() después del await.
+export const connectInstagram = (accessToken) =>
+  axios.post(API.auth.INSTAGRAM_CONNECT, { accessToken });
+export const disconnectInstagram = () =>
+  axios.delete(API.auth.INSTAGRAM_CONNECTION);
 export const uploadAvatar = (formData) =>
   axios.put(API.auth.AVATAR, formData, {
     headers: { "Content-Type": "multipart/form-data" },

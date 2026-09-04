@@ -124,7 +124,15 @@
     "shareWhatsapp": "Share on WhatsApp",
     "shareTelegram": "Share on Telegram",
     "copied": "Copied!",
-    "copyLink": "Copy link"
+    "copyLink": "Copy link",
+    "instagramFeed": "Feed",
+    "instagramStory": "Stories",
+    "instagramPending": "Publishing to Instagram ({{label}})…",
+    "instagramPosted": "View on Instagram ({{label}})",
+    "instagramFailed": "Couldn't publish to Instagram ({{label}})",
+    "instagramRetry": "Retry",
+    "instagramRetrying": "Retrying…",
+    "instagramRetryError": "We couldn't retry the post. Please try again."
   },
   "comments": {
     "head": "Leave your comment",
@@ -270,7 +278,12 @@
     "maxPhotos": "Maximum 3 photos",
     "addPhoto": "Add photo",
     "photo": "Photo ",
-    "photoCount": "Photo ({{count}}/3)"
+    "photoCount": "Photo ({{count}}/3)",
+    "instagramLabel": "Also publish to Instagram",
+    "instagramFeed": "Feed",
+    "instagramStory": "Stories",
+    "instagramNeedsPublic": "Only public juntadas can be published to Instagram.",
+    "instagramNeedsPhoto": "Add at least one photo to also publish to Instagram."
   },
   "resena": {
     "loginLike": "Log in to like this review.",

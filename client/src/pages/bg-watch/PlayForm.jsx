@@ -23,6 +23,7 @@ import {
 } from "./playerPositions";
 import { makeAnonName, isAnonName } from "./anonymousPlayer";
 import useClickOutside from "../../hooks/useClickOutside";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 import CommunitySelect from "../../components/shared/CommunitySelect";
 import JuntadaFields from "../compartidas/JuntadaFields";
 import { buildPlayResult } from "./buildPlayResult";
@@ -110,6 +111,11 @@ export default function PlayForm({
 }) {
   const { t } = useTranslation("bgwatch");
   const bggUsername = user?.bggUsername;
+  const { isSectionEnabled } = useSiteConfig();
+  const instagramAvailable =
+    isSectionEnabled("instagramCrosspost") &&
+    !!user?.instagramConnected &&
+    !user?.instagramInvalid;
 
   const draftEnabled =
     !editMode && !initialValues.game && !initialValues.players?.length;
@@ -164,6 +170,7 @@ export default function PlayForm({
     title: "",
     body: "",
     images: [],
+    crosspostInstagram: { feed: false, story: false },
   });
   // Pre-cargar el juego recién registrado en la juntada, una sola vez al activar
   // la sección (quitable). Si el juego se elige después, el efecto re-corre.
@@ -653,6 +660,12 @@ export default function PlayForm({
             games: shareValue.games,
             images: shareValue.images,
             playResult,
+            // Mismo gate que valida el server: solo tiene sentido para
+            // juntadas públicas (evita mandar un intent stale).
+            crosspostInstagram:
+              shareValue.privacy === "public"
+                ? shareValue.crosspostInstagram
+                : undefined,
           }
         : null;
 
@@ -1480,6 +1493,7 @@ export default function PlayForm({
                       value={shareValue}
                       onChange={setShareValue}
                       disabled={submitting}
+                      instagramAvailable={instagramAvailable}
                     />
                   </div>
                 </div>

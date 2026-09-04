@@ -124,7 +124,15 @@
     "shareWhatsapp": "Compartir en WhatsApp",
     "shareTelegram": "Compartir en Telegram",
     "copied": "¡Copiado!",
-    "copyLink": "Copiar enlace"
+    "copyLink": "Copiar enlace",
+    "instagramFeed": "Feed",
+    "instagramStory": "Historias",
+    "instagramPending": "Publicando en Instagram ({{label}})…",
+    "instagramPosted": "Ver en Instagram ({{label}})",
+    "instagramFailed": "No se pudo publicar en Instagram ({{label}})",
+    "instagramRetry": "Reintentar",
+    "instagramRetrying": "Reintentando…",
+    "instagramRetryError": "No pudimos reintentar la publicación. Probá de nuevo."
   },
   "comments": {
     "head": "Dejá tu comentario",
@@ -270,7 +278,12 @@
     "maxPhotos": "Máximo 3 fotos",
     "addPhoto": "Agregar foto",
     "photo": "Foto ",
-    "photoCount": "Foto ({{count}}/3)"
+    "photoCount": "Foto ({{count}}/3)",
+    "instagramLabel": "Publicar también en Instagram",
+    "instagramFeed": "Feed",
+    "instagramStory": "Historias",
+    "instagramNeedsPublic": "Solo las juntadas públicas se pueden publicar en Instagram.",
+    "instagramNeedsPhoto": "Agregá al menos una foto para publicar también en Instagram."
   },
   "resena": {
     "loginLike": "Iniciá sesión para dar like a esta reseña.",
