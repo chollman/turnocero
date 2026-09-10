@@ -2,6 +2,15 @@ const request = require("supertest");
 const app = require("../../app");
 const BggPlay = require("../../models/BggPlay");
 
+// Días atrás en YYYY-MM-DD (UTC), mismo cálculo que `daysAgoStr` en
+// routes/bgg.js — así "dentro de la ventana" del test se mantiene dentro de
+// la ventana sin importar cuándo corra el test.
+function daysAgo(n) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
 let seq = 0;
 function play(overrides = {}) {
   seq += 1;
@@ -60,10 +69,11 @@ describe("GET /api/bgg/resumen/:bggUsername", () => {
   });
 
   it("el heatmap refleja las partidas dentro de la ventana", async () => {
-    await BggPlay.create(play({ date: "2026-06-01", quantity: 2 }));
-    await BggPlay.create(play({ date: "2026-06-01", quantity: 1 }));
+    const date = daysAgo(5);
+    await BggPlay.create(play({ date, quantity: 2 }));
+    await BggPlay.create(play({ date, quantity: 1 }));
     const res = await request(app).get("/api/bgg/resumen/alice");
-    const day = res.body.heatmap.find((d) => d.date === "2026-06-01");
+    const day = res.body.heatmap.find((d) => d.date === date);
     expect(day.count).toBe(3);
   });
 

@@ -22,6 +22,15 @@ beforeEach(async () => {
   );
 });
 
+// Días atrás en YYYY-MM-DD (UTC), mismo cálculo que `daysAgoStr` en
+// routes/bgg.js — así los "dentro de la ventana" del test se mantienen
+// dentro de la ventana sin importar cuándo corra el test.
+function daysAgo(n) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
 let seq = 0;
 function play(overrides = {}) {
   seq += 1;
@@ -56,7 +65,7 @@ describe("GET /api/bgg/comunidad/juegos", () => {
 
   it("periodo=mes filtra a los últimos 30 días", async () => {
     await BggPlay.create(play({ gameId: "100", date: "2020-01-01" }));
-    await BggPlay.create(play({ gameId: "200", date: "2026-06-04" }));
+    await BggPlay.create(play({ gameId: "200", date: daysAgo(10) }));
     const res = await request(app).get("/api/bgg/comunidad/juegos?periodo=mes");
     expect(res.body.periodo).toBe("mes");
     expect(res.body.games.map((g) => g.id)).toEqual(["200"]);
@@ -155,11 +164,12 @@ describe("GET /api/bgg/comunidad/actividad", () => {
 
 describe("GET /api/bgg/comunidad/heatmap", () => {
   it("cuenta partidas por día del último año", async () => {
-    await BggPlay.create(play({ date: "2026-06-01" }));
-    await BggPlay.create(play({ date: "2026-06-01" }));
+    const date = daysAgo(5);
+    await BggPlay.create(play({ date }));
+    await BggPlay.create(play({ date }));
     const res = await request(app).get("/api/bgg/comunidad/heatmap");
     expect(res.status).toBe(200);
-    const day = res.body.heatmap.find((d) => d.date === "2026-06-01");
+    const day = res.body.heatmap.find((d) => d.date === date);
     expect(day.count).toBe(2);
   });
 });
