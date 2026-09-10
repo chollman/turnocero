@@ -33,7 +33,7 @@
 - [BggPlay aggregations over collection](feedback_bgg_prefer_plays_aggregation.md) — vistas derivadas salen de BggPlay, no de la colección
 - [BGG username case mismatch](feedback_bgg_username_case.md) — User case-preserved vs BggPlay lowercase, usar collation
 - [withUserLock semantics](feedback_user_lock_semantics.md) — dedupe por key no por work function
-- [BGG write quirks](feedback_bgg_write_quirks.md) — plays?id= es game-id; geekplay.php DELETE necesita finalize=1
+- [BGG write quirks](feedback_bgg_write_quirks.md) — plays?id= es game-id; DELETE finalize=1; login/api/v1 400 vs Cloudflare-403
 - [Socket handler race](feedback_socket_handler_race.md) — socket.on() ANTES de cualquier await en connection
 - [PUT partial update](feedback_put_partial_update.md) — PUT solo modifica campos presentes en body
 - [Derived counts en UI](feedback_derived_counts.md) — counters derivables van por useMemo, no state

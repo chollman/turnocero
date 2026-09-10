@@ -33,12 +33,31 @@ async function loginToBgg(username, password) {
     });
   }
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     throw Object.assign(new Error("Credenciales BGG inválidas"), {
       status: 401,
     });
   }
   if (!res.ok) {
+    // BGG's login endpoint now answers a wrong username/password with 400
+    // (previously 401/403) and puts the reason in a JSON body. A 403 in
+    // particular can ALSO be an anti-bot challenge page (HTML) intercepting
+    // the request before it reaches BGG's own handler — that's not a
+    // credentials problem, so only report "wrong password" when the body is
+    // actually BGG's JSON error; otherwise this would send the user chasing
+    // a password that's already fine.
+    const text = await res.text().catch(() => "");
+    let bggMessage;
+    try {
+      bggMessage = JSON.parse(text)?.errors?.message;
+    } catch {
+      // non-JSON body (e.g. a challenge page) — leave bggMessage undefined
+    }
+    if (bggMessage && (res.status === 400 || res.status === 403)) {
+      throw Object.assign(new Error("Credenciales BGG inválidas"), {
+        status: 401,
+      });
+    }
     throw Object.assign(new Error(`BGG login respondió ${res.status}`), {
       status: 502,
     });
