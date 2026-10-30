@@ -44,6 +44,8 @@ export const API = {
   // ── BGG (BG Watch) ───────────────────────────────────────────────────
   bgg: {
     SEARCH: "/api/bgg/search",
+    // Agente de IA de carga de partidas (devuelve un borrador para PlayForm).
+    AGENTE: "/api/bgg/agente",
     GAME: (id) => `/api/bgg/game/${enc(id)}`,
     GAME_EXPANSIONES: (id) => `/api/bgg/game/${enc(id)}/expansiones`,
     VARIANTES: (bggUsername, gameId) =>

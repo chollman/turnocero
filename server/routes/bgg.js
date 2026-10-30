@@ -49,10 +49,7 @@ const {
   ensureFreshUserGames,
   normalizeForSearch,
 } = require("../services/bgg/bggUserGames");
-// `stripLeadingArticle` no se usa directamente acá pero vive en
-// bggSearch junto a scoreSearchMatch para que el ranking de búsqueda
-// quede en un solo módulo testeable.
-const { scoreSearchMatch } = require("../services/bgg/bggSearch");
+const { searchBggCatalog } = require("../services/bgg/bggCatalogSearch");
 const { cache, getCached, setCached } = require("../services/bgg/bggCache");
 const {
   getManualRefreshRemainingMs,
@@ -300,81 +297,14 @@ router.get(
 // Acá solo quedan los handlers HTTP.
 
 // GET /api/bgg/search?q=<query>
+// La búsqueda vive en services/bgg/bggCatalogSearch.js (la reutiliza el agente
+// de carga de partidas). Acá solo se traduce una falla de BGG a 502 sin
+// exponer detalles del upstream.
 router.get(
   "/search",
   asyncHandler(async (req, res) => {
-    const q = (req.query.q || "").trim();
-    if (q.length < 3) return res.json([]);
-
-    const cacheKey = `search:${q.toLowerCase()}`;
-    const cached = getCached(cacheKey);
-    if (cached) return res.json(cached);
-
-    // try/catch interno: el contrato es responder 502 con mensaje custom de
-    // "No se pudo conectar con BGG" cuando fetchBgg falla — no queremos
-    // exponer detalles del upstream. asyncHandler envuelve igual para
-    // cualquier rejection que se escape.
     try {
-      const xml = await fetchBgg(
-        `${BGG_API}/search?query=${encodeURIComponent(q)}&type=boardgame`,
-      );
-      const parsed = parser.parse(xml);
-
-      const root = parsed?.items;
-      if (!root) return res.json([]);
-
-      const rawItems = root.item || [];
-      const items = Array.isArray(rawItems) ? rawItems : [rawItems];
-
-      const results = items
-        .map((item) => {
-          const nameRaw = item.name;
-          const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
-          const primary =
-            nameArr.find((n) => n["@_type"] === "primary") || nameArr[0];
-          const name = primary?.["@_value"] || "";
-          const year = item.yearpublished?.["@_value"]
-            ? Number(item.yearpublished["@_value"])
-            : null;
-          return {
-            id: Number(item["@_id"]),
-            name,
-            year,
-            thumbnail: null,
-            image: null,
-          };
-        })
-        .filter((g) => g.name)
-        // Ranking por relevancia (bucket de match → nombre corto → año desc).
-        // xmlapi2/search no devuelve los items en ningún orden útil; este sort
-        // los pone más cerca del orden que BGG usa en su autocomplete (que está
-        // gateado por Cloudflare desde Node, ver historia de PR).
-        .sort((a, b) => {
-          const sa = scoreSearchMatch(a.name, q);
-          const sb = scoreSearchMatch(b.name, q);
-          if (sa !== sb) return sa - sb;
-          if (a.name.length !== b.name.length)
-            return a.name.length - b.name.length;
-          return (b.year || 0) - (a.year || 0);
-        })
-        .slice(0, 30);
-
-      // Batch-resolve thumbnails + images (memoria → Mongo → BGG, compartido entre usuarios)
-      if (results.length > 0) {
-        try {
-          const gamesMap = await resolveGamesBatch(results.map((g) => g.id));
-          results.forEach((g) => {
-            const game = gamesMap.get(g.id);
-            g.thumbnail = game?.thumbnail || null;
-            g.image = game?.image || null;
-          });
-        } catch {
-          // thumbnails son opcionales, no bloqueamos el resultado
-        }
-      }
-
-      setCached(cacheKey, results);
-      res.json(results);
+      res.json(await searchBggCatalog(req.query.q));
     } catch {
       throw httpError(502, "No se pudo conectar con BGG");
     }

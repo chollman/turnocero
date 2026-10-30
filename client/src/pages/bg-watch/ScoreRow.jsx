@@ -83,6 +83,7 @@ function ScoreCell({ value, onChange, onStep, label }) {
  *   canRemove                 si se muestra el botón de quitar (no para "vos")
  *   onScore(v) / onStep(d)    cambios de puntaje (ligados al índice)
  *   onTeam(t) / onToggleWin() / onRemove()
+ *   onRemoveFaction()         quita la facción/personaje (fuera de equipos)
  */
 export default function ScoreRow({
   player,
@@ -99,6 +100,7 @@ export default function ScoreRow({
   onTeam,
   onToggleWin,
   onRemove,
+  onRemoveFaction,
 }) {
   const { t } = useTranslation("bgwatch");
   const p = player;
@@ -127,7 +129,9 @@ export default function ScoreRow({
         {p.anonymous && (
           <span className={styles.anonTag}>{t("scoreRow.anonTag")}</span>
         )}
-        {isYou && <span className={styles.youPill}>{t("scoreRow.youPill")}</span>}
+        {isYou && (
+          <span className={styles.youPill}>{t("scoreRow.youPill")}</span>
+        )}
         {leader && (
           <span className={styles.scoreCrown}>
             <CrownIcon />
@@ -136,6 +140,23 @@ export default function ScoreRow({
         {p.new && (
           <span className={styles.newBadge} title={t("scoreRow.newTitle")}>
             {t("scoreRow.new")}
+          </span>
+        )}
+        {mode !== "equipos" && p.faction && (
+          <span
+            className={styles.factionChip}
+            title={t("scoreRow.factionTitle")}
+          >
+            {p.faction}
+            {onRemoveFaction && (
+              <button
+                type="button"
+                onClick={onRemoveFaction}
+                aria-label={t("scoreRow.removeFaction", { faction: p.faction })}
+              >
+                ✕
+              </button>
+            )}
           </span>
         )}
       </div>

@@ -330,6 +330,14 @@
         "Hides the \"BGG connection\" section in /perfil"
       ]
     },
+    "bgwatchAgent": {
+      "label": "Logging agent (BG Watch)",
+      "desc": "AI assistant that fills in the play form from text or voice.",
+      "affects": [
+        "Hides the agent bubble on the log-play screen",
+        "Blocks POST /api/bgg/agente"
+      ]
+    },
     "utilidades": {
       "label": "Utilities",
       "desc": "Helper tools (dice, timer, finger picker).",

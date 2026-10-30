@@ -69,6 +69,10 @@ function hydratePlayer(p) {
     new: !!p.new,
     anonymous: !p.username && isAnonName(p.name),
     team: teamFromColor(p.color),
+    // Fuera de equipos, el campo Color/Team de BGG se usa para la facción,
+    // personaje o color del jugador (lo completa el agente de carga, o viene
+    // de una partida ya cargada). Se conserva al editar.
+    faction: teamFromColor(p.color) ? "" : String(p.color || "").trim(),
   };
 }
 
@@ -93,7 +97,13 @@ const DURATION_PRESETS = [30, 90, 120];
  * Props:
  *   user, initialValues { game, details, players }, editMode, lockedGame,
  *   submitting, serverError, onSubmit, onCancel, onDelete (edición),
- *   allowMultiSave (muestra "Guardar y cargar otra"), lastJuntada.
+ *   allowMultiSave (muestra "Guardar y cargar otra"), lastJuntada,
+ *   onFormChange({ game, playdate, players }) — aviso de cambios (lo usa el
+ *   agente de carga para saber qué ya completó el usuario).
+ *
+ * initialValues también acepta (lo arma draftToFormValues para el agente):
+ *   mode ("versus" | "coop" | "equipos"), coopWin y fromAgent (el ganador ya
+ *   viene decidido: no reasignarlo solo al cambiar puntajes).
  */
 export default function PlayForm({
   user,
@@ -107,6 +117,7 @@ export default function PlayForm({
   onDelete,
   allowMultiSave = false,
   lastJuntada = null,
+  onFormChange,
 }) {
   const { t } = useTranslation("bgwatch");
   const bggUsername = user?.bggUsername;
@@ -184,6 +195,7 @@ export default function PlayForm({
             new: false,
             anonymous: false,
             team: "",
+            faction: "",
           },
         ],
   );
@@ -193,9 +205,15 @@ export default function PlayForm({
   // no, versus.
   const initPlayers = initialValues.players || [];
   const initTeams = initPlayers.map((p) => teamFromColor(p.color));
+  const presetMode = ["versus", "coop", "equipos"].includes(initialValues.mode)
+    ? initialValues.mode
+    : null;
   const isTeamsPlay =
-    editMode && initPlayers.length >= 2 && initTeams.every(Boolean);
+    (editMode || presetMode === "equipos") &&
+    initPlayers.length >= 2 &&
+    initTeams.every(Boolean);
   const [mode, setMode] = useState(() => {
+    if (presetMode) return presetMode;
     if (!editMode) return "versus";
     if (isTeamsPlay) return "equipos";
     if (
@@ -206,13 +224,15 @@ export default function PlayForm({
       return "coop";
     return "versus";
   });
-  const [coopWin, setCoopWin] = useState(true);
+  const [coopWin, setCoopWin] = useState(initialValues.coopWin ?? true);
   // ¿El usuario tomó control manual de quién ganó? Mientras sea false (default
   // al crear), cargar un puntaje autoasigna el ganador al score más alto. En
   // cuanto toca el toggle de "Ganó" (o al editar una partida ya cargada) pasa a
   // true y los cambios de puntaje dejan de pisar la elección — clave para juegos
   // donde NO gana el mayor puntaje.
-  const [winsManual, setWinsManual] = useState(editMode);
+  const [winsManual, setWinsManual] = useState(
+    editMode || !!initialValues.fromAgent,
+  );
   // Modo equipos: cuántos equipos hay (2–4) y cuál ganó.
   const [numTeams, setNumTeams] = useState(() =>
     isTeamsPlay ? Math.min(4, Math.max(2, new Set(initTeams).size)) : 2,
@@ -380,6 +400,12 @@ export default function PlayForm({
       p.anonymous ? { ...p, name: makeAnonName(++n) } : p,
     );
   };
+  // Avisar al contenedor qué tiene cargado el form (juego, fecha, jugadores),
+  // para que el agente de carga arranque con ese contexto.
+  useEffect(() => {
+    onFormChange?.({ game, playdate: details.playdate, players });
+  }, [onFormChange, game, details.playdate, players]);
+
   const updatePlayer = (idx, key, val) =>
     setPlayers((arr) =>
       arr.map((p, i) => (i === idx ? { ...p, [key]: val } : p)),
@@ -577,6 +603,7 @@ export default function PlayForm({
           new: p.new,
         };
       }
+      const faction = (p.faction || "").trim();
       return {
         name: p.name.trim(),
         username: p.username.trim(),
@@ -584,6 +611,8 @@ export default function PlayForm({
         score: mode === "coop" ? "" : p.score.trim(),
         win: mode === "coop" ? coopWin : p.win,
         new: p.new,
+        // Facción/personaje → campo Color/Team de BGG (solo si hay).
+        ...(faction ? { color: faction } : {}),
       };
     });
   };
@@ -742,9 +771,7 @@ export default function PlayForm({
 
       {draftOffer && (
         <div className={styles.draftBanner} role="status">
-          <span className={styles.draftText}>
-            {t("playForm.draftBanner")}
-          </span>
+          <span className={styles.draftText}>{t("playForm.draftBanner")}</span>
           <div className={styles.draftActions}>
             <button
               type="button"
@@ -1154,6 +1181,7 @@ export default function PlayForm({
                     updatePlayer(i, "win", !p.win);
                   }}
                   onRemove={() => removePlayer(i)}
+                  onRemoveFaction={() => updatePlayer(i, "faction", "")}
                 />
               ))}
             </div>
@@ -1566,10 +1594,7 @@ export default function PlayForm({
                 interactiva — el ⓘ aclara que es solo la vista previa. En
                 desktop (columna lateral) se oculta por CSS. */}
             <span className={styles.previewInfo}>
-              <InfoTooltip
-                placement="bottom"
-                label={t("playForm.previewHelp")}
-              >
+              <InfoTooltip placement="bottom" label={t("playForm.previewHelp")}>
                 <Trans
                   t={t}
                   i18nKey="playForm.previewHelpBody"

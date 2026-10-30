@@ -30,6 +30,41 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: () => ({ addToast, markSharedPlayLoaded }),
 }));
 
+// Secciones: el agente de carga (bgwatchAgent) apagado salvo que el test lo prenda.
+let mockAgentEnabled = false;
+vi.mock("../../hooks/useSectionEnabled", () => ({
+  useSectionEnabled: () => (key) => (key === "bgwatchAgent" ? mockAgentEnabled : true),
+}));
+
+// Agente stub: un botón que "devuelve" un borrador y expone el contexto del form.
+let lastAgentProps;
+vi.mock("./PlayAgent", () => ({
+  default: (props) => {
+    lastAgentProps = props;
+    return (
+      <div data-testid="play-agent">
+        <span data-testid="agent-dirty">{String(props.formDirty)}</span>
+        <button
+          onClick={() =>
+            props.onDraft({
+              game: { id: 266192, name: "Wingspan" },
+              details: { playdate: "2026-10-29", location: "Club" },
+              players: [
+                { name: "Me", username: "meBGG", score: "70", win: false },
+                { name: "Juan", username: "juanp", score: "80", win: true },
+              ],
+              mode: "versus",
+              fromAgent: true,
+            })
+          }
+        >
+          agent-draft
+        </button>
+      </div>
+    );
+  },
+}));
+
 // PlayForm stub: expone onSubmit/onCancel + lo que recibió. El onSubmit ahora
 // recibe (payload, { keepGoing }); el stub ofrece dos botones para cada caso.
 vi.mock("./PlayForm", () => ({
@@ -40,6 +75,7 @@ vi.mock("./PlayForm", () => ({
     initialValues,
     allowMultiSave,
     lastJuntada,
+    onFormChange,
   }) => {
     const payload = {
       objectid: "13",
@@ -81,6 +117,20 @@ vi.mock("./PlayForm", () => ({
           submit-keep-share
         </button>
         <button onClick={onCancel}>cancel</button>
+        <button
+          onClick={() =>
+            onFormChange?.({
+              game: null,
+              playdate: "2026-10-30",
+              players: [
+                { name: "Me", username: "meBGG", score: "" },
+                { name: "Bob", username: "bob", score: "" },
+              ],
+            })
+          }
+        >
+          form-change
+        </button>
       </div>
     );
   },
@@ -152,6 +202,8 @@ function renderWithState(entry, state) {
 const clipboardWrite = vi.fn().mockResolvedValue(undefined);
 
 beforeEach(() => {
+  mockAgentEnabled = false;
+  lastAgentProps = undefined;
   addToast.mockClear();
   markSharedPlayLoaded.mockClear();
   clipboardWrite.mockClear();
@@ -497,5 +549,57 @@ describe("<CreatePlay>", () => {
     expect(clipboardWrite).not.toHaveBeenCalled();
     // No navegó (sigue el form).
     expect(screen.getByTestId("play-form")).toBeInTheDocument();
+  });
+});
+
+describe("<CreatePlay> — agente de carga", () => {
+  it("no muestra el agente si la sección está apagada", async () => {
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    expect(await screen.findByTestId("play-form")).toBeInTheDocument();
+    expect(screen.queryByTestId("play-agent")).toBeNull();
+  });
+
+  it("con la sección prendida, el borrador del agente precarga el form", async () => {
+    mockAgentEnabled = true;
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    await screen.findByTestId("play-agent");
+    fireEvent.click(screen.getByText("agent-draft"));
+    await waitFor(() =>
+      expect(screen.getByTestId("game")).toHaveTextContent("Wingspan"),
+    );
+    expect(screen.getByTestId("carry-players")).toHaveTextContent("Me,Juan");
+    expect(screen.getByTestId("carry-loc")).toHaveTextContent("Club");
+  });
+
+  it("le pasa al agente lo que ya tiene el form y si está a medio llenar", async () => {
+    mockAgentEnabled = true;
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    await screen.findByTestId("play-agent");
+    expect(screen.getByTestId("agent-dirty")).toHaveTextContent("false");
+    fireEvent.click(screen.getByText("form-change"));
+    await waitFor(() =>
+      expect(screen.getByTestId("agent-dirty")).toHaveTextContent("true"),
+    );
+    expect(lastAgentProps.getFormContext()).toEqual({
+      playdate: "2026-10-30",
+      players: [
+        { name: "Me", username: "meBGG" },
+        { name: "Bob", username: "bob" },
+      ],
+    });
+  });
+
+  it("el borrador del agente destraba el juego fijado por ?juego", async () => {
+    mockAgentEnabled = true;
+    server.use(
+      http.get("/api/bgg/game/13", () =>
+        HttpResponse.json({ id: 13, name: "Catán", thumbnail: "" }),
+      ),
+      http.get("/api/bgg/ultima-juntada/:u", () => HttpResponse.json({ juntada: null })),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva?juego=13");
+    await waitFor(() => expect(screen.getByTestId("locked")).toHaveTextContent("true"));
+    fireEvent.click(screen.getByText("agent-draft"));
+    await waitFor(() => expect(screen.getByTestId("locked")).toHaveTextContent("false"));
   });
 });

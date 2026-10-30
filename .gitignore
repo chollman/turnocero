@@ -45,3 +45,5 @@ Thumbs.db
 
 # Claude Code — hook cache (contains short-lived test JWTs)
 .claude/cache/
+# Resultados de la evaluación del agente de carga (npm run eval:agent)
+server/eval/playLogger/results/

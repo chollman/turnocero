@@ -44,6 +44,7 @@ app.use("/api/mathtrade", require("./routes/mathtrade"));
 app.use("/api/eventos", require("./routes/eventos"));
 app.use("/api/calendario", require("./routes/calendario"));
 app.use("/api/comunidades", require("./routes/comunidades"));
+app.use("/api/bgg/agente", require("./routes/bggAgent"));
 app.use("/api/bgg", require("./routes/bgg"));
 app.use("/api/dm", require("./routes/dm"));
 app.use("/api/admin-chat", require("./routes/adminChat"));

@@ -426,7 +426,9 @@
     "team": "Equipo",
     "pickTeam": "Elegí el equipo:",
     "teamOf": "Equipo de {{name}}",
-    "removePlayer": "Quitar jugador"
+    "removePlayer": "Quitar jugador",
+    "factionTitle": "Facción, personaje o color",
+    "removeFaction": "Quitar {{faction}}"
   },
   "jugadores": {
     "help": "Estos son los jugadores de tus partidas. Tocá uno para ver su detalle y editarlo (corregir el nombre, fijar su usuario de BoardGameGeek o fusionar duplicados).",
@@ -749,5 +751,33 @@
     "noMatch": "Ninguna expansión coincide con «{{term}}»",
     "emptyList": "Este juego no tiene expansiones listadas en BGG",
     "loadError": "No se pudieron cargar las expansiones."
+  },
+  "playAgent": {
+    "open": "Cargar la partida con el asistente",
+    "callout": "¿Te la cargo yo? Contame cómo fue la partida, por texto o por voz.",
+    "calloutClose": "Cerrar sugerencia",
+    "title": "Asistente de carga",
+    "close": "Cerrar",
+    "restart": "Empezar de nuevo",
+    "intro": "Contame qué jugaron, con quién y cómo salió. Por ejemplo: «Ayer jugamos Catan con Juan y Meli, gané yo 10 a 8 a 6».",
+    "placeholder": "Contá cómo fue la partida…",
+    "send": "Enviar",
+    "micStart": "Dictar por voz",
+    "micStop": "Dejar de escuchar",
+    "listening": "Escuchando… tocá el micrófono para terminar.",
+    "noVoiceHint": "Tu navegador no tiene dictado por voz: podés usar el micrófono del teclado.",
+    "thinking": "Pensando…",
+    "draftApplied": "Completé el formulario. Revisalo y tocá «Guardar partida».",
+    "reviewForm": "Revisar formulario",
+    "blocked": "No se pueden mandar más mensajes en esta carga.",
+    "fillManually": "Completar a mano",
+    "turnsLeft_one": "Te queda {{count}} mensaje en esta carga.",
+    "turnsLeft_other": "Te quedan {{count}} mensajes en esta carga.",
+    "sendError": "No se pudo hablar con el asistente.",
+    "mic": {
+      "permission": "Necesitamos permiso para usar el micrófono. Activalo en la configuración del navegador.",
+      "no-speech": "No te escuché. Probá de nuevo.",
+      "failed": "No se pudo usar el micrófono."
+    }
   }
 }
