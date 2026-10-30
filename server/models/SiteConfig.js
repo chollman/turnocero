@@ -17,6 +17,7 @@ const SECTION_KEYS = [
   "mathtrade",
   "comunidades",
   "push",
+  "bgwatchAgent",
 ];
 
 // Defaults que preservan el comportamiento actual hardcodeado:
@@ -27,6 +28,9 @@ const DEFAULT_ENABLED = {
   torneos: false,
   miFeed: false,
   mathtrade: false,
+  // Agente de carga de partidas por IA (BG Watch): arranca apagado, se
+  // habilita desde /panel-admin cuando se quiere abrir el piloto.
+  bgwatchAgent: false,
 };
 
 function defaultFor(key) {

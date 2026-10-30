@@ -330,6 +330,14 @@
         "Oculta sección \"Conexión con BGG\" en /perfil"
       ]
     },
+    "bgwatchAgent": {
+      "label": "Agente de carga (BG Watch)",
+      "desc": "Asistente con IA que completa el formulario de partida a partir de texto o voz.",
+      "affects": [
+        "Oculta la burbuja del agente en la carga de partidas",
+        "Bloquea POST /api/bgg/agente"
+      ]
+    },
     "utilidades": {
       "label": "Utilidades",
       "desc": "Herramientas auxiliares (dado, temporizador, selector de dedos).",

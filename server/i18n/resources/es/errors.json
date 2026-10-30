@@ -3,5 +3,17 @@
   "notFound": "No encontrado",
   "forbidden": "Acceso restringido",
   "unauthorized": "No autenticado",
-  "tooManyAttempts": "Demasiados intentos. Probá de nuevo en unos minutos."
+  "tooManyAttempts": "Demasiados intentos. Probá de nuevo en unos minutos.",
+  "playAgent": {
+    "bggRequired": "Conectá tu usuario de BGG para usar el asistente.",
+    "emptyMessage": "Contale al asistente cómo fue la partida.",
+    "messageTooLong": "El mensaje es demasiado largo (máximo 1000 caracteres).",
+    "unavailable": "El asistente no está disponible en este momento.",
+    "conversationNotFound": "No encontramos esa conversación. Empezá una nueva.",
+    "conversationClosed": "Esta conversación terminó. Empezá una nueva.",
+    "turnLimit": "Llegaste al máximo de mensajes de esta carga. Completá el formulario a mano.",
+    "dailyLimit_one": "Llegaste al límite de {{count}} carga por día con el asistente.",
+    "dailyLimit_other": "Llegaste al límite de {{count}} cargas por día con el asistente.",
+    "failed": "El asistente tuvo un problema. Probá de nuevo o completá el formulario."
+  }
 }

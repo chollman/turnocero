@@ -34,7 +34,7 @@ const SECTION_GROUPS = [
     ],
   },
   { group: "social", keys: ["comunidad", "comunidades", "amigos", "dms"] },
-  { group: "integrations", keys: ["bgwatch", "utilidades", "colabora"] },
+  { group: "integrations", keys: ["bgwatch", "bgwatchAgent", "utilidades", "colabora"] },
   { group: "notifications", keys: ["push"] },
 ];
 
