@@ -55,8 +55,87 @@ describe("useSpeechInput", () => {
     const { result } = renderHook(() => useSpeechInput({ onEnd }));
     act(() => result.current.start());
     act(() => last.onresult(results("ganó Juan")));
-    act(() => last.onend());
+    act(() => result.current.stop());
     expect(onEnd).toHaveBeenCalledWith("ganó Juan");
+  });
+
+  it("listens continuously so short pauses don't end the take", () => {
+    window.SpeechRecognition = FakeRecognition;
+    const { result } = renderHook(() => useSpeechInput());
+    act(() => result.current.start());
+    expect(last.continuous).toBe(true);
+  });
+
+  it("stops by itself only after the silence window", () => {
+    vi.useFakeTimers();
+    try {
+      window.SpeechRecognition = FakeRecognition;
+      const onEnd = vi.fn();
+      const { result } = renderHook(() =>
+        useSpeechInput({ onEnd, silenceMs: 5000 }),
+      );
+      act(() => result.current.start());
+      act(() => last.onresult(results("jugamos Root")));
+      act(() => vi.advanceTimersByTime(4000));
+      expect(result.current.listening).toBe(true);
+      // Hablar de nuevo reinicia la ventana de silencio.
+      act(() => last.onresult(results("jugamos Root con Juan")));
+      act(() => vi.advanceTimersByTime(4000));
+      expect(result.current.listening).toBe(true);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(result.current.listening).toBe(false);
+      expect(onEnd).toHaveBeenCalledWith("jugamos Root con Juan");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reopens the microphone when the browser ends early and keeps the text", () => {
+    window.SpeechRecognition = FakeRecognition;
+    const onEnd = vi.fn();
+    const { result } = renderHook(() => useSpeechInput({ onEnd }));
+    act(() => result.current.start());
+    const first = last;
+    act(() => first.onresult(results("ayer jugamos Azul")));
+    act(() => first.onend());
+    expect(last).not.toBe(first);
+    expect(last.start).toHaveBeenCalled();
+    expect(result.current.listening).toBe(true);
+    expect(onEnd).not.toHaveBeenCalled();
+
+    act(() => last.onresult(results("ganó Meli")));
+    expect(result.current.transcript).toBe("ayer jugamos Azul ganó Meli");
+    act(() => result.current.stop());
+    expect(onEnd).toHaveBeenCalledWith("ayer jugamos Azul ganó Meli");
+  });
+
+  it("caps the total length of a take", () => {
+    vi.useFakeTimers();
+    try {
+      window.SpeechRecognition = FakeRecognition;
+      const { result } = renderHook(() =>
+        useSpeechInput({ silenceMs: 5000, maxMs: 12000 }),
+      );
+      act(() => result.current.start());
+      for (let i = 0; i < 3; i++) {
+        act(() => last.onresult(results(`parte ${i}`)));
+        act(() => vi.advanceTimersByTime(4000));
+      }
+      expect(result.current.listening).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("gives up after repeated early ends with no speech", () => {
+    window.SpeechRecognition = FakeRecognition;
+    const { result } = renderHook(() => useSpeechInput());
+    act(() => result.current.start());
+    for (let i = 0; i < 10 && result.current.listening; i++) {
+      act(() => last.onend());
+    }
+    expect(result.current.listening).toBe(false);
+    expect(result.current.error).toBe("no-speech");
   });
 
   it("defaults to Argentine Spanish", () => {
@@ -76,6 +155,8 @@ describe("useSpeechInput", () => {
     });
     expect(result.current.error).toBe("permission");
     expect(result.current.listening).toBe(false);
+    // Un error grave no reabre el micrófono.
+    expect(last.start).toHaveBeenCalledTimes(1);
   });
 
   it("ignores aborts and resets state", () => {

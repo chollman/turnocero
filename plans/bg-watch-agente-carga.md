@@ -17,7 +17,9 @@ pantalla de carga, por texto o por voz.
 - Historial en el servidor (`AgentConversation`, TTL 24 h).
 - Objetivo para lanzar: 90 % de borradores correctos sin correcciones.
 - Voz: reconocimiento del navegador; sin soporte → dictado del teclado. Sin
-  transcripción en el servidor.
+  transcripción en el servidor. Escucha en modo continuo y corta tras 5 s de
+  silencio (tope 60 s por toma); si el navegador corta antes, `useSpeechInput`
+  reabre el micrófono y sigue sumando el texto.
 
 ## Estado
 
