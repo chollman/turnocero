@@ -14,6 +14,7 @@ import { getUserDisplay } from "../../utils/userDisplay";
 import CommunitiesAdmin from "./CommunitiesAdmin";
 import BggUsagePanel from "./BggUsagePanel";
 import PushTestPanel from "./PushTestPanel";
+import BetaUsersManager from "./BetaUsersManager";
 import styles from "./PanelAdmin.module.css";
 
 // Layout de grupos → keys de secciones de SiteConfig. Las etiquetas/descripciones/
@@ -37,6 +38,10 @@ const SECTION_GROUPS = [
   { group: "integrations", keys: ["bgwatch", "bgwatchAgent", "utilidades", "colabora"] },
   { group: "notifications", keys: ["push"] },
 ];
+
+// Secciones que son features en piloto (server/config/betaFeatures.js): su
+// tarjeta suma la lista de usuarios habilitados.
+const BETA_FEATURE_KEYS = ["bgwatchAgent"];
 
 const STATUS_KEYS = ["new", "reviewed", "archived"];
 
@@ -246,7 +251,7 @@ function IdeasSection() {
   );
 }
 
-function SectionToggle({ section, enabled, busy, onToggle }) {
+function SectionToggle({ section, enabled, busy, onToggle, children }) {
   const { t } = useTranslation();
   const label = t(`admin:sections.${section.key}.label`);
   const affects = t(`admin:sections.${section.key}.affects`, {
@@ -293,6 +298,7 @@ function SectionToggle({ section, enabled, busy, onToggle }) {
           ))}
         </ul>
       </div>
+      {children}
     </div>
   );
 }
@@ -358,7 +364,11 @@ function SectionsTab() {
                 enabled={sections?.[key]?.enabled !== false}
                 busy={busyKey === key}
                 onToggle={handleToggle}
-              />
+              >
+                {BETA_FEATURE_KEYS.includes(key) && (
+                  <BetaUsersManager feature={key} />
+                )}
+              </SectionToggle>
             ))}
           </div>
         </div>

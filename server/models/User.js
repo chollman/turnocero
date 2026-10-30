@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { BETA_FEATURE_KEYS } = require("../config/betaFeatures");
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
@@ -159,6 +160,14 @@ const userSchema = new mongoose.Schema(
     isAdmin: {
       type: Boolean,
       default: false,
+    },
+    // Acceso anticipado a features en piloto (ver config/betaFeatures.js). Lo
+    // administra un admin desde /panel-admin; el flag de la sección sigue
+    // siendo el corte general.
+    betaFeatures: {
+      type: [{ type: String, enum: BETA_FEATURE_KEYS }],
+      default: [],
+      index: true,
     },
     isBanned: {
       type: Boolean,

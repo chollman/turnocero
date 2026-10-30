@@ -11,6 +11,7 @@ const BggGame = require("../models/BggGame");
 const { dayKeyAR, dayRangeToUtc, subtractDays } = require("../utils/dayKey");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isBetaFeatureKey } = require("../config/betaFeatures");
 
 router.param("id", validateObjectId("id"));
 
@@ -238,7 +239,11 @@ router.get(
           bggUsername: u?.bggUsername || null,
           reads: r.reads,
           syncs: r.syncs,
-          mutations: { created: r.created, edited: r.edited, deleted: r.deleted },
+          mutations: {
+            created: r.created,
+            edited: r.edited,
+            deleted: r.deleted,
+          },
           byEndpoint: {
             search: r.search,
             thing: r.thing,
@@ -371,6 +376,72 @@ router.get(
         createdAt: e.createdAt,
       })),
     });
+  }),
+);
+
+// ── Features en piloto: usuarios habilitados (config/betaFeatures.js) ──
+const BETA_USER_FIELDS = "username displayName avatar bggUsername";
+
+function requireBetaFeatureKey(req, res, next) {
+  if (!isBetaFeatureKey(req.params.feature)) {
+    return next(httpError(400, req.t("errors:betaFeatures.invalidFeature")));
+  }
+  next();
+}
+
+// GET /api/admin/beta/:feature/usuarios — usuarios habilitados para la feature
+router.get(
+  "/beta/:feature/usuarios",
+  protect,
+  requireAdmin,
+  requireBetaFeatureKey,
+  asyncHandler(async (req, res) => {
+    const users = await User.find({ betaFeatures: req.params.feature })
+      .select(BETA_USER_FIELDS)
+      .collation({ locale: "en", strength: 2 })
+      .sort({ username: 1 })
+      .lean();
+    res.json(users);
+  }),
+);
+
+// PUT /api/admin/beta/:feature/usuarios/:userId — habilita (idempotente)
+router.put(
+  "/beta/:feature/usuarios/:userId",
+  protect,
+  requireAdmin,
+  requireBetaFeatureKey,
+  validateObjectId("userId"),
+  asyncHandler(async (req, res) => {
+    const user = await User.findByIdAndUpdate(
+      req.params.userId,
+      { $addToSet: { betaFeatures: req.params.feature } },
+      { new: true },
+    )
+      .select(BETA_USER_FIELDS)
+      .lean();
+    if (!user) throw httpError(404, req.t("errors:betaFeatures.userNotFound"));
+    res.json(user);
+  }),
+);
+
+// DELETE /api/admin/beta/:feature/usuarios/:userId — quita el acceso
+router.delete(
+  "/beta/:feature/usuarios/:userId",
+  protect,
+  requireAdmin,
+  requireBetaFeatureKey,
+  validateObjectId("userId"),
+  asyncHandler(async (req, res) => {
+    const user = await User.findByIdAndUpdate(
+      req.params.userId,
+      { $pull: { betaFeatures: req.params.feature } },
+      { new: true },
+    )
+      .select(BETA_USER_FIELDS)
+      .lean();
+    if (!user) throw httpError(404, req.t("errors:betaFeatures.userNotFound"));
+    res.json(user);
   }),
 );
 

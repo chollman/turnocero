@@ -332,10 +332,10 @@
     },
     "bgwatchAgent": {
       "label": "Logging agent (BG Watch)",
-      "desc": "AI assistant that fills in the play form from text or voice.",
+      "desc": "AI assistant that fills in the play form from text or voice. When on: admins and the users enabled in the list below can use it.",
       "affects": [
-        "Hides the agent bubble on the log-play screen",
-        "Blocks POST /api/bgg/agente"
+        "Only admins see the agent bubble",
+        "Blocks POST /api/bgg/agente for everyone else"
       ]
     },
     "utilidades": {
@@ -371,5 +371,28 @@
   },
   "commitBadge": {
     "title": "Commit #{{count}}"
+  },
+  "betaUsers": {
+    "title": "Enabled users",
+    "help": "With the switch on, admins and these users can use the agent. Off, only admins.",
+    "count_one": "{{count}} user",
+    "count_other": "{{count}} users",
+    "empty": "You haven't enabled anyone yet.",
+    "loading": "Loading…",
+    "errorLoad": "Couldn't load the list.",
+    "searchLabel": "Add user",
+    "searchPlaceholder": "Search by name or username…",
+    "searchHint": "Type at least 2 letters.",
+    "searching": "Searching…",
+    "noResults": "No results.",
+    "add": "Add",
+    "adding": "Adding…",
+    "alreadyIn": "Enabled",
+    "remove": "Remove",
+    "removeAria": "Remove {{name}}",
+    "errorAdd": "Couldn't enable the user.",
+    "errorRemove": "Couldn't remove the user.",
+    "toastAdded": "{{name}} can now use the agent.",
+    "toastRemoved": "{{name}} can no longer use the agent."
   }
 }

@@ -15,5 +15,10 @@
     "dailyLimit_one": "Llegaste al límite de {{count}} carga por día con el asistente.",
     "dailyLimit_other": "Llegaste al límite de {{count}} cargas por día con el asistente.",
     "failed": "El asistente tuvo un problema. Probá de nuevo o completá el formulario."
+  },
+  "betaFeatures": {
+    "notEnabled": "Esta función todavía no está habilitada para tu cuenta.",
+    "invalidFeature": "Función inválida.",
+    "userNotFound": "Usuario no encontrado."
   }
 }

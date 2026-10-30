@@ -332,10 +332,10 @@
     },
     "bgwatchAgent": {
       "label": "Agente de carga (BG Watch)",
-      "desc": "Asistente con IA que completa el formulario de partida a partir de texto o voz.",
+      "desc": "Asistente con IA que completa el formulario de partida a partir de texto o voz. Prendido: lo usan los admins y los usuarios habilitados en la lista de abajo.",
       "affects": [
-        "Oculta la burbuja del agente en la carga de partidas",
-        "Bloquea POST /api/bgg/agente"
+        "Solo los admins ven la burbuja del agente",
+        "Bloquea POST /api/bgg/agente para el resto"
       ]
     },
     "utilidades": {
@@ -371,5 +371,28 @@
   },
   "commitBadge": {
     "title": "Commit #{{count}}"
+  },
+  "betaUsers": {
+    "title": "Usuarios habilitados",
+    "help": "Con el interruptor prendido, el agente lo usan los admins y estos usuarios. Apagado, solo los admins.",
+    "count_one": "{{count}} usuario",
+    "count_other": "{{count}} usuarios",
+    "empty": "Todavía no habilitaste a nadie.",
+    "loading": "Cargando…",
+    "errorLoad": "No se pudo cargar la lista.",
+    "searchLabel": "Agregar usuario",
+    "searchPlaceholder": "Buscar por nombre o usuario…",
+    "searchHint": "Escribí al menos 2 letras.",
+    "searching": "Buscando…",
+    "noResults": "Sin resultados.",
+    "add": "Agregar",
+    "adding": "Agregando…",
+    "alreadyIn": "Habilitado",
+    "remove": "Quitar",
+    "removeAria": "Quitar a {{name}}",
+    "errorAdd": "No se pudo habilitar al usuario.",
+    "errorRemove": "No se pudo quitar al usuario.",
+    "toastAdded": "{{name}} ya puede usar el agente.",
+    "toastRemoved": "{{name}} ya no puede usar el agente."
   }
 }

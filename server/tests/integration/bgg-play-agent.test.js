@@ -31,6 +31,10 @@ function scriptedClient(responses) {
 
 const replyOnly = (text) => ({ stop_reason: "end_turn", usage, content: [{ type: "text", text }] });
 
+// Usuario habilitado para el agente desde /panel-admin (feature en piloto).
+const createAgentUser = (overrides = {}) =>
+  createAuthedUser({ betaFeatures: ["bgwatchAgent"], ...overrides });
+
 async function enableAgent() {
   await updateSiteConfig({ bgwatchAgent: { enabled: true } }, null);
 }
@@ -48,11 +52,35 @@ afterEach(() => {
 });
 
 describe("POST /api/bgg/agente — gating", () => {
-  it("is off by default for regular users", async () => {
+  it("is off for everyone but admins while the switch is off, even enabled users", async () => {
+    const { token } = await createAgentUser({ bggUsername: "alice" });
+    const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "hola" });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("feature_not_enabled");
+    expect(res.body.feature).toBe("bgwatchAgent");
+  });
+
+  it("lets admins in while the switch is off", async () => {
+    __setClientForTests(scriptedClient([replyOnly("¿Qué jugaste?")]));
+    const { token } = await createAuthedUser({ bggUsername: "alice", isAdmin: true });
+    const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "hola" });
+    expect(res.status).toBe(200);
+  });
+
+  it("with the switch on, rejects users an admin did not enable", async () => {
+    await enableAgent();
     const { token } = await createAuthedUser({ bggUsername: "alice" });
     const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "hola" });
     expect(res.status).toBe(403);
-    expect(res.body.section).toBe("bgwatchAgent");
+    expect(res.body.code).toBe("feature_not_enabled");
+  });
+
+  it("with the switch on, lets enabled users in", async () => {
+    await enableAgent();
+    __setClientForTests(scriptedClient([replyOnly("¿Qué jugaste?")]));
+    const { token } = await createAgentUser({ bggUsername: "alice" });
+    const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "hola" });
+    expect(res.status).toBe(200);
   });
 
   it("requires authentication", async () => {
@@ -64,7 +92,7 @@ describe("POST /api/bgg/agente — gating", () => {
   it("requires a BGG username", async () => {
     await enableAgent();
     __setClientForTests(scriptedClient([]));
-    const { token } = await createAuthedUser();
+    const { token } = await createAgentUser();
     const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "hola" });
     expect(res.status).toBe(400);
   });
@@ -73,7 +101,7 @@ describe("POST /api/bgg/agente — gating", () => {
     await enableAgent();
     const prev = process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
-    const { token } = await createAuthedUser({ bggUsername: "alice" });
+    const { token } = await createAgentUser({ bggUsername: "alice" });
     const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "hola" });
     expect(res.status).toBe(503);
     if (prev) process.env.ANTHROPIC_API_KEY = prev;
@@ -112,7 +140,7 @@ describe("POST /api/bgg/agente — conversation", () => {
         replyOnly("Listo, revisá el borrador."),
       ]),
     );
-    const { user, token } = await createAuthedUser({ bggUsername: "alice" });
+    const { user, token } = await createAgentUser({ bggUsername: "alice" });
 
     const res = await request(app)
       .post("/api/bgg/agente")
@@ -142,7 +170,7 @@ describe("POST /api/bgg/agente — conversation", () => {
 
   it("continues an existing conversation and rejects someone else's", async () => {
     __setClientForTests(scriptedClient([replyOnly("¿Qué juego?"), replyOnly("Dale.")]));
-    const { token } = await createAuthedUser({ bggUsername: "alice" });
+    const { token } = await createAgentUser({ bggUsername: "alice" });
     const first = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "jugamos ayer" });
     const second = await request(app)
       .post("/api/bgg/agente")
@@ -152,7 +180,7 @@ describe("POST /api/bgg/agente — conversation", () => {
     expect(second.body.conversationId).toBe(first.body.conversationId);
     expect(second.body.turnsLeft).toBe(MAX_USER_TURNS - 2);
 
-    const other = await createAuthedUser({ bggUsername: "bob" });
+    const other = await createAgentUser({ bggUsername: "bob" });
     const stolen = await request(app)
       .post("/api/bgg/agente")
       .set(authHeader(other.token))
@@ -192,7 +220,7 @@ describe("POST /api/bgg/agente — conversation", () => {
         }),
       },
     });
-    const { token } = await createAuthedUser({ bggUsername: "alice" });
+    const { token } = await createAgentUser({ bggUsername: "alice" });
 
     const first = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "Azul con Meli" });
     expect(first.status).toBe(200);
@@ -223,7 +251,7 @@ describe("POST /api/bgg/agente — conversation", () => {
 
   it("enforces the per-conversation message cap", async () => {
     __setClientForTests(scriptedClient([]));
-    const { user, token } = await createAuthedUser({ bggUsername: "alice" });
+    const { user, token } = await createAgentUser({ bggUsername: "alice" });
     const conv = await AgentConversation.create({ userId: user._id, agent: "playLogger", userTurns: MAX_USER_TURNS });
     const res = await request(app)
       .post("/api/bgg/agente")
@@ -234,7 +262,7 @@ describe("POST /api/bgg/agente — conversation", () => {
 
   it("enforces the daily limit of new conversations", async () => {
     __setClientForTests(scriptedClient([]));
-    const { user, token } = await createAuthedUser({ bggUsername: "alice" });
+    const { user, token } = await createAgentUser({ bggUsername: "alice" });
     await AgentConversation.insertMany(
       Array.from({ length: DAILY_CONVERSATIONS }, () => ({ userId: user._id, agent: "playLogger" })),
     );
@@ -245,7 +273,7 @@ describe("POST /api/bgg/agente — conversation", () => {
 
   it("does not consume quota when the first message fails", async () => {
     __setClientForTests(scriptedClient([Object.assign(new Error("bad"), { status: 400 })]));
-    const { user, token } = await createAuthedUser({ bggUsername: "alice" });
+    const { user, token } = await createAgentUser({ bggUsername: "alice" });
     const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "x" });
     expect(res.status).toBe(502);
     expect(await AgentConversation.countDocuments({ userId: user._id })).toBe(0);
@@ -257,7 +285,7 @@ describe("POST /api/bgg/agente — conversation", () => {
     [{ message: "hola", conversationId: "not-an-id" }, 400],
   ])("validates the body %#", async (body, status) => {
     __setClientForTests(scriptedClient([]));
-    const { token } = await createAuthedUser({ bggUsername: "alice" });
+    const { token } = await createAgentUser({ bggUsername: "alice" });
     const res = await request(app).post("/api/bgg/agente").set(authHeader(token)).send(body);
     expect(res.status).toBe(status);
   });

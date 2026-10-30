@@ -30,10 +30,10 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: () => ({ addToast, markSharedPlayLoaded }),
 }));
 
-// Secciones: el agente de carga (bgwatchAgent) apagado salvo que el test lo prenda.
+// Agente de carga (feature en piloto): apagado salvo que el test lo prenda.
 let mockAgentEnabled = false;
-vi.mock("../../hooks/useSectionEnabled", () => ({
-  useSectionEnabled: () => (key) => (key === "bgwatchAgent" ? mockAgentEnabled : true),
+vi.mock("../../hooks/useBetaFeature", () => ({
+  useBetaFeature: (key) => (key === "bgwatchAgent" ? mockAgentEnabled : false),
 }));
 
 // Agente stub: un botón que "devuelve" un borrador y expone el contexto del form.

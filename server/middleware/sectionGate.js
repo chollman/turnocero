@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { isSectionEnabled } = require("../utils/siteConfig");
 const { isTokenStale } = require("../utils/tokenFreshness");
+const { userHasBetaFeature } = require("../config/betaFeatures");
 
 async function ensureUserMaybe(req) {
   if (req.user) return;
@@ -33,4 +34,24 @@ function requireSection(name) {
   };
 }
 
-module.exports = { requireSection };
+// Feature en piloto (config/betaFeatures.js): la usan los admins y los usuarios
+// que un admin habilitó (`User.betaFeatures`), y solo si el interruptor de la
+// sección `key` está prendido. Apagado = solo admins, como requireSection.
+function requireBetaFeature(key) {
+  return async (req, res, next) => {
+    await ensureUserMaybe(req);
+    const allowed = isSectionEnabled(key)
+      ? userHasBetaFeature(req.user, key)
+      : !!req.user?.isAdmin;
+    if (allowed) return next();
+    return res.status(403).json({
+      code: "feature_not_enabled",
+      feature: key,
+      message: req.t
+        ? req.t("errors:betaFeatures.notEnabled")
+        : "Feature not enabled",
+    });
+  };
+}
+
+module.exports = { requireSection, requireBetaFeature };

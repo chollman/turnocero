@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const { protect } = require("../middleware/auth");
-const { requireSection } = require("../middleware/sectionGate");
+const { requireSection, requireBetaFeature } = require("../middleware/sectionGate");
 const userRateLimit = require("../middleware/userRateLimit");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
@@ -9,7 +9,8 @@ const { handlePlayAgentMessage } = require("../services/bgg/playAgent/playAgentS
 
 // Agente de IA para cargar partidas de BG Watch. Solo arma un borrador que
 // precarga el formulario; nunca guarda en BGG. Gateado por la sección
-// `bgwatch` y por su propio flag `bgwatchAgent` (apagado por defecto).
+// `bgwatch` y como feature en piloto `bgwatchAgent`: con el interruptor
+// prendido la usan los admins y los usuarios habilitados desde /panel-admin.
 //
 // La cuota diaria (10 cargas) y el tope de mensajes por conversación viven en
 // el servicio; este limiter solo corta ráfagas.
@@ -22,7 +23,7 @@ const agentBurstLimiter = userRateLimit({
   message: "Demasiados mensajes al asistente, esperá un momento.",
 });
 
-router.use(protect, requireSection("bgwatch"), requireSection("bgwatchAgent"));
+router.use(protect, requireSection("bgwatch"), requireBetaFeature("bgwatchAgent"));
 
 // POST /api/bgg/agente
 // body: { message, conversationId?, choice?, timezone?, formContext? }
