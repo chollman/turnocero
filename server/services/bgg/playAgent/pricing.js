@@ -1,7 +1,9 @@
 // Precios por millón de tokens (USD) para estimar el costo de cada llamada.
-// Fuente: precios publicados de la API de Claude a octubre de 2026. Verificar
-// contra https://docs.claude.com antes de usar estos números para facturar:
-// son una estimación para monitoreo, no la factura real.
+// Verificados el 2026-10-30 contra la tabla de Anthropic (citada por
+// langcopilot.com y buildmvpfast.com; la página oficial no se pudo abrir
+// desde la sesión remota). La escritura de caché es la de 5 minutos, que es
+// la que usa `cache_control: { type: "ephemeral" }`. Son una estimación para
+// monitoreo, no la factura real.
 //
 // Haiku 5.5 cobra más caro si el prompt supera 100K tokens; este agente está
 // muy lejos de ese tope (conversaciones cortas y resultados de tools chicos),
