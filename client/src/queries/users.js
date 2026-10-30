@@ -31,7 +31,7 @@ export function useUsersListQuery(params = {}, { enabled = true } = {}) {
 // migrar el dominio usuarios (mismo endpoint que useUsersListQuery, con su
 // propia key porque el caller debounea el input y no quiere pisar la cache
 // del listado general).
-export function useUserSearchQuery(search) {
+export function useUserSearchQuery(search, { enabled = true } = {}) {
   const trimmed = search?.trim() || "";
   return useQuery({
     queryKey: userKeys.search(trimmed),
@@ -43,6 +43,7 @@ export function useUserSearchQuery(search) {
       return data || [];
     },
     staleTime: 30_000,
+    enabled,
   });
 }
 

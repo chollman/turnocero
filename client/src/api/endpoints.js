@@ -344,6 +344,10 @@ export const API = {
     USER_TOGGLE_ADMIN: (userId) => `/api/admin/users/${enc(userId)}/admin`,
     BGG_USAGE: "/api/admin/bgg-usage",
     BGG_USAGE_EVENTS: "/api/admin/bgg-usage/events",
+    // Features en piloto: usuarios habilitados
+    BETA_USERS: (feature) => `/api/admin/beta/${enc(feature)}/usuarios`,
+    BETA_USER: (feature, userId) =>
+      `/api/admin/beta/${enc(feature)}/usuarios/${enc(userId)}`,
   },
 
   // ── Geocoding ────────────────────────────────────────────────────────

@@ -10,7 +10,10 @@ pantalla de carga, por texto o por voz.
 ## Decisiones
 
 - Modelo: `claude-haiku-5-5`, respaldo `claude-sonnet-5-5` ante sobrecarga.
-- Gating: sección `bgwatch` + flag `bgwatchAgent` (apagado por defecto).
+- Gating: sección `bgwatch` + flag `bgwatchAgent` (apagado por defecto). Es
+  feature en piloto: prendido lo usan los admins y los usuarios habilitados
+  desde `/panel-admin` (`User.betaFeatures`); apagado, solo admins.
+  Plan: https://claude.ai/artifact/AC2tnPygzw86JwjyXbyA9w
 - Facciones/personajes por jugador → campo `color` en modo competitivo; en
   modo equipos `color` sigue siendo "Equipo X".
 - Cuotas: 10 cargas (conversaciones) por usuario por día, 6 mensajes por carga.

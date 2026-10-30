@@ -17,7 +17,7 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import { createJuntada, toGamePayload } from "../compartidas/createJuntada";
 import { buildCompartidaShare } from "../../utils/share";
 import { getShortUrl } from "../../utils/shortlink";
-import { useSectionEnabled } from "../../hooks/useSectionEnabled";
+import { useBetaFeature } from "../../hooks/useBetaFeature";
 import PlayForm from "./PlayForm";
 import PlayAgent from "./PlayAgent";
 
@@ -53,8 +53,8 @@ export default function CreatePlay() {
   const [carry, setCarry] = useState(null);
   // Agente de carga (burbuja): el borrador que arma se vuelca en el form
   // remontándolo con esos valores, igual que el carry de multi-partida.
-  const isSectionEnabled = useSectionEnabled();
-  const agentEnabled = isSectionEnabled("bgwatchAgent");
+  // Feature en piloto: admins + usuarios habilitados desde /panel-admin.
+  const agentEnabled = useBetaFeature("bgwatchAgent");
   const [agentValues, setAgentValues] = useState(null);
   const formSnapshotRef = useRef(null);
   const [formDirty, setFormDirty] = useState(false);

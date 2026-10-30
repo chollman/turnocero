@@ -15,5 +15,10 @@
     "dailyLimit_one": "You reached the limit of {{count}} play per day with the assistant.",
     "dailyLimit_other": "You reached the limit of {{count}} plays per day with the assistant.",
     "failed": "The assistant ran into a problem. Try again or fill in the form."
+  },
+  "betaFeatures": {
+    "notEnabled": "This feature isn't enabled for your account yet.",
+    "invalidFeature": "Invalid feature.",
+    "userNotFound": "User not found."
   }
 }

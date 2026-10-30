@@ -21,6 +21,9 @@ vi.mock("./CommunitiesAdmin", () => ({
   default: () => <div>COMUNIDADES_PANEL</div>,
 }));
 vi.mock("./BggUsagePanel", () => ({ default: () => <div>BGG_PANEL</div> }));
+vi.mock("./BetaUsersManager", () => ({
+  default: ({ feature }) => <div>BETA_USERS:{feature}</div>,
+}));
 
 import PanelAdmin from "./PanelAdmin";
 
@@ -145,6 +148,13 @@ describe("<PanelAdmin>", () => {
     expect(
       screen.getByRole("switch", { name: /activar mi feed/i }),
     ).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("shows the enabled-users list only on the agent's card", () => {
+    renderPanel();
+    const lists = screen.getAllByText(/^BETA_USERS:/);
+    expect(lists).toHaveLength(1);
+    expect(lists[0]).toHaveTextContent("BETA_USERS:bgwatchAgent");
   });
 
   it("calls updateConfig({ key: { enabled: <next> } }) when a toggle is clicked", async () => {
