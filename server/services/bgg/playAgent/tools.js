@@ -44,7 +44,8 @@ const TOOLS = [
       "Get options for a game: board/scenario/variant names the user used before, " +
       "factions/characters used before, and the game's official expansions. " +
       "Call it ONLY when the user mentioned a scenario, map, mode, difficulty, faction, character " +
-      "or expansion. Pass a short query with the words the user used to keep the result small.",
+      "or expansion. Pass a short query with the words the user used to keep the result small; " +
+      "names are often in English, so if the query returns nothing, call it again without query.",
     input_schema: {
       type: "object",
       properties: {
@@ -115,7 +116,7 @@ const TOOLS = [
               },
               faction: {
                 type: "string",
-                description: "Faction/character for this player (versus mode only)",
+                description: "Faction, character or spirit for this player (not in equipos mode)",
               },
             },
             required: ["name"],

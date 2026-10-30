@@ -25,7 +25,8 @@ pantalla de carga, por texto o por voz.
 - [x] F1 — tools (`server/services/bgg/playAgent/`)
 - [x] F2 — bucle + `POST /api/bgg/agente` + cuotas
 - [x] F3 — burbuja, panel, voz, precarga de `PlayForm`, facción en modo competitivo
-- [ ] F4 — set de evaluación (30 frases) y ajuste del prompt
+- [x] F4 — set de evaluación (30 frases) y runner (`npm run eval:agent --prefix server`)
+- [ ] F4 — correr la evaluación con la API y ajustar el prompt hasta el 90 %
 - [ ] F5 — piloto con el flag + tope de gasto
 
 ## Pendientes en la PC (no se pudieron hacer en la sesión remota)
@@ -39,3 +40,21 @@ pantalla de carga, por texto o por voz.
 - [ ] Prueba manual: texto y voz en desktop, Android y PWA de iOS (la burbuja
       solo aparece con `bgwatchAgent` prendido, o siendo admin).
 - [ ] Tope de gasto mensual en la consola de Anthropic.
+- [ ] Correr `npm run eval:agent --prefix server` (necesita la key; cuesta
+      centavos con Haiku). Si queda debajo del 90 %, revisar los ✗ en
+      `server/eval/playLogger/results/` y ajustar `prompt.js` / `tools.js`.
+- [ ] Probar la burbuja sobre el formulario real (se revisó solo en una vista
+      aislada): que no tape campos ni la barra de guardar en desktop y teléfono.
+
+## Evaluación (F4)
+
+`server/eval/playLogger/`: 30 casos (`cases.js`) con el borrador esperado,
+datos fijos de una cuenta de prueba (`fixtures.js`) y tools que los leen
+(`fixtureHandlers.js`) usando la misma lógica pura que producción. El runner
+corre el modelo real, compara (`compare.js`: equipos por agrupación, textos por
+contenido, jugadores como conjunto exacto) y reporta precisión, mensajes por
+caso, tokens y costo. `--dry` valida que cada caso sea alcanzable sin la API;
+`--only=<texto>` filtra casos. Sale con código 1 si queda por debajo del 90 %.
+
+Al agregar un caso: sumá juegos o personas nuevas a `fixtures.js` y corré
+`npm run eval:agent --prefix server -- --dry`.
