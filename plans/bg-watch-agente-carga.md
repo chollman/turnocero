@@ -37,13 +37,13 @@ pantalla de carga, por texto o por voz.
       la sesión remota porque no había MongoDB.
 - [x] `ANTHROPIC_API_KEY` en `server/.env` (falta confirmar el deploy).
 - [x] Verificar precios de caché de Haiku en `playAgent/pricing.js`.
-- [ ] Prueba manual: texto y voz en desktop, Android y PWA de iOS (la burbuja
+- [x] Prueba manual: texto y voz en desktop, Android y PWA de iOS (la burbuja
       solo aparece con `bgwatchAgent` prendido, o siendo admin).
 - [ ] Tope de gasto mensual en la consola de Anthropic.
 - [x] Correr `npm run eval:agent --prefix server` (necesita la key; cuesta
       centavos con Haiku). Si queda debajo del 90 %, revisar los ✗ en
       `server/eval/playLogger/results/` y ajustar `prompt.js` / `tools.js`.
-- [ ] Probar la burbuja sobre el formulario real (se revisó solo en una vista
+- [x] Probar la burbuja sobre el formulario real (se revisó solo en una vista
       aislada): que no tape campos ni la barra de guardar en desktop y teléfono.
 
 ## Evaluación (F4)
