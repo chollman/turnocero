@@ -160,6 +160,67 @@ describe("POST /api/bgg/agente — conversation", () => {
     expect(stolen.status).toBe(404);
   });
 
+  it("returns a question with options and accepts the tapped option", async () => {
+    const calls = [];
+    const responses = [
+      {
+        stop_reason: "tool_use",
+        usage,
+        content: [
+          {
+            type: "tool_use",
+            id: "q1",
+            name: "ask_user",
+            input: {
+              question: "¿Cuál de los dos?",
+              kind: "player",
+              options: [
+                { label: "Melina Gómez", value: "meli_g", detail: "@meli_g" },
+                { label: "Melisa Ruiz", value: "Melisa Ruiz" },
+              ],
+            },
+          },
+        ],
+      },
+      replyOnly("Dale."),
+    ];
+    __setClientForTests({
+      messages: {
+        create: vi.fn(async (params) => {
+          calls.push(JSON.parse(JSON.stringify(params.messages)));
+          return responses.shift();
+        }),
+      },
+    });
+    const { token } = await createAuthedUser({ bggUsername: "alice" });
+
+    const first = await request(app).post("/api/bgg/agente").set(authHeader(token)).send({ message: "Azul con Meli" });
+    expect(first.status).toBe(200);
+    expect(first.body.reply).toBe("¿Cuál de los dos?");
+    expect(first.body.question).toEqual({
+      text: "¿Cuál de los dos?",
+      kind: "player",
+      options: [
+        { label: "Melina Gómez", value: "meli_g", detail: "@meli_g" },
+        { label: "Melisa Ruiz", value: "Melisa Ruiz", detail: "" },
+      ],
+    });
+    const stored = await AgentConversation.findById(first.body.conversationId).lean();
+    expect(stored.pendingAsk.toolUseId).toBe("q1");
+
+    const second = await request(app)
+      .post("/api/bgg/agente")
+      .set(authHeader(token))
+      .send({ message: "Melina Gómez", conversationId: first.body.conversationId, choice: "meli_g" });
+    expect(second.status).toBe(200);
+    expect(second.body.question).toBeNull();
+    const lastUserTurn = calls[1].at(-1);
+    expect(lastUserTurn.content[0]).toMatchObject({ type: "tool_result", tool_use_id: "q1" });
+    expect(JSON.parse(lastUserTurn.content[0].content)).toEqual({ selected: { label: "Melina Gómez", value: "meli_g" } });
+    const after = await AgentConversation.findById(first.body.conversationId).lean();
+    expect(after.pendingAsk).toBeNull();
+  });
+
   it("enforces the per-conversation message cap", async () => {
     __setClientForTests(scriptedClient([]));
     const { user, token } = await createAuthedUser({ bggUsername: "alice" });

@@ -778,6 +778,13 @@
       "permission": "We need permission to use the microphone. Enable it in your browser settings.",
       "no-speech": "I didn't hear you. Try again.",
       "failed": "The microphone couldn't be used."
+    },
+    "other": "Other",
+    "choicesLabel": "Options",
+    "otherPlaceholder": {
+      "game": "Type the game's name…",
+      "player": "Type the player's name…",
+      "other": "Type your answer…"
     }
   }
 }

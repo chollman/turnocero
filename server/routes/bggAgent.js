@@ -25,13 +25,14 @@ const agentBurstLimiter = userRateLimit({
 router.use(protect, requireSection("bgwatch"), requireSection("bgwatchAgent"));
 
 // POST /api/bgg/agente
-// body: { message, conversationId?, timezone?, formContext? }
-// → { conversationId, reply, draft, warnings, status, turnsLeft }
+// body: { message, conversationId?, choice?, timezone?, formContext? }
+//   choice: `value` de la opción tocada cuando responde una pregunta con botones
+// → { conversationId, reply, draft, warnings, status, question, turnsLeft }
 router.post(
   "/",
   agentBurstLimiter,
   asyncHandler(async (req, res) => {
-    const { message, conversationId, timezone, formContext } = req.body || {};
+    const { message, conversationId, choice, timezone, formContext } = req.body || {};
     if (conversationId && !mongoose.isValidObjectId(conversationId)) {
       throw httpError(400, req.t("errors:playAgent.conversationNotFound"));
     }
@@ -42,6 +43,7 @@ router.post(
       locale: req.language,
       timezone: typeof timezone === "string" ? timezone.slice(0, 64) : undefined,
       formContext,
+      choice: typeof choice === "string" ? choice : undefined,
       t: req.t,
     });
     res.json(result);

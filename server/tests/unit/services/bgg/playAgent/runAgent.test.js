@@ -1,4 +1,4 @@
-const { runPlayAgent, MAX_ITERATIONS, DEFAULT_MODEL, FALLBACK_MODEL } = require("../../../../../services/bgg/playAgent/runAgent");
+const { runPlayAgent, sanitizeQuestion, MAX_ITERATIONS, DEFAULT_MODEL, FALLBACK_MODEL } = require("../../../../../services/bgg/playAgent/runAgent");
 const { costUsd } = require("../../../../../services/bgg/playAgent/pricing");
 
 // Cliente falso: devuelve las respuestas encoladas en orden y registra cada llamada.
@@ -39,7 +39,14 @@ describe("runPlayAgent", () => {
 
     const out = await runPlayAgent({ client, messages, userText: "ayer Azul con Juan", ctx, onUsage, handlers });
 
-    expect(out).toEqual({ reply: "Listo, revisalo.", draft, warnings: ["w"], status: "draft_created" });
+    expect(out).toEqual({
+      reply: "Listo, revisalo.",
+      draft,
+      warnings: ["w"],
+      status: "draft_created",
+      question: null,
+      pendingAsk: null,
+    });
     expect(handlers.search_games).toHaveBeenCalledWith({ query: "azul" }, ctx);
     expect(onUsage).toHaveBeenCalledTimes(3);
     // user, assistant, tool_results, assistant, tool_results, assistant
@@ -111,6 +118,96 @@ describe("runPlayAgent", () => {
     const client = fakeClient([bad]);
     await expect(runPlayAgent({ client, messages: [], userText: "x", ctx, handlers: {} })).rejects.toThrow("bad");
     expect(client.messages.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("runPlayAgent — ask_user", () => {
+  const ask = (id, input) => ({ stop_reason: "tool_use", usage, content: [toolUse(id, "ask_user", input)] });
+  const question = {
+    question: "¿Cuál de estos juegos?",
+    kind: "game",
+    options: [
+      { label: "Terraforming Mars", value: "167791", detail: "2016 · 11 partidas" },
+      { label: "Terra Mystica", value: "120677", detail: "2012 · 9 partidas" },
+    ],
+  };
+
+  it("stops the turn and returns the question with its options", async () => {
+    const client = fakeClient([ask("q1", question)]);
+    const out = await runPlayAgent({ client, messages: [], userText: "ayer Terra con Juan", ctx, handlers: {} });
+    expect(out.reply).toBe("¿Cuál de estos juegos?");
+    expect(out.question).toEqual({
+      text: "¿Cuál de estos juegos?",
+      kind: "game",
+      options: [
+        { label: "Terraforming Mars", value: "167791", detail: "2016 · 11 partidas" },
+        { label: "Terra Mystica", value: "120677", detail: "2012 · 9 partidas" },
+      ],
+    });
+    expect(out.pendingAsk).toMatchObject({ toolUseId: "q1", siblingResults: [] });
+    expect(out.draft).toBeNull();
+  });
+
+  it("sends a tapped option back as the ask_user tool_result", async () => {
+    const client = fakeClient([ask("q1", question), { stop_reason: "end_turn", usage, content: [{ type: "text", text: "ok" }] }]);
+    const messages = [];
+    const first = await runPlayAgent({ client, messages, userText: "ayer Terra", ctx, handlers: {} });
+    await runPlayAgent({
+      client,
+      messages,
+      userText: "Terra Mystica",
+      ctx,
+      handlers: {},
+      pendingAsk: first.pendingAsk,
+      choice: "120677",
+    });
+    const reply = messages[2];
+    expect(reply.role).toBe("user");
+    expect(reply.content).toEqual([
+      {
+        type: "tool_result",
+        tool_use_id: "q1",
+        content: JSON.stringify({ selected: { label: "Terra Mystica", value: "120677" } }),
+      },
+    ]);
+  });
+
+  it("sends typed text ('Otro') as a free answer", async () => {
+    const client = fakeClient([ask("q1", question), { stop_reason: "end_turn", usage, content: [] }]);
+    const messages = [];
+    const first = await runPlayAgent({ client, messages, userText: "ayer Terra", ctx, handlers: {} });
+    await runPlayAgent({ client, messages, userText: "Terra Nova", ctx, handlers: {}, pendingAsk: first.pendingAsk });
+    expect(JSON.parse(messages[2].content[0].content)).toEqual({ answer: "Terra Nova" });
+  });
+
+  it("runs sibling tools and keeps their results for the answer turn", async () => {
+    const handlers = { find_players: vi.fn(async () => ({ matches: [] })) };
+    const client = fakeClient([
+      {
+        stop_reason: "tool_use",
+        usage,
+        content: [toolUse("f1", "find_players", { names: ["Juan"] }), toolUse("q1", "ask_user", question)],
+      },
+      { stop_reason: "end_turn", usage, content: [] },
+    ]);
+    const messages = [];
+    const first = await runPlayAgent({ client, messages, userText: "x", ctx, handlers });
+    expect(handlers.find_players).toHaveBeenCalled();
+    expect(first.pendingAsk.siblingResults).toHaveLength(1);
+    await runPlayAgent({ client, messages, userText: "Terra Mystica", ctx, handlers, pendingAsk: first.pendingAsk, choice: "120677" });
+    expect(messages[2].content.map((r) => r.tool_use_id)).toEqual(["f1", "q1"]);
+  });
+
+  it("sanitizes the question: caps options, trims text and defaults the kind", () => {
+    const q = sanitizeQuestion({
+      question: "  ¿Quién?  ",
+      kind: "raro",
+      options: Array.from({ length: 8 }, (_, i) => ({ label: ` Ana ${i} `, value: `ana${i}` })).concat([{ label: "" }]),
+    });
+    expect(q.text).toBe("¿Quién?");
+    expect(q.kind).toBe("other");
+    expect(q.options).toHaveLength(5);
+    expect(q.options[0]).toEqual({ label: "Ana 0", value: "ana0", detail: "" });
   });
 });
 

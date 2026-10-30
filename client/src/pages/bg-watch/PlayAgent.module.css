@@ -215,6 +215,65 @@
   font-style: italic;
 }
 
+/* Opciones de una pregunta del agente (juego o jugador) + "Otro". */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+.choiceBtn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--purple-40);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.choiceBtn:hover:not(:disabled) {
+  background: var(--purple-10);
+  border-color: var(--purple);
+}
+.choiceBtn:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+.choiceBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.choiceLabel {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.choiceDetail {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.choiceOther {
+  justify-content: center;
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+.choiceOtherActive {
+  border-style: solid;
+  border-color: var(--purple);
+  background: var(--purple-10);
+  color: var(--text-primary);
+}
+
 .applied {
   display: flex;
   flex-direction: column;

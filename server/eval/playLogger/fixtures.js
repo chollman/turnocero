@@ -21,6 +21,7 @@ const MY_GAMES = [
   { id: "162886", name: "Spirit Island", year: 2017, timesPlayed: 7, owned: true, minPlayers: 1, maxPlayers: 4 },
   { id: "822", name: "Carcassonne", year: 2000, timesPlayed: 18, owned: true, minPlayers: 2, maxPlayers: 5 },
   { id: "167791", name: "Terraforming Mars", year: 2016, timesPlayed: 11, owned: true, minPlayers: 1, maxPlayers: 5 },
+  { id: "120677", name: "Terra Mystica", year: 2012, timesPlayed: 9, owned: true, minPlayers: 2, maxPlayers: 5 },
   { id: "173346", name: "7 Wonders Duel", year: 2015, timesPlayed: 25, owned: true, minPlayers: 2, maxPlayers: 2 },
   { id: "98778", name: "Hanabi", year: 2010, timesPlayed: 6, owned: true, minPlayers: 2, maxPlayers: 5 },
   { id: "284083", name: "The Crew: The Quest for Planet Nine", year: 2019, timesPlayed: 14, owned: true, minPlayers: 2, maxPlayers: 5 },
@@ -36,6 +37,7 @@ const BGG_CATALOG = [
   { id: "342942", name: "Ark Nova", year: 2021, minPlayers: 1, maxPlayers: 4 },
   { id: "325", name: "Catan: Seafarers", year: 1997, minPlayers: 3, maxPlayers: 4 },
   { id: "174430", name: "Gloomhaven", year: 2017, minPlayers: 1, maxPlayers: 4 },
+  { id: "349067", name: "Terra Nova", year: 2022, minPlayers: 2, maxPlayers: 4 },
 ];
 
 // Compañeros de juego (find_players).

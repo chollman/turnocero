@@ -24,6 +24,10 @@ const agentConversationSchema = new mongoose.Schema(
     // Cantidad de mensajes que mandó el usuario (para el tope por conversación).
     userTurns: { type: Number, default: 0 },
     status: { type: String, enum: STATUSES, default: "active" },
+    // Pregunta con opciones (ask_user) que espera respuesta: { toolUseId,
+    // question: { text, kind, options }, siblingResults }. La respuesta del
+    // usuario se manda como el tool_result de esa llamada.
+    pendingAsk: { type: mongoose.Schema.Types.Mixed, default: null },
     // Último borrador validado que devolvió create_play_draft.
     draft: { type: mongoose.Schema.Types.Mixed, default: null },
   },

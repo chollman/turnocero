@@ -209,3 +209,101 @@ describe("<PlayAgent> — voz", () => {
     expect(screen.getByText(/permiso para usar el micrófono/i)).toBeInTheDocument();
   });
 });
+
+describe("<PlayAgent> — preguntas con opciones", () => {
+  const QUESTION = {
+    text: "¿Cuál de estos juegos?",
+    kind: "game",
+    options: [
+      { label: "Terraforming Mars", value: "167791", detail: "2016 · 11 partidas" },
+      { label: "Terra Mystica", value: "120677", detail: "" },
+    ],
+  };
+
+  function mockAgent(responses) {
+    const bodies = [];
+    server.use(
+      http.post("/api/bgg/agente", async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(responses.shift());
+      }),
+    );
+    return bodies;
+  }
+
+  const askReply = {
+    conversationId: "c1",
+    reply: QUESTION.text,
+    draft: null,
+    warnings: [],
+    status: "active",
+    question: QUESTION,
+    turnsLeft: 5,
+  };
+
+  async function askGame() {
+    renderAgent();
+    openPanel();
+    fireEvent.change(textbox(), { target: { value: "ayer Terra con Juan" } });
+    fireEvent.click(sendBtn());
+    await screen.findByRole("group", { name: QUESTION.text });
+  }
+
+  it("muestra las opciones como botones, con detalle y un botón Otro", async () => {
+    mockAgent([askReply]);
+    await askGame();
+    const group = screen.getByRole("group", { name: QUESTION.text });
+    expect(group).toHaveTextContent("Terraforming Mars");
+    expect(group).toHaveTextContent("2016 · 11 partidas");
+    expect(screen.getByRole("button", { name: /terra mystica/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^otro$/i })).toBeInTheDocument();
+  });
+
+  it("tocar una opción manda su nombre y su value, y oculta los botones", async () => {
+    const bodies = mockAgent([
+      askReply,
+      { conversationId: "c1", reply: "Listo.", draft: null, warnings: [], status: "active", question: null, turnsLeft: 4 },
+    ]);
+    await askGame();
+    fireEvent.click(screen.getByRole("button", { name: /terra mystica/i }));
+    await screen.findByText("Listo.");
+    expect(bodies[1]).toMatchObject({ message: "Terra Mystica", conversationId: "c1", choice: "120677" });
+    expect(screen.queryByRole("group", { name: QUESTION.text })).toBeNull();
+  });
+
+  it("Otro enfoca el input con un placeholder según lo que se pregunta", async () => {
+    const bodies = mockAgent([
+      askReply,
+      { conversationId: "c1", reply: "Dale.", draft: null, warnings: [], status: "active", question: null, turnsLeft: 4 },
+    ]);
+    await askGame();
+    fireEvent.click(screen.getByRole("button", { name: /^otro$/i }));
+    expect(textbox()).toHaveFocus();
+    expect(textbox()).toHaveAttribute("placeholder", "Escribí el nombre del juego…");
+
+    fireEvent.change(textbox(), { target: { value: "Terra Nova" } });
+    fireEvent.click(sendBtn());
+    await screen.findByText("Dale.");
+    expect(bodies[1]).toMatchObject({ message: "Terra Nova", conversationId: "c1" });
+    expect(bodies[1]).not.toHaveProperty("choice");
+    expect(textbox()).toHaveAttribute("placeholder", "Contá cómo fue la partida…");
+  });
+
+  it("usa el placeholder de jugador cuando la pregunta es por una persona", async () => {
+    mockAgent([{ ...askReply, reply: "¿Cuál Meli?", question: { ...QUESTION, text: "¿Cuál Meli?", kind: "player" } }]);
+    renderAgent();
+    openPanel();
+    fireEvent.change(textbox(), { target: { value: "Azul con Meli" } });
+    fireEvent.click(sendBtn());
+    await screen.findByRole("group", { name: "¿Cuál Meli?" });
+    fireEvent.click(screen.getByRole("button", { name: /^otro$/i }));
+    expect(textbox()).toHaveAttribute("placeholder", "Escribí el nombre del jugador…");
+  });
+
+  it("Empezar de nuevo borra la pregunta pendiente", async () => {
+    mockAgent([askReply]);
+    await askGame();
+    fireEvent.click(screen.getByRole("button", { name: /empezar de nuevo/i }));
+    expect(screen.queryByRole("group", { name: QUESTION.text })).toBeNull();
+  });
+});

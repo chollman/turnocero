@@ -77,6 +77,7 @@ function sanitizeFormContext(raw) {
  * @param {string} [args.locale]        "es" | "en"
  * @param {string} [args.timezone]
  * @param {object} [args.formContext]   lo ya cargado en el formulario (solo al empezar)
+ * @param {string} [args.choice]        `value` de la opción tocada, si responde una pregunta con botones
  * @param {Function} args.t             traductor (req.t)
  * @param {object} [args.client]        cliente de Anthropic (tests)
  */
@@ -87,6 +88,7 @@ async function handlePlayAgentMessage({
   locale = "es",
   timezone = "America/Argentina/Buenos_Aires",
   formContext,
+  choice,
   t,
   client = getDefaultClient(),
 }) {
@@ -154,7 +156,15 @@ async function handlePlayAgentMessage({
 
   let result;
   try {
-    result = await runPlayAgent({ client, messages, userText: text, ctx, onUsage });
+    result = await runPlayAgent({
+      client,
+      messages,
+      userText: text,
+      ctx,
+      onUsage,
+      pendingAsk: conversation.pendingAsk || null,
+      choice: typeof choice === "string" ? choice.slice(0, 60) : null,
+    });
   } catch (err) {
     logger.error("[playAgent] run failed", { error: err.message, status: err.status });
     // Una conversación nueva que falló en el primer mensaje no consume cuota.
@@ -177,6 +187,8 @@ async function handlePlayAgentMessage({
   conversation.markModified("messages");
   conversation.userTurns += 1;
   conversation.status = result.status;
+  conversation.pendingAsk = result.pendingAsk || null;
+  conversation.markModified("pendingAsk");
   if (result.draft) {
     conversation.draft = { ...result.draft, warnings: result.warnings };
     conversation.markModified("draft");
@@ -189,6 +201,7 @@ async function handlePlayAgentMessage({
     draft: result.draft,
     warnings: result.warnings,
     status: result.status,
+    question: result.question || null,
     turnsLeft: Math.max(0, MAX_USER_TURNS - conversation.userTurns),
   };
 }

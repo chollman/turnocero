@@ -1,4 +1,8 @@
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useMemo } from "react";
 import axios from "axios";
 import { API } from "../api/endpoints";
@@ -113,7 +117,11 @@ export const bgWatchKeys = {
     "usernamesMap",
     usernamesKey,
   ],
-  comunidadJuegos: (periodo) => [...bgWatchKeys.all, "comunidadJuegos", periodo],
+  comunidadJuegos: (periodo) => [
+    ...bgWatchKeys.all,
+    "comunidadJuegos",
+    periodo,
+  ],
   comunidadJuego: (gameId) => [...bgWatchKeys.all, "comunidadJuego", gameId],
   comunidadJugadores: (metric) => [
     ...bgWatchKeys.all,
@@ -216,7 +224,10 @@ async function fetchPartidas(bggUsername, params, signal) {
 // Query key normalizado, compartido entre el hook de lectura y
 // `refreshBgWatchPartidas` (que escribe el resultado del refresh manual
 // directo a esta MISMA entrada de cache vía `queryClient.setQueryData`).
-export const partidasQueryKey = (bggUsername, { page = 1, mindate, maxdate, gameId } = {}) =>
+export const partidasQueryKey = (
+  bggUsername,
+  { page = 1, mindate, maxdate, gameId } = {},
+) =>
   bgWatchKeys.partidas(bggUsername, {
     page,
     mindate: mindate || null,
@@ -246,7 +257,11 @@ export function useBgWatchPartidasQuery({
       if (mindate) params.mindate = mindate;
       if (maxdate) params.maxdate = maxdate;
       if (gameId) params.id = gameId;
-      const { data, cooldownMs } = await fetchPartidas(bggUsername, params, signal);
+      const { data, cooldownMs } = await fetchPartidas(
+        bggUsername,
+        params,
+        signal,
+      );
       queryClient.setQueryData(
         bgWatchKeys.partidasCooldown(bggUsername),
         cooldownMs > 0 ? Date.now() + cooldownMs : 0,
@@ -272,7 +287,10 @@ export function usePartidasCooldownQuery(bggUsername) {
 // "Actualizar" manual — bypassea la cache del server (`refresh:1`) y devuelve
 // el cooldown para que el caller arme la cuenta regresiva. El caller escribe
 // el resultado en el cache con `queryClient.setQueryData`.
-export const refreshBgWatchPartidas = (bggUsername, { page, mindate, maxdate } = {}) => {
+export const refreshBgWatchPartidas = (
+  bggUsername,
+  { page, mindate, maxdate } = {},
+) => {
   const params = { page, refresh: 1 };
   if (mindate) params.mindate = mindate;
   if (maxdate) params.maxdate = maxdate;
@@ -396,7 +414,12 @@ export function useUltimaJuntadaQuery(bggUsername, { enabled = true } = {}) {
 
 // ── Pickers de PlayForm (búsqueda + infinite scroll) ────────────────────
 
-export function useMisJuegosQuery({ bggUsername, page = 1, q, enabled = true }) {
+export function useMisJuegosQuery({
+  bggUsername,
+  page = 1,
+  q,
+  enabled = true,
+}) {
   return useInfiniteQuery({
     queryKey: bgWatchKeys.misJuegos(bggUsername, { q: q || "" }),
     queryFn: async ({ pageParam, signal }) => {
@@ -413,11 +436,7 @@ export function useMisJuegosQuery({ bggUsername, page = 1, q, enabled = true }) 
   });
 }
 
-export function useMisUbicacionesQuery({
-  bggUsername,
-  q,
-  enabled = true,
-}) {
+export function useMisUbicacionesQuery({ bggUsername, q, enabled = true }) {
   return useInfiniteQuery({
     queryKey: bgWatchKeys.misUbicaciones(bggUsername, { q: q || "" }),
     queryFn: async ({ pageParam, signal }) => {
@@ -470,14 +489,17 @@ export function useTurnoceroJugadoresQuery({ q, enabled = true }) {
   });
 }
 
-export function useVariantesQuery(bggUsername, gameId, { enabled = true } = {}) {
+export function useVariantesQuery(
+  bggUsername,
+  gameId,
+  { enabled = true } = {},
+) {
   return useQuery({
     queryKey: bgWatchKeys.variantes(bggUsername, gameId),
     queryFn: async ({ signal }) => {
-      const { data } = await axios.get(
-        API.bgg.VARIANTES(bggUsername, gameId),
-        { signal },
-      );
+      const { data } = await axios.get(API.bgg.VARIANTES(bggUsername, gameId), {
+        signal,
+      });
       return data.items || [];
     },
     enabled: enabled && !!bggUsername && !!gameId,
@@ -499,7 +521,12 @@ export function useGameExpansionesQuery(gameId, { enabled = true } = {}) {
 
 // ── Jugadores / Ubicaciones (paneles, page-number) ──────────────────────
 
-export function useJugadoresQuery({ bggUsername, page = 1, q, enabled = true }) {
+export function useJugadoresQuery({
+  bggUsername,
+  page = 1,
+  q,
+  enabled = true,
+}) {
   return useQuery({
     queryKey: bgWatchKeys.jugadores(bggUsername, { page, q: q || "" }),
     queryFn: async ({ signal }) => {
@@ -515,7 +542,11 @@ export function useJugadoresQuery({ bggUsername, page = 1, q, enabled = true }) 
 
 // Búsqueda de fusión (MergePlayerModal) — mismo endpoint, sin paginar
 // (limit:50 fijo), key propia para no pisar la cache paginada del panel.
-export function useJugadoresMergeSearchQuery({ bggUsername, q, enabled = true }) {
+export function useJugadoresMergeSearchQuery({
+  bggUsername,
+  q,
+  enabled = true,
+}) {
   return useQuery({
     queryKey: [...bgWatchKeys.jugadores(bggUsername, { merge: true }), q || ""],
     queryFn: async () => {
@@ -528,7 +559,12 @@ export function useJugadoresMergeSearchQuery({ bggUsername, q, enabled = true })
   });
 }
 
-export function useJugadorDetalleQuery(bggUsername, playerKey, page, { enabled = true } = {}) {
+export function useJugadorDetalleQuery(
+  bggUsername,
+  playerKey,
+  page,
+  { enabled = true } = {},
+) {
   return useQuery({
     queryKey: bgWatchKeys.jugadorDetalle(bggUsername, playerKey, page),
     queryFn: async ({ signal }) => {
@@ -542,7 +578,12 @@ export function useJugadorDetalleQuery(bggUsername, playerKey, page, { enabled =
   });
 }
 
-export function useUbicacionesQuery({ bggUsername, page = 1, q, enabled = true }) {
+export function useUbicacionesQuery({
+  bggUsername,
+  page = 1,
+  q,
+  enabled = true,
+}) {
   return useQuery({
     queryKey: bgWatchKeys.ubicaciones(bggUsername, { page, q: q || "" }),
     queryFn: async ({ signal }) => {
@@ -556,9 +597,16 @@ export function useUbicacionesQuery({ bggUsername, page = 1, q, enabled = true }
   });
 }
 
-export function useUbicacionesMergeSearchQuery({ bggUsername, q, enabled = true }) {
+export function useUbicacionesMergeSearchQuery({
+  bggUsername,
+  q,
+  enabled = true,
+}) {
   return useQuery({
-    queryKey: [...bgWatchKeys.ubicaciones(bggUsername, { merge: true }), q || ""],
+    queryKey: [
+      ...bgWatchKeys.ubicaciones(bggUsername, { merge: true }),
+      q || "",
+    ],
     queryFn: async () => {
       const { data } = await axios.get(API.bgg.UBICACIONES(bggUsername), {
         params: { q: q || undefined, limit: 50 },
@@ -569,7 +617,12 @@ export function useUbicacionesMergeSearchQuery({ bggUsername, q, enabled = true 
   });
 }
 
-export function useUbicacionDetalleQuery(bggUsername, locationKey, page, { enabled = true } = {}) {
+export function useUbicacionDetalleQuery(
+  bggUsername,
+  locationKey,
+  page,
+  { enabled = true } = {},
+) {
   return useQuery({
     queryKey: bgWatchKeys.ubicacionDetalle(bggUsername, locationKey, page),
     queryFn: async ({ signal }) => {
@@ -704,7 +757,11 @@ export function useComunidadHeatmapQuery() {
   });
 }
 
-export function useComunidadRankQuery(bggUsername, gameId, { enabled = true } = {}) {
+export function useComunidadRankQuery(
+  bggUsername,
+  gameId,
+  { enabled = true } = {},
+) {
   return useQuery({
     queryKey: bgWatchKeys.comunidadRank(bggUsername, gameId),
     queryFn: async ({ signal }) => {
@@ -730,18 +787,21 @@ export const deleteBgWatchPlay = (playId) =>
   axios.delete(API.bgg.PARTIDA_DETAIL(playId));
 
 // Agente de carga de partidas: manda un mensaje (texto o voz transcripta) y
-// devuelve { conversationId, reply, draft, warnings, status, turnsLeft }. No es
+// devuelve { conversationId, reply, draft, warnings, status, question, turnsLeft }. No es
 // cacheable (cada mensaje avanza una conversación), así que es una función
 // axios simple, como las mutaciones de arriba.
 export const sendPlayAgentMessage = async ({
   message,
   conversationId,
+  choice,
   formContext,
 }) => {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { data } = await axios.post(API.bgg.AGENTE, {
     message,
     ...(conversationId ? { conversationId } : {}),
+    // `value` de la opción tocada cuando responde una pregunta con botones.
+    ...(choice ? { choice } : {}),
     ...(formContext ? { formContext } : {}),
     timezone,
   });
@@ -752,11 +812,7 @@ export const sendPlayAgentMessage = async ({
 // query cacheable (cambia con cada edición del form), así que queda como un
 // simple helper axios-backed en vez de un hook de query.
 export const detectNewPlayers = (bggUsername, gameId, players, signal) =>
-  axios.post(
-    API.bgg.NUEVOS(bggUsername, gameId),
-    { players },
-    { signal },
-  );
+  axios.post(API.bgg.NUEVOS(bggUsername, gameId), { players }, { signal });
 
 export const renamePlayer = (bggUsername, rawKeys, name) =>
   axios.patch(API.bgg.JUGADOR_NOMBRE(bggUsername), { rawKeys, name });
