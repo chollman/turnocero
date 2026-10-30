@@ -26,21 +26,21 @@ pantalla de carga, por texto o por voz.
 - [x] F2 — bucle + `POST /api/bgg/agente` + cuotas
 - [x] F3 — burbuja, panel, voz, precarga de `PlayForm`, facción en modo competitivo
 - [x] F4 — set de evaluación (30 frases) y runner (`npm run eval:agent --prefix server`)
-- [ ] F4 — correr la evaluación con la API y ajustar el prompt hasta el 90 %
+- [x] F4 — evaluación con la API: 29/30 → ajuste de empates → **30/30 (100 %)**, USD 0,0006 por carga (2026-10-30)
 - [ ] F5 — piloto con el flag + tope de gasto
 
 ## Pendientes en la PC (no se pudieron hacer en la sesión remota)
 
-- [ ] `npm install --prefix server` (agrega `@anthropic-ai/sdk`).
-- [ ] Correr `npm test` completo: los tests de integración del agente y de
+- [x] `npm install --prefix server` (agrega `@anthropic-ai/sdk`).
+- [x] Correr `npm test` completo: los tests de integración del agente y de
       `GET /api/bgg/search` (movida a `bggCatalogSearch.js`) no corrieron en
       la sesión remota porque no había MongoDB.
-- [ ] `ANTHROPIC_API_KEY` en `server/.env` y en el deploy.
-- [ ] Verificar precios de caché de Haiku en `playAgent/pricing.js`.
+- [x] `ANTHROPIC_API_KEY` en `server/.env` (falta confirmar el deploy).
+- [x] Verificar precios de caché de Haiku en `playAgent/pricing.js`.
 - [ ] Prueba manual: texto y voz en desktop, Android y PWA de iOS (la burbuja
       solo aparece con `bgwatchAgent` prendido, o siendo admin).
 - [ ] Tope de gasto mensual en la consola de Anthropic.
-- [ ] Correr `npm run eval:agent --prefix server` (necesita la key; cuesta
+- [x] Correr `npm run eval:agent --prefix server` (necesita la key; cuesta
       centavos con Haiku). Si queda debajo del 90 %, revisar los ✗ en
       `server/eval/playLogger/results/` y ajustar `prompt.js` / `tools.js`.
 - [ ] Probar la burbuja sobre el formulario real (se revisó solo en una vista
