@@ -729,6 +729,25 @@ export const updateBgWatchPlay = (playId, payload) =>
 export const deleteBgWatchPlay = (playId) =>
   axios.delete(API.bgg.PARTIDA_DETAIL(playId));
 
+// Agente de carga de partidas: manda un mensaje (texto o voz transcripta) y
+// devuelve { conversationId, reply, draft, warnings, status, turnsLeft }. No es
+// cacheable (cada mensaje avanza una conversación), así que es una función
+// axios simple, como las mutaciones de arriba.
+export const sendPlayAgentMessage = async ({
+  message,
+  conversationId,
+  formContext,
+}) => {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const { data } = await axios.post(API.bgg.AGENTE, {
+    message,
+    ...(conversationId ? { conversationId } : {}),
+    ...(formContext ? { formContext } : {}),
+    timezone,
+  });
+  return data;
+};
+
 // Auto-detección de "jugador nuevo" mientras se arma el roster — no es una
 // query cacheable (cambia con cada edición del form), así que queda como un
 // simple helper axios-backed en vez de un hook de query.

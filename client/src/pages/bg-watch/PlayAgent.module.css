@@ -1,0 +1,363 @@
+/* Agente de carga de partidas: burbuja flotante + panel de conversación.
+   Desktop: panel lateral abajo a la derecha. Teléfono: hoja inferior.
+   Todo con tokens de tema (funciona en claro y oscuro). */
+
+/* ── Burbuja ─────────────────────────────────────────────────────── */
+.dock {
+  position: fixed;
+  /* Desktop: arriba del lanzador de chats (52px en bottom:20px). */
+  right: 20px;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 125;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.dock > * {
+  pointer-events: auto;
+}
+
+.bubble {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--purple);
+  color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--purple-40);
+  cursor: pointer;
+  transition: all var(--transition);
+  animation: bubbleIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+}
+.bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px var(--purple-70);
+}
+.bubble:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 3px;
+}
+
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 240px;
+  padding: 10px 8px 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--purple-30);
+  border-radius: 14px 14px 4px 14px;
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+  animation: bubbleIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.9s both;
+}
+.calloutClose {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+.calloutClose:hover {
+  background: var(--overlay-soft);
+  color: var(--text-primary);
+}
+
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Panel ───────────────────────────────────────────────────────── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--overlay-medium);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 16px;
+}
+
+.panel {
+  width: 400px;
+  max-width: 100%;
+  height: min(620px, calc(100dvh - 32px));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  outline: none;
+  animation: panelIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.headerIcon {
+  display: grid;
+  place-items: center;
+  color: var(--purple);
+}
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.closeBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.linkBtn {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.linkBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.msg {
+  max-width: 85%;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msgAssistant {
+  align-self: flex-start;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+.msgUser {
+  align-self: flex-end;
+  background: var(--purple-15);
+  border: 1px solid var(--purple-30);
+  color: var(--text-primary);
+  border-bottom-right-radius: 4px;
+}
+.thinking {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.applied {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: var(--green-10);
+  border: 1px solid var(--green-30);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.reviewBtn {
+  padding: 7px 14px;
+  border: 1px solid var(--green);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.reviewBtn:hover {
+  background: var(--green-15);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+}
+.inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font: inherit;
+  /* 16px: evita el zoom automático de iOS al enfocar. */
+  font-size: 16px;
+  line-height: 1.35;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--purple);
+}
+.iconBtn,
+.sendBtn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.iconBtn {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+.iconBtn:hover:not(:disabled) {
+  color: var(--purple);
+  border-color: var(--purple-40);
+}
+.iconBtnActive {
+  background: var(--red-15);
+  border-color: var(--red);
+  color: var(--red);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.sendBtn {
+  border: none;
+  background: var(--purple);
+  color: var(--on-amber);
+}
+.iconBtn:disabled,
+.sendBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 0 6px var(--red-15);
+  }
+}
+
+.listening {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+}
+.hint,
+.hintError,
+.turns {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.hintError {
+  color: var(--red);
+}
+
+/* ── Teléfono: hoja inferior + burbuja arriba de la barra de guardar ── */
+@media (--phone) {
+  .dock {
+    right: 16px;
+    /* La save bar fija de PlayForm mide ~74px + safe area. */
+    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  }
+  .callout {
+    max-width: calc(100vw - 100px);
+  }
+  .backdrop {
+    padding: 0;
+  }
+  .panel {
+    width: 100%;
+    height: 88dvh;
+    border-radius: 18px 18px 0 0;
+    border-bottom: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble,
+  .callout,
+  .panel,
+  .iconBtnActive {
+    animation: none;
+  }
+}

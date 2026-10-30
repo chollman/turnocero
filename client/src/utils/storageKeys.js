@@ -19,6 +19,9 @@ export const STORAGE_KEYS = Object.freeze({
   // Estado del prompt proactivo de notificaciones push: JSON
   // { dismissedAt: epochMs|null, sessionCount: number }.
   PUSH_PROMPT: "turnocero_push_prompt",
+  // Cuántas veces el usuario cerró la sugerencia de la burbuja del agente de
+  // carga de partidas (BG Watch). A partir de 3 se muestra solo el ícono.
+  PLAY_AGENT_DISMISSALS: "turnocero_play_agent_dismissals",
   // sessionStorage
   BANNED_MESSAGE: "bannedMessage",
   FLASH_MESSAGE: "flashMessage",

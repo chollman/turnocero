@@ -1018,6 +1018,39 @@
   border-radius: 4px;
   padding: 1px 5px;
 }
+/* Facción / personaje / color del jugador (campo Color/Team de BGG). */
+.factionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 1px 3px 1px 8px;
+  background: var(--purple-10);
+  border: 1px solid var(--purple-30);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.factionChip button {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 9px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.factionChip button:hover {
+  background: var(--red-10);
+  color: var(--red);
+}
 .youPill {
   font-family: var(--font-mono);
   font-size: 9px;

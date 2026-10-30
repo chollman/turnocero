@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -17,7 +17,9 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import { createJuntada, toGamePayload } from "../compartidas/createJuntada";
 import { buildCompartidaShare } from "../../utils/share";
 import { getShortUrl } from "../../utils/shortlink";
+import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import PlayForm from "./PlayForm";
+import PlayAgent from "./PlayAgent";
 
 /**
  * Página de cargar una partida (`/bg-watch/:bggUsername/partidas/nueva`).
@@ -49,6 +51,13 @@ export default function CreatePlay() {
   // próxima partida sin salir de la página.
   const [formKey, setFormKey] = useState(0);
   const [carry, setCarry] = useState(null);
+  // Agente de carga (burbuja): el borrador que arma se vuelca en el form
+  // remontándolo con esos valores, igual que el carry de multi-partida.
+  const isSectionEnabled = useSectionEnabled();
+  const agentEnabled = isSectionEnabled("bgwatchAgent");
+  const [agentValues, setAgentValues] = useState(null);
+  const formSnapshotRef = useRef(null);
+  const [formDirty, setFormDirty] = useState(false);
 
   const isOwner =
     !!user?.bggUsername &&
@@ -100,6 +109,41 @@ export default function CreatePlay() {
   const { data: lastJuntada = null } = useUltimaJuntadaQuery(bggUsername, {
     enabled: canCreate,
   });
+
+  // Lo que tiene cargado el form (para el contexto del agente y para saber si
+  // el usuario ya empezó a completarlo a mano).
+  const lockedGameId = game?.id ?? null;
+  const handleFormChange = useCallback(
+    (snapshot) => {
+      formSnapshotRef.current = snapshot;
+      const players = snapshot.players || [];
+      const dirty =
+        players.length > 1 ||
+        players.some((p) => String(p.score || "").trim()) ||
+        (!!snapshot.game && snapshot.game.id !== lockedGameId);
+      setFormDirty((prev) => (prev === dirty ? prev : dirty));
+    },
+    [lockedGameId],
+  );
+  const getFormContext = useCallback(() => {
+    const snap = formSnapshotRef.current;
+    if (!snap) return null;
+    return {
+      ...(snap.game
+        ? { game: { id: snap.game.id, name: snap.game.name } }
+        : {}),
+      playdate: snap.playdate,
+      players: (snap.players || []).map((p) => ({
+        name: p.name,
+        username: p.username,
+      })),
+    };
+  }, []);
+  const handleAgentDraft = useCallback((values) => {
+    setAgentValues(values);
+    setCarry(null);
+    setFormKey((k) => k + 1);
+  }, []);
 
   const goBack = () => {
     if (volver && volver.startsWith("/bg-watch/")) navigate(volver);
@@ -155,7 +199,10 @@ export default function CreatePlay() {
     }
   };
 
-  const handleSubmit = async (payload, { keepGoing = false, share = null } = {}) => {
+  const handleSubmit = async (
+    payload,
+    { keepGoing = false, share = null } = {},
+  ) => {
     setSubmitting(true);
     setServerError("");
 
@@ -187,6 +234,7 @@ export default function CreatePlay() {
       // para la próxima partida de la misma juntada. El juego se resetea (salvo
       // que esté fijado por ?juego, en cuyo caso se mantiene). La sección 5 NO
       // se conserva: cada juntada es de una partida puntual.
+      setAgentValues(null);
       setCarry({
         players: payload.players.map((p) => ({
           name: p.name,
@@ -233,27 +281,41 @@ export default function CreatePlay() {
 
   // El juego se conserva entre cargas sólo si vino fijado por ?juego.
   const baseGame = game ? { game } : {};
-  // Prioridad: multi-partida (carry) > prefill de partida compartida > base.
-  const initialValues = carry
-    ? {
-        ...baseGame,
-        players: carry.players,
-        details: { playdate: carry.playdate, location: carry.location },
-      }
-    : prefill || baseGame;
+  // Prioridad: borrador del agente > multi-partida (carry) > prefill de
+  // partida compartida > base.
+  const initialValues = agentValues
+    ? agentValues
+    : carry
+      ? {
+          ...baseGame,
+          players: carry.players,
+          details: { playdate: carry.playdate, location: carry.location },
+        }
+      : prefill || baseGame;
 
   return (
-    <PlayForm
-      key={formKey}
-      user={user}
-      initialValues={initialValues}
-      lockedGame={!!game}
-      submitting={submitting}
-      serverError={serverError}
-      onSubmit={handleSubmit}
-      onCancel={goBack}
-      allowMultiSave
-      lastJuntada={lastJuntada}
-    />
+    <>
+      <PlayForm
+        key={formKey}
+        user={user}
+        initialValues={initialValues}
+        // El agente puede elegir otro juego que el fijado por ?juego.
+        lockedGame={!!game && !agentValues}
+        onFormChange={agentEnabled ? handleFormChange : undefined}
+        submitting={submitting}
+        serverError={serverError}
+        onSubmit={handleSubmit}
+        onCancel={goBack}
+        allowMultiSave
+        lastJuntada={lastJuntada}
+      />
+      {agentEnabled && (
+        <PlayAgent
+          getFormContext={getFormContext}
+          formDirty={formDirty}
+          onDraft={handleAgentDraft}
+        />
+      )}
+    </>
   );
 }

@@ -46,7 +46,8 @@ function normalizePlayer(p = {}) {
     score: toScore(p.score),
     win: !!p.win,
     team: TEAM_IDS.includes(team) ? team : "",
-    faction: str(p.faction, 60),
+    // BGG guarda el campo Color/Team con un tope de 30 caracteres.
+    faction: str(p.faction, 30),
   };
 }
 

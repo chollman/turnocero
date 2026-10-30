@@ -426,7 +426,9 @@
     "team": "Team",
     "pickTeam": "Pick the team:",
     "teamOf": "{{name}}'s team",
-    "removePlayer": "Remove player"
+    "removePlayer": "Remove player",
+    "factionTitle": "Faction, character or color",
+    "removeFaction": "Remove {{faction}}"
   },
   "jugadores": {
     "help": "These are the players from your plays. Tap one to see their detail and edit it (fix the name, set their BoardGameGeek username or merge duplicates).",
@@ -749,5 +751,33 @@
     "noMatch": "No expansion matches «{{term}}»",
     "emptyList": "This game has no expansions listed on BGG",
     "loadError": "Couldn't load the expansions."
+  },
+  "playAgent": {
+    "open": "Log the play with the assistant",
+    "callout": "Want me to log it? Tell me how the play went, by text or voice.",
+    "calloutClose": "Close suggestion",
+    "title": "Logging assistant",
+    "close": "Close",
+    "restart": "Start over",
+    "intro": "Tell me what you played, with whom and how it went. For example: “Yesterday we played Catan with Juan and Meli, I won 10 to 8 to 6”.",
+    "placeholder": "Tell me how the play went…",
+    "send": "Send",
+    "micStart": "Dictate",
+    "micStop": "Stop listening",
+    "listening": "Listening… tap the microphone to finish.",
+    "noVoiceHint": "Your browser has no voice dictation: you can use your keyboard's microphone.",
+    "thinking": "Thinking…",
+    "draftApplied": "I filled in the form. Review it and tap “Save play”.",
+    "reviewForm": "Review form",
+    "blocked": "No more messages can be sent for this play.",
+    "fillManually": "Fill in manually",
+    "turnsLeft_one": "{{count}} message left for this play.",
+    "turnsLeft_other": "{{count}} messages left for this play.",
+    "sendError": "Couldn't reach the assistant.",
+    "mic": {
+      "permission": "We need permission to use the microphone. Enable it in your browser settings.",
+      "no-speech": "I didn't hear you. Try again.",
+      "failed": "The microphone couldn't be used."
+    }
   }
 }

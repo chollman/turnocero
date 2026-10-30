@@ -67,6 +67,7 @@ function renderForm(props = {}) {
           onDelete={props.onDelete}
           allowMultiSave={props.allowMultiSave}
           lastJuntada={props.lastJuntada}
+          onFormChange={props.onFormChange}
         />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -1369,5 +1370,115 @@ describe("<PlayForm>", () => {
       },
     });
     expect(screen.queryByRole("button", { name: /retomar/i })).toBeNull();
+  });
+});
+
+// ── Borrador del agente de carga + facción por jugador ───────────────────
+describe("PlayForm — agente de carga y facciones", () => {
+  const agentValues = (over = {}) => ({
+    game: { id: 13, name: "Catán" },
+    details: { playdate: "2026-10-29" },
+    players: [
+      { name: "Me", username: "meBGG", score: "8", win: false, color: "Marquesa" },
+      { name: "Juan", username: "juanp", score: "6", win: true, color: "Águilas" },
+    ],
+    mode: "versus",
+    fromAgent: true,
+    ...over,
+  });
+
+  it("muestra la facción de cada jugador como chip", () => {
+    renderForm({ initialValues: agentValues(), lockedGame: true });
+    expect(screen.getByText("Marquesa")).toBeInTheDocument();
+    expect(screen.getByText("Águilas")).toBeInTheDocument();
+  });
+
+  it("envía la facción en color y respeta el ganador del agente", async () => {
+    const onSubmit = vi.fn();
+    renderForm({ initialValues: agentValues(), lockedGame: true, onSubmit });
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const [me, juan] = onSubmit.mock.calls[0][0].players;
+    expect(me).toMatchObject({ color: "Marquesa", win: false });
+    expect(juan).toMatchObject({ color: "Águilas", win: true });
+  });
+
+  it("quitar el chip saca la facción del payload", async () => {
+    const onSubmit = vi.fn();
+    renderForm({ initialValues: agentValues(), lockedGame: true, onSubmit });
+    fireEvent.click(screen.getByRole("button", { name: "Quitar Marquesa" }));
+    expect(screen.queryByText("Marquesa")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].players[0]).not.toHaveProperty("color");
+  });
+
+  it("arranca en el modo que eligió el agente (coop perdida)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: agentValues({
+        mode: "coop",
+        coopWin: false,
+        players: [
+          { name: "Me", username: "meBGG", score: "" },
+          { name: "Juan", username: "juanp", score: "" },
+        ],
+      }),
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const players = onSubmit.mock.calls[0][0].players;
+    expect(players.every((p) => p.win === false && p.score === "")).toBe(true);
+  });
+
+  it("arranca en modo equipos con los equipos del borrador", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: agentValues({
+        mode: "equipos",
+        players: [
+          { name: "Me", username: "meBGG", score: "", win: true, color: "Equipo A" },
+          { name: "Juan", username: "juanp", score: "", win: false, color: "Equipo B" },
+        ],
+      }),
+      lockedGame: true,
+      onSubmit,
+    });
+    expect(screen.queryByText("Marquesa")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const players = onSubmit.mock.calls[0][0].players;
+    expect(players.map((p) => p.color)).toEqual(["Equipo A", "Equipo B"]);
+  });
+
+  it("al editar conserva el color de una partida versus ya cargada", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      editMode: true,
+      initialValues: {
+        game: { id: 13, name: "Catán" },
+        details: { playdate: "2026-10-01" },
+        players: [
+          { name: "Me", username: "meBGG", score: "10", win: true, color: "Rojo" },
+          { name: "Juan", username: "juanp", score: "7", win: false, color: "Azul" },
+        ],
+      },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].players.map((p) => p.color)).toEqual(["Rojo", "Azul"]);
+  });
+
+  it("avisa con onFormChange qué tiene cargado el form", async () => {
+    const onFormChange = vi.fn();
+    renderForm({ initialValues: { game: { id: 13, name: "Catán" } }, lockedGame: true, onFormChange });
+    await waitFor(() => expect(onFormChange).toHaveBeenCalled());
+    const last = onFormChange.mock.calls.at(-1)[0];
+    expect(last.game).toMatchObject({ id: 13 });
+    expect(last.players[0]).toMatchObject({ username: "meBGG" });
   });
 });

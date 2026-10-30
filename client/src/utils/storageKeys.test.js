@@ -12,6 +12,9 @@ describe("STORAGE_KEYS", () => {
     expect(STORAGE_KEYS.PENDING_VERIFY_EMAIL).toBe(
       "turnocero_pending_verify_email",
     );
+    expect(STORAGE_KEYS.PLAY_AGENT_DISMISSALS).toBe(
+      "turnocero_play_agent_dismissals",
+    );
   });
 
   it("está frozen para que un consumidor no pueda mutarlo", () => {
