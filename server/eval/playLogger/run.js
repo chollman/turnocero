@@ -50,6 +50,12 @@ function makeCtx(testCase) {
   };
 }
 
+function pickChoice(pendingAsk, userText) {
+  const norm = (s) => String(s || "").trim().toLowerCase();
+  const option = pendingAsk?.question?.options?.find((o) => norm(o.label) === norm(userText));
+  return option ? option.value : null;
+}
+
 async function runCase(client, testCase) {
   const handlers = makeFixtureHandlers();
   const messages = [];
@@ -65,10 +71,32 @@ async function runCase(client, testCase) {
 
   const turns = [];
   let error = null;
+  let pendingAsk = null;
   try {
     for (const userText of testCase.turns) {
-      const res = await runPlayAgent({ client, messages, userText, ctx: makeCtx(testCase), onUsage, handlers });
-      turns.push({ user: userText, reply: res.reply, status: res.status, draft: res.draft, warnings: res.warnings });
+      // Si hay una pregunta con botones y el mensaje coincide con una opción,
+      // se simula el toque del botón (choice); si no, es "Otro" (texto libre).
+      const choice = pickChoice(pendingAsk, userText);
+      const res = await runPlayAgent({
+        client,
+        messages,
+        userText,
+        ctx: makeCtx(testCase),
+        onUsage,
+        handlers,
+        pendingAsk,
+        choice,
+      });
+      pendingAsk = res.pendingAsk || null;
+      turns.push({
+        user: userText,
+        choice,
+        reply: res.reply,
+        question: res.question,
+        status: res.status,
+        draft: res.draft,
+        warnings: res.warnings,
+      });
       if (res.draft || testCase.expect.kind === "noDraft") break;
     }
   } catch (err) {

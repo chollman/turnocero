@@ -102,9 +102,19 @@ function compareDraft(expected = {}, draft) {
 // `firstTurn` = resultado del primer mensaje; `final` = del último.
 function judgeCase(testCase, { firstTurn, final }) {
   if (testCase.expect.kind === "noDraft") {
-    return firstTurn?.draft
-      ? { ok: false, diffs: ["expected the agent to ask instead of creating a draft"] }
-      : { ok: true, diffs: [] };
+    if (firstTurn?.draft) {
+      return { ok: false, diffs: ["expected the agent to ask instead of creating a draft"] };
+    }
+    // askKind: la pregunta tiene que venir con botones (ask_user) de ese tipo.
+    const askKind = testCase.expect.askKind;
+    if (askKind && firstTurn?.question?.kind !== askKind) {
+      const got = firstTurn?.question ? firstTurn.question.kind : "a plain-text question";
+      return { ok: false, diffs: [`expected an ask_user question of kind "${askKind}", got ${got}`] };
+    }
+    if (askKind && (firstTurn.question.options || []).length < 2) {
+      return { ok: false, diffs: ["expected at least two options in the question"] };
+    }
+    return { ok: true, diffs: [] };
   }
   return compareDraft(testCase.expect.draft, final?.draft);
 }

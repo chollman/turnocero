@@ -126,6 +126,42 @@ const TOOLS = [
       required: ["gameId", "gameName", "playdate", "mode", "players"],
     },
   },
+  {
+    name: "ask_user",
+    description:
+      "Ask the user to pick between concrete options; the app shows them as buttons plus an 'Other' button " +
+      "for typing something else. Use it whenever you would ask which game or which person they meant: " +
+      "several plausible results from search_games (e.g. similar names, or no clear match among their own games), " +
+      "or more than one candidate for a name in find_players. Call it ALONE in its turn, after the searches. " +
+      "The answer comes back as {selected: {label, value}} when they tap a button, or {answer: text} when they type.",
+    input_schema: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "Short question in the user's language, e.g. '¿Cuál de estos juegos?'" },
+        kind: {
+          type: "string",
+          enum: ["game", "player", "other"],
+          description: "game = choosing a game; player = choosing a person; other = anything else",
+        },
+        options: {
+          type: "array",
+          minItems: 2,
+          maxItems: 5,
+          description: "The most likely options, best first. Do not add an 'Other' option: the app adds it.",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "Button text: game name, or person's name" },
+              value: { type: "string", description: "game: its BGG id; player: their BGG username, or the name if they have none" },
+              detail: { type: "string", description: "Optional second line: year and times played, or @username" },
+            },
+            required: ["label", "value"],
+          },
+        },
+      },
+      required: ["question", "kind", "options"],
+    },
+  },
 ];
 
 module.exports = { TOOLS };

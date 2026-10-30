@@ -58,3 +58,15 @@ caso, tokens y costo. `--dry` valida que cada caso sea alcanzable sin la API;
 
 Al agregar un caso: sumá juegos o personas nuevas a `fixtures.js` y corré
 `npm run eval:agent --prefix server -- --dry`.
+
+## Preguntas con botones (2026-10-30)
+
+Cuando el agente duda entre varios juegos (nombre parecido o sin coincidencia
+clara) o varias personas para un nombre, en vez de preguntar con texto llama a
+la tool `ask_user` (`kind`: `game` | `player`, hasta 5 opciones). El bucle corta
+ahí, la pregunta se guarda en `AgentConversation.pendingAsk` y el panel muestra
+las opciones como botones más un botón **Otro**, que enfoca el input con un
+placeholder según el tipo. Tocar una opción manda `choice` (su `value`); lo que
+se escribe después de "Otro" vuelve como respuesta libre y el agente busca de
+nuevo. Casos de evaluación nuevos: `juego-ambiguo-pregunta` y
+`juego-ambiguo-respuesta` (32 en total).

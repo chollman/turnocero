@@ -134,6 +134,11 @@ export default function PlayAgent({
   const [blocked, setBlocked] = useState(false);
   const [draftApplied, setDraftApplied] = useState(false);
   const listRef = useRef(null);
+  const inputRef = useRef(null);
+  // Pregunta con opciones que espera respuesta ({ text, kind, options }) y, si
+  // el usuario tocó "Otro", de qué tipo era (para el placeholder del input).
+  const [question, setQuestion] = useState(null);
+  const [otherKind, setOtherKind] = useState(null);
   // Texto que había en el input al empezar a dictar: el dictado se suma a eso.
   const [speechBase, setSpeechBase] = useState("");
 
@@ -175,6 +180,8 @@ export default function PlayAgent({
     setTurnsLeft(null);
     setBlocked(false);
     setDraftApplied(false);
+    setQuestion(null);
+    setOtherKind(null);
   };
 
   const toggleMic = () => {
@@ -186,9 +193,9 @@ export default function PlayAgent({
     speech.start();
   };
 
-  const send = async (e) => {
-    e?.preventDefault();
-    const text = shownInput.trim();
+  // Manda un mensaje: lo escrito/dictado, o la opción tocada (`choice` = su value).
+  const sendMessage = async (rawText, choice) => {
+    const text = rawText.trim();
     if (!text || sending || blocked) return;
     if (speech.listening) speech.stop();
 
@@ -196,11 +203,14 @@ export default function PlayAgent({
     setInput("");
     setSpeechBase("");
     speech.reset();
+    setQuestion(null);
+    setOtherKind(null);
     setSending(true);
     try {
       const res = await sendPlayAgentMessage({
         message: text,
         conversationId,
+        choice,
         formContext: conversationId
           ? undefined
           : getFormContext?.() || undefined,
@@ -210,6 +220,7 @@ export default function PlayAgent({
       if (res.turnsLeft === 0) setBlocked(true);
       if (res.reply)
         setMessages((m) => [...m, { role: "assistant", text: res.reply }]);
+      if (res.question?.options?.length) setQuestion(res.question);
       const values = res.draft ? draftToFormValues(res.draft) : null;
       if (values) {
         onDraft?.(values);
@@ -225,6 +236,19 @@ export default function PlayAgent({
     } finally {
       setSending(false);
     }
+  };
+
+  const send = (e) => {
+    e?.preventDefault();
+    sendMessage(shownInput);
+  };
+
+  const pickOption = (option) => sendMessage(option.label, option.value);
+
+  // "Otro": el usuario escribe (o dicta) el juego o la persona que no está.
+  const pickOther = () => {
+    setOtherKind(question?.kind || "other");
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e) => {
@@ -309,6 +333,39 @@ export default function PlayAgent({
               {m.text}
             </p>
           ))}
+          {question && !sending && (
+            <div
+              className={styles.choices}
+              role="group"
+              aria-label={question.text || t("playAgent.choicesLabel")}
+            >
+              {question.options.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={styles.choiceBtn}
+                  onClick={() => pickOption(o)}
+                  disabled={blocked}
+                >
+                  <span className={styles.choiceLabel}>{o.label}</span>
+                  {o.detail && (
+                    <span className={styles.choiceDetail}>{o.detail}</span>
+                  )}
+                </button>
+              ))}
+              <button
+                type="button"
+                className={`${styles.choiceBtn} ${styles.choiceOther} ${otherKind ? styles.choiceOtherActive : ""}`}
+                onClick={pickOther}
+                aria-pressed={!!otherKind}
+                disabled={blocked}
+              >
+                <span className={styles.choiceLabel}>
+                  {t("playAgent.other")}
+                </span>
+              </button>
+            </div>
+          )}
           {sending && (
             <p
               className={`${styles.msg} ${styles.msgAssistant} ${styles.thinking}`}
@@ -348,11 +405,16 @@ export default function PlayAgent({
           )}
           <div className={styles.inputRow}>
             <textarea
+              ref={inputRef}
               className={styles.input}
               value={shownInput}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={t("playAgent.placeholder")}
+              placeholder={
+                otherKind
+                  ? t(`playAgent.otherPlaceholder.${otherKind}`)
+                  : t("playAgent.placeholder")
+              }
               aria-label={t("playAgent.placeholder")}
               rows={2}
               maxLength={1000}

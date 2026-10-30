@@ -10,9 +10,9 @@ const { runCase, parseArgs } = require("../../../eval/playLogger/run");
 // sea correcto y que el runner arme bien una corrida con un cliente falso.
 
 describe("eval cases", () => {
-  it("has 30 cases with unique ids", () => {
-    expect(CASES).toHaveLength(30);
-    expect(new Set(CASES.map((c) => c.id)).size).toBe(30);
+  it("has 32 cases with unique ids", () => {
+    expect(CASES).toHaveLength(32);
+    expect(new Set(CASES.map((c) => c.id)).size).toBe(32);
   });
 
   it("only references games and people that exist in the fixtures", () => {
@@ -99,6 +99,15 @@ describe("compareDraft", () => {
     expect(r.diffs.join("\n")).toMatch(/u:claudio.win: expected false/);
   });
 
+  it("checks the kind of a button question when askKind is set", () => {
+    const c = { expect: { kind: "noDraft", askKind: "game" } };
+    const q = (kind, n = 2) => ({ draft: null, question: { kind, options: Array.from({ length: n }, () => ({})) } });
+    expect(judgeCase(c, { firstTurn: q("game") }).ok).toBe(true);
+    expect(judgeCase(c, { firstTurn: q("player") }).ok).toBe(false);
+    expect(judgeCase(c, { firstTurn: q("game", 1) }).ok).toBe(false);
+    expect(judgeCase(c, { firstTurn: { draft: null, question: null } }).diffs[0]).toMatch(/plain-text/);
+  });
+
   it("fails without a draft and when a question was expected", () => {
     expect(compareDraft({}, null).ok).toBe(false);
     const c = { expect: { kind: "noDraft" } };
@@ -133,6 +142,51 @@ describe("fixture handlers", () => {
 describe("runner", () => {
   it("parses flags", () => {
     expect(parseArgs(["--dry", "--only=equipos"])).toEqual({ dry: true, only: "equipos" });
+  });
+
+  it("simulates a button tap when the next turn matches an option", async () => {
+    const usage = { input_tokens: 100, output_tokens: 10 };
+    const c = CASES.find((x) => x.id === "juego-ambiguo-respuesta");
+    const calls = [];
+    const responses = [
+      {
+        stop_reason: "tool_use",
+        usage,
+        content: [
+          {
+            type: "tool_use",
+            id: "q1",
+            name: "ask_user",
+            input: {
+              question: "¿Cuál?",
+              kind: "game",
+              options: [
+                { label: "Terraforming Mars", value: "167791" },
+                { label: "Terra Mystica", value: "120677" },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        stop_reason: "tool_use",
+        usage,
+        content: [{ type: "tool_use", id: "t1", name: "create_play_draft", input: expectedToToolInput(c.expect.draft) }],
+      },
+      { stop_reason: "end_turn", usage, content: [{ type: "text", text: "Listo." }] },
+    ];
+    const client = {
+      messages: {
+        create: vi.fn(async (p) => {
+          calls.push(JSON.parse(JSON.stringify(p.messages)));
+          return responses.shift();
+        }),
+      },
+    };
+    const r = await runCase(client, c);
+    expect(r).toMatchObject({ ok: true, userTurns: 2 });
+    expect(r.turns[1].choice).toBe("120677");
+    expect(JSON.parse(calls[1].at(-1).content[0].content)).toEqual({ selected: { label: "Terra Mystica", value: "120677" } });
   });
 
   it("runs a multi-turn case with a scripted client and judges it", async () => {

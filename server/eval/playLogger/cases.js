@@ -9,6 +9,10 @@
 //   expect    { kind: "draft", draft } — el borrador final tiene que coincidir
 //             { kind: "noDraft" }      — tras el PRIMER mensaje no debe haber
 //                                         borrador (tiene que preguntar)
+//             { kind: "noDraft", askKind } — además, la pregunta tiene que venir
+//                                         con botones (ask_user) de ese tipo
+//   Si el agente preguntó con botones y el mensaje siguiente coincide con una
+//   opción, el runner simula el toque del botón; si no, cuenta como "Otro".
 //
 // En `draft` solo se comparan los campos presentes. Jugadores: se identifican
 // por `username` (o `name` si es invitado) y el conjunto tiene que ser exacto,
@@ -178,7 +182,7 @@ module.exports = [
     id: "jugador-ambiguo-pregunta",
     lang: "es",
     turns: ["Ayer Azul con Meli, ganó ella"],
-    expect: { kind: "noDraft" },
+    expect: { kind: "noDraft", askKind: "player" },
   },
   {
     id: "jugador-ambiguo-respuesta",
@@ -192,6 +196,28 @@ module.exports = [
         players: [
           { username: ME, win: false },
           { username: "meli_g", win: true },
+        ],
+      },
+    },
+  },
+  {
+    id: "juego-ambiguo-pregunta",
+    lang: "es",
+    turns: ["Ayer jugamos Terra con Juan, ganó él"],
+    expect: { kind: "noDraft", askKind: "game" },
+  },
+  {
+    id: "juego-ambiguo-respuesta",
+    lang: "es",
+    turns: ["Ayer jugamos Terra con Juan, ganó él", "Terra Mystica"],
+    expect: {
+      kind: "draft",
+      draft: {
+        gameId: "120677",
+        playdate: "2026-10-29",
+        players: [
+          { username: ME, win: false },
+          { username: "juanp", win: true },
         ],
       },
     },

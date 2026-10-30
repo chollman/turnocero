@@ -778,6 +778,13 @@
       "permission": "Necesitamos permiso para usar el micrófono. Activalo en la configuración del navegador.",
       "no-speech": "No te escuché. Probá de nuevo.",
       "failed": "No se pudo usar el micrófono."
+    },
+    "other": "Otro",
+    "choicesLabel": "Opciones",
+    "otherPlaceholder": {
+      "game": "Escribí el nombre del juego…",
+      "player": "Escribí el nombre del jugador…",
+      "other": "Escribí tu respuesta…"
     }
   }
 }
