@@ -50,6 +50,36 @@ function mapError(code) {
   return "failed";
 }
 
+// Arma el texto de una sesión a partir de `event.results`. En escritorio cada
+// resultado trae un tramo nuevo y alcanza con concatenarlos. Chrome en Android,
+// en cambio, repite lo ya dicho: cada resultado puede traer el texto
+// acumulado ("ayer", "ayer jugamos", "ayer jugamos Root") y, si se concatenan,
+// la frase sale repetida. Por eso: si un resultado empieza con lo acumulado lo
+// reemplaza, si ya está contenido al final se descarta, y si no, se suma.
+export function mergeResults(results) {
+  let acc = "";
+  for (let i = 0; i < results.length; i++) {
+    const t = String(results[i]?.[0]?.transcript || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!t) continue;
+    const accKey = acc.toLowerCase();
+    const tKey = t.toLowerCase();
+    if (!acc || tKey.startsWith(accKey)) acc = t;
+    else if (accKey.endsWith(tKey)) continue;
+    else acc = `${acc} ${t}`;
+  }
+  return acc;
+}
+
+// Chrome en Android maneja mal el modo continuo (resultados repetidos). Ahí
+// usamos tomas cortas: el navegador corta en cada pausa y el hook reabre solo,
+// sumando el texto; el silencio largo lo sigue decidiendo `silenceMs`.
+function supportsContinuous() {
+  if (typeof navigator === "undefined") return true;
+  return !/Android/i.test(navigator.userAgent || "");
+}
+
 function joinText(a, b) {
   return [a, b]
     .map((s) => s.trim())
@@ -125,15 +155,11 @@ export function useSpeechInput({
       const r = new Ctor();
       r.lang = LOCALES[lang] || LOCALES.es;
       r.interimResults = true;
-      r.continuous = true;
+      r.continuous = supportsContinuous();
       r.maxAlternatives = 1;
 
       r.onresult = (event) => {
-        let text = "";
-        for (let i = 0; i < event.results.length; i++) {
-          text += event.results[i][0].transcript;
-        }
-        segment = text.trim();
+        segment = mergeResults(event.results);
         heardSomething = true;
         restartsWithoutSpeech = 0;
         setTranscript(fullText());

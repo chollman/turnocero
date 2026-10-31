@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useSpeechInput } from "./useSpeechInput";
+import { useSpeechInput, mergeResults } from "./useSpeechInput";
 
 // Reconocimiento de voz falso: guarda la última instancia para disparar eventos.
 let last;
@@ -64,6 +64,35 @@ describe("useSpeechInput", () => {
     const { result } = renderHook(() => useSpeechInput());
     act(() => result.current.start());
     expect(last.continuous).toBe(true);
+  });
+
+  it("uses short takes on Android, where continuous mode repeats results", () => {
+    const ua = vi
+      .spyOn(navigator, "userAgent", "get")
+      .mockReturnValue("Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/130");
+    try {
+      window.SpeechRecognition = FakeRecognition;
+      const { result } = renderHook(() => useSpeechInput());
+      act(() => result.current.start());
+      expect(last.continuous).toBe(false);
+    } finally {
+      ua.mockRestore();
+    }
+  });
+
+  it("does not repeat text when results come back cumulative (Android)", () => {
+    window.SpeechRecognition = FakeRecognition;
+    const onEnd = vi.fn();
+    const { result } = renderHook(() => useSpeechInput({ onEnd }));
+    act(() => result.current.start());
+    act(() =>
+      last.onresult(
+        results("ayer", "ayer jugamos", "ayer jugamos Root con Juan"),
+      ),
+    );
+    expect(result.current.transcript).toBe("ayer jugamos Root con Juan");
+    act(() => result.current.stop());
+    expect(onEnd).toHaveBeenCalledWith("ayer jugamos Root con Juan");
   });
 
   it("stops by itself only after the silence window", () => {
@@ -179,5 +208,31 @@ describe("useSpeechInput", () => {
     const rec = last;
     unmount();
     expect(rec.abort).toHaveBeenCalled();
+  });
+});
+
+describe("mergeResults", () => {
+  const r = (...parts) => parts.map((t) => [{ transcript: t }]);
+
+  it("concatenates separate segments (desktop)", () => {
+    expect(mergeResults(r("jugamos Root", " con Juan"))).toBe(
+      "jugamos Root con Juan",
+    );
+  });
+
+  it("replaces when a result extends the previous text (Android)", () => {
+    expect(mergeResults(r("ganó", "ganó Meli", "Ganó Meli 30 a 25"))).toBe(
+      "Ganó Meli 30 a 25",
+    );
+  });
+
+  it("drops a result already contained at the end", () => {
+    expect(mergeResults(r("ayer jugamos Azul", "Azul"))).toBe(
+      "ayer jugamos Azul",
+    );
+  });
+
+  it("ignores empty results and extra spaces", () => {
+    expect(mergeResults(r("  hola  ", "", "  che "))).toBe("hola che");
   });
 });
