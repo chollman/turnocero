@@ -38,7 +38,12 @@ beforeEach(() => {
       const mindate = url.searchParams.get("mindate") || "";
       const isMonthQuery = /^\d{4}-(0[2-9]|1[0-2])-01$/.test(mindate);
       if (isMonthQuery) {
-        return HttpResponse.json({ total: 8, plays: [] });
+        // El server agrega el top del mes sobre todas sus partidas.
+        return HttpResponse.json({
+          total: 8,
+          plays: [],
+          topGame: { id: "13", name: "Catán", thumbnail: null, numPlays: 5 },
+        });
       }
       return HttpResponse.json({
         total: 42,
@@ -140,7 +145,7 @@ describe("<BgWatchHomeWidget>", () => {
     expect(screen.getByText(/tu bg watch/i)).toBeInTheDocument();
     expect(screen.getByText(/este mes/i)).toBeInTheDocument();
     expect(screen.getByText(/más jugado/i)).toBeInTheDocument();
-    // Most played comes from the response (Catán appears twice; Carcassonne once).
+    // Most played comes from the month response's server-side topGame.
     const mostPlayed = screen.getByText("Catán");
     expect(mostPlayed).toBeInTheDocument();
     // Full name is mirrored as a native tooltip via the title attribute so
@@ -150,6 +155,49 @@ describe("<BgWatchHomeWidget>", () => {
     expect(
       screen.getByRole("link", { name: /ver historial/i }),
     ).toHaveAttribute("href", "/bg-watch/CarcaFan");
+  });
+
+  it("usa el topGame del mes aunque la página 1 del año muestre otro juego", async () => {
+    server.use(
+      http.get("/api/bgg/partidas/:bggUsername", ({ request }) => {
+        const mindate = new URL(request.url).searchParams.get("mindate") || "";
+        if (/^\d{4}-(0[2-9]|1[0-2])-01$/.test(mindate)) {
+          return HttpResponse.json({
+            total: 12,
+            plays: [{ id: "x", gameId: 14, gameName: "Carcassonne", quantity: 1 }],
+            topGame: { id: "13", name: "Catán", thumbnail: null, numPlays: 9 },
+          });
+        }
+        return HttpResponse.json({ total: 50, plays: [] });
+      }),
+    );
+    renderWidget({
+      user: { _id: "me", bggUsername: "CarcaFan", bggConnected: true },
+    });
+    expect(await screen.findByText("Catán")).toBeInTheDocument();
+    expect(screen.queryByText("Carcassonne")).not.toBeInTheDocument();
+  });
+
+  it("sin topGame (fallback BGG) cuenta los plays del mes", async () => {
+    server.use(
+      http.get("/api/bgg/partidas/:bggUsername", ({ request }) => {
+        const mindate = new URL(request.url).searchParams.get("mindate") || "";
+        if (/^\d{4}-(0[2-9]|1[0-2])-01$/.test(mindate)) {
+          return HttpResponse.json({
+            total: 3,
+            plays: [
+              { id: "a", gameId: 14, gameName: "Carcassonne", quantity: 2 },
+              { id: "b", gameId: 13, gameName: "Catán", quantity: 1 },
+            ],
+          });
+        }
+        return HttpResponse.json({ total: 50, plays: [] });
+      }),
+    );
+    renderWidget({
+      user: { _id: "me", bggUsername: "CarcaFan", bggConnected: true },
+    });
+    expect(await screen.findByText("Carcassonne")).toBeInTheDocument();
   });
 
   it("muestra skeletons mientras carga (en lugar de guiones)", async () => {

@@ -29,13 +29,11 @@ function writeDismissed() {
  *   eyebrow (left/right) → title → 2-stat row → full-width CTA.
  *
  * Stats come from two parallel API calls, both relying on the server's
- * `data.total` (the count BGG returns after the `mindate` filter) so the
- * numbers stay exact no matter how many plays the user has:
- *   - `?mindate=YYYY-01-01` → year total + most-played game from page 1.
- *   - `?mindate=YYYY-MM-01` → month total.
- * "Más jugado" still reads from the page-1 plays of the year request, so
- * for very active users it reflects recent activity rather than the full
- * year (fetching every page just to rank games isn't worth the cost).
+ * `data.total` so the numbers stay exact no matter how many plays the user has:
+ *   - `?mindate=YYYY-01-01` → year total.
+ *   - `?mindate=YYYY-MM-01` → month total + "Más jugado" del mes, que el
+ *     server agrega (`topGame`) sobre todas las partidas del rango, no solo
+ *     la página servida.
  */
 function ConnectedView({ bggUsername }) {
   const { t } = useTranslation("compartidas");

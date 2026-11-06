@@ -776,7 +776,32 @@ describe("BGG persistent cache (memoria → Mongo → BGG)", () => {
       });
     });
 
-    it("omits topGame on filtered or paginated requests", async () => {
+    it("scopes topGame to the mindate/maxdate range on page=1", async () => {
+      // B domina el histórico (abril), pero en mayo gana A: el top del rango
+      // debe salir de TODAS las partidas del rango, no del histórico.
+      await BggPlay.insertMany([
+        { bggUsername: "toprange", playId: "1", date: "2026-04-01", gameId: "14", gameName: "B", quantity: 5 },
+        { bggUsername: "toprange", playId: "2", date: "2026-05-02", gameId: "13", gameName: "A", quantity: 1 },
+        { bggUsername: "toprange", playId: "3", date: "2026-05-20", gameId: "13", gameName: "A", quantity: 1 },
+        { bggUsername: "toprange", playId: "4", date: "2026-05-21", gameId: "14", gameName: "B", quantity: 1 },
+      ]);
+
+      const all = await request(app).get("/api/bgg/partidas/toprange");
+      expect(all.body.topGame).toMatchObject({ id: "14", numPlays: 6 });
+
+      const may = await request(app).get(
+        "/api/bgg/partidas/toprange?mindate=2026-05-01&maxdate=2026-05-31",
+      );
+      expect(may.status).toBe(200);
+      expect(may.body.topGame).toMatchObject({ id: "13", name: "A", numPlays: 2 });
+
+      const empty = await request(app).get(
+        "/api/bgg/partidas/toprange?mindate=2026-06-01",
+      );
+      expect(empty.body.topGame).toBeNull();
+    });
+
+    it("omits topGame on paginated or per-game requests", async () => {
       await BggPlay.insertMany([
         {
           bggUsername: "topagg2",
@@ -787,13 +812,13 @@ describe("BGG persistent cache (memoria → Mongo → BGG)", () => {
         },
       ]);
 
-      const filtered = await request(app).get(
-        "/api/bgg/partidas/topagg2?mindate=2026-04-01",
+      const page2 = await request(app).get(
+        "/api/bgg/partidas/topagg2?page=2&mindate=2026-04-01",
       );
-      expect(filtered.body).not.toHaveProperty("topGame");
-
-      const page2 = await request(app).get("/api/bgg/partidas/topagg2?page=2");
       expect(page2.body).not.toHaveProperty("topGame");
+
+      const byGame = await request(app).get("/api/bgg/partidas/topagg2?id=13");
+      expect(byGame.body).not.toHaveProperty("topGame");
     });
 
     it("includes gameStats when filtered by ?id=<gameId>", async () => {

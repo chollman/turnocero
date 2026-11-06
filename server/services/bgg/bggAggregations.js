@@ -403,11 +403,18 @@ function mergeUserGameList(played = [], collectionGames = []) {
 }
 
 // El juego más jugado por el usuario. Mismo agg que computePlayedGames
-// pero con $limit: 1 — pensado para la stats card en /bg-watch/:user.
-// Devuelve null si el user no tiene plays con gameId.
-async function computeTopPlayedGame(lowerBggUsername) {
+// pero con $limit: 1 — pensado para la stats card en /bg-watch/:user y el
+// widget de BG Watch en compartidas (este último acotado al mes corriente
+// vía mindate/maxdate). Devuelve null si no hay plays con gameId en el rango.
+async function computeTopPlayedGame(lowerBggUsername, { mindate, maxdate } = {}) {
   const agg = await BggPlay.aggregate([
-    { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
+    {
+      $match: {
+        bggUsername: lowerBggUsername,
+        gameId: { $ne: null },
+        ...dateRangeMatch({ mindate, maxdate }),
+      },
+    },
     {
       $group: {
         _id: "$gameId",
