@@ -117,6 +117,7 @@ export function useBgWatchHomeStatsQuery(bggUsername, { enabled = true } = {}) {
         }),
       ]);
       const yearPlays = yearRes.data?.plays || [];
+      const monthPlays = monthRes.data?.plays || [];
       const totalYear =
         typeof yearRes.data?.total === "number"
           ? yearRes.data.total
@@ -124,19 +125,25 @@ export function useBgWatchHomeStatsQuery(bggUsername, { enabled = true } = {}) {
       const totalMonth =
         typeof monthRes.data?.total === "number"
           ? monthRes.data.total
-          : (monthRes.data?.plays || []).reduce(
-              (sum, p) => sum + (p.quantity || 1),
-              0,
-            );
-      const tally = {};
-      for (const p of yearPlays) {
-        if (!p.gameId) continue;
-        const qty = p.quantity || 1;
-        if (!tally[p.gameId]) tally[p.gameId] = { name: p.gameName || "", count: 0 };
-        tally[p.gameId].count += qty;
+          : monthPlays.reduce((sum, p) => sum + (p.quantity || 1), 0);
+      // "Más jugado" del mes corriente: el server lo agrega sobre TODAS las
+      // partidas del rango (topGame). Si no viene (fallback BGG, usuario sin
+      // sincronizar), se aproxima contando los plays de la página del mes.
+      let mostPlayed = null;
+      const serverTop = monthRes.data?.topGame;
+      if (serverTop) {
+        mostPlayed = { name: serverTop.name || "", count: serverTop.numPlays };
+      } else if (monthRes.data?.topGame === undefined) {
+        const tally = {};
+        for (const p of monthPlays) {
+          if (!p.gameId) continue;
+          const qty = p.quantity || 1;
+          if (!tally[p.gameId]) tally[p.gameId] = { name: p.gameName || "", count: 0 };
+          tally[p.gameId].count += qty;
+        }
+        mostPlayed =
+          Object.values(tally).sort((a, b) => b.count - a.count)[0] || null;
       }
-      const mostPlayed =
-        Object.values(tally).sort((a, b) => b.count - a.count)[0] || null;
       return { totalYear, thisMonth: totalMonth, mostPlayed };
     },
     enabled: enabled && !!bggUsername,

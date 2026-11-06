@@ -1087,8 +1087,11 @@ router.get(
       }
       if (gameId) filter.gameId = String(gameId);
 
-      const isUnfilteredFirstPage =
-        clientPage === 1 && !mindate && !maxdate && !gameId;
+      // El top-juego se agrega sobre TODAS las partidas del rango (no solo la
+      // página servida), así que va en la página 1 de cualquier pedido sin
+      // gameId: sin fechas = histórico; con mindate/maxdate = ese rango (lo usa
+      // el widget de BG Watch en compartidas para el "Más jugado" del mes).
+      const includeTopGame = clientPage === 1 && !gameId;
 
       const [total, docs, topGame, gameStats] = await Promise.all([
         BggPlay.countDocuments(filter),
@@ -1097,8 +1100,8 @@ router.get(
           .skip((clientPage - 1) * PAGE_SIZE)
           .limit(PAGE_SIZE)
           .lean(),
-        isUnfilteredFirstPage
-          ? computeTopPlayedGame(lower)
+        includeTopGame
+          ? computeTopPlayedGame(lower, { mindate, maxdate })
           : Promise.resolve(undefined),
         // Per-game stats over the full history — only when filtered by gameId
         // (the /bg-watch/:user/juego/:gameId view). selfKeys hace que las
@@ -1138,7 +1141,7 @@ router.get(
           ? syncOutcome
           : owner?.bggSync?.lastProbeOutcome || null,
       };
-      if (isUnfilteredFirstPage) response.topGame = topGame;
+      if (includeTopGame) response.topGame = topGame;
       if (gameId) response.gameStats = gameStats;
       return res.json(response);
     }

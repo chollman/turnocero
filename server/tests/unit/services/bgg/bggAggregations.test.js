@@ -624,6 +624,21 @@ describe("computeTopPlayedGame", () => {
     await makePlay({ gameId: null });
     expect(await computeTopPlayedGame("alice")).toBeNull();
   });
+
+  it("acota al rango mindate/maxdate", async () => {
+    await makePlay({ gameId: "200", quantity: 5, date: "2026-03-10" });
+    await makePlay({ gameId: "100", quantity: 2, date: "2026-11-02" });
+    await makePlay({ gameId: "200", quantity: 1, date: "2026-11-03" });
+    expect((await computeTopPlayedGame("alice")).id).toBe("200");
+    const nov = await computeTopPlayedGame("alice", {
+      mindate: "2026-11-01",
+      maxdate: "2026-11-30",
+    });
+    expect(nov).toMatchObject({ id: "100", numPlays: 2 });
+    expect(
+      await computeTopPlayedGame("alice", { mindate: "2026-12-01" }),
+    ).toBeNull();
+  });
 });
 
 describe("computePlayedLocations", () => {
