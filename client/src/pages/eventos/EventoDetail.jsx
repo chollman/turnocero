@@ -33,6 +33,7 @@ import useEventoSocket from "./useEventoSocket";
 import { ImageIcon } from "./EventoIcons";
 import BackButton from "../../components/shared/BackButton";
 import styles from "./EventoDetail.module.css";
+import { getOccupiedSpots } from "../../utils/eventoCupos";
 
 const STATUS_EYEBROW_KEYS = {
   open: "detail.eyebrowOpen",
@@ -534,8 +535,12 @@ export default function EventoDetail() {
   const hasMax = !!(evento.maxParticipants && evento.maxParticipants > 0);
   const confirmedCount = evento.registrationCount?.confirmed ?? 0;
   const pendingCount = evento.registrationCount?.pending ?? 0;
-  // Cuentan al cupo todas las inscripciones activas (pendientes + confirmadas).
-  const activeCount = confirmedCount + pendingCount;
+  // Cuentan al cupo las inscripciones activas (pendientes + confirmadas) y
+  // los cupos reservados por fuera de la app. Ver utils/eventoCupos.
+  const activeCount = getOccupiedSpots(evento, {
+    pending: pendingCount,
+    confirmed: confirmedCount,
+  });
   const isHost = userId && evento.author?._id === userId;
   const authorDisplay = getUserDisplay(evento.author);
 

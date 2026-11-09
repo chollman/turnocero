@@ -20,5 +20,9 @@
     "notEnabled": "Esta función todavía no está habilitada para tu cuenta.",
     "invalidFeature": "Función inválida.",
     "userNotFound": "Usuario no encontrado."
+  },
+  "eventos": {
+    "reservedSpotsInvalid": "Los cupos ocupados deben ser un número entero mayor o igual a 0.",
+    "reservedSpotsOverMax": "Los cupos ocupados no pueden superar el cupo máximo."
   }
 }

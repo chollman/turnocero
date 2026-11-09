@@ -8,6 +8,8 @@ const {
 } = require("../../../utils/siteConfig");
 const {
   countsFor,
+  takenSpots,
+  parseReservedSpots,
   notifyOne,
   notifyActiveRegistrations,
   cancelAssociatedTables,
@@ -50,6 +52,44 @@ function makeEvento(overrides = {}) {
     ...overrides,
   });
 }
+
+describe("takenSpots", () => {
+  it("suma confirmadas + reservedSpots (pendientes y rechazadas no)", () => {
+    const evento = {
+      reservedSpots: 3,
+      registrations: [
+        { status: "confirmed" },
+        { status: "confirmed" },
+        { status: "pending" },
+        { status: "rejected" },
+      ],
+    };
+    expect(takenSpots(evento)).toBe(5);
+  });
+
+  it("tolera docs legacy sin reservedSpots ni registrations", () => {
+    expect(takenSpots({})).toBe(0);
+  });
+});
+
+describe("parseReservedSpots", () => {
+  it("vacío / null / undefined → 0", () => {
+    expect(parseReservedSpots("")).toBe(0);
+    expect(parseReservedSpots(null)).toBe(0);
+    expect(parseReservedSpots(undefined)).toBe(0);
+  });
+
+  it("parsea enteros >= 0 (string o number)", () => {
+    expect(parseReservedSpots("4")).toBe(4);
+    expect(parseReservedSpots(0)).toBe(0);
+  });
+
+  it("NaN para negativos, decimales o texto", () => {
+    expect(parseReservedSpots("-1")).toBeNaN();
+    expect(parseReservedSpots("2.5")).toBeNaN();
+    expect(parseReservedSpots("abc")).toBeNaN();
+  });
+});
 
 describe("countsFor", () => {
   it("cuenta total/pending/confirmed correctamente", () => {

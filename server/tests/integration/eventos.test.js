@@ -2213,3 +2213,192 @@ describe("T3 — Flujo end-to-end: crear → inscribirse → confirmar", () => {
     expect(finalListRes.body.registrations[0].status).toBe("confirmed");
   });
 });
+
+describe("Cupos ocupados (reservedSpots) — inscriptos por otros medios", () => {
+  const futureIso = () => new Date(Date.now() + 7 * 86400000).toISOString();
+
+  it("POST guarda reservedSpots y default 0 si no se manda", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const withSpots = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Con reservados")
+      .field("location", "Buenos Aires")
+      .field("eventDate", futureIso())
+      .field("maxParticipants", "10")
+      .field("reservedSpots", "4");
+    expect(withSpots.status).toBe(201);
+    expect(withSpots.body.reservedSpots).toBe(4);
+
+    const withoutSpots = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Sin reservados")
+      .field("location", "Buenos Aires")
+      .field("eventDate", futureIso())
+      .field("reservedSpots", "");
+    expect(withoutSpots.status).toBe(201);
+    expect(withoutSpots.body.reservedSpots).toBe(0);
+  });
+
+  it("POST rechaza reservedSpots mayor al cupo máximo o inválido (400)", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const over = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Over")
+      .field("location", "Buenos Aires")
+      .field("eventDate", futureIso())
+      .field("maxParticipants", "5")
+      .field("reservedSpots", "6");
+    expect(over.status).toBe(400);
+    expect(over.body.message).toMatch(/cupo máximo/i);
+
+    const negative = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Neg")
+      .field("location", "Buenos Aires")
+      .field("eventDate", futureIso())
+      .field("reservedSpots", "-1");
+    expect(negative.status).toBe(400);
+    expect(await Evento.countDocuments()).toBe(0);
+  });
+
+  it("POST localiza el error en inglés con Accept-Language: en", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .set("Accept-Language", "en")
+      .field("title", "Over")
+      .field("location", "Buenos Aires")
+      .field("eventDate", futureIso())
+      .field("maxParticipants", "2")
+      .field("reservedSpots", "3");
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/max capacity/i);
+  });
+
+  it("PUT actualiza reservedSpots y un PUT parcial no lo pisa", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, {
+      maxParticipants: 10,
+      reservedSpots: 3,
+    });
+
+    const partial = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("status", "closed");
+    expect(partial.status).toBe(200);
+    expect(partial.body.reservedSpots).toBe(3);
+
+    const updated = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("reservedSpots", "7");
+    expect(updated.status).toBe(200);
+    expect(updated.body.reservedSpots).toBe(7);
+
+    const cleared = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("reservedSpots", "");
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.reservedSpots).toBe(0);
+  });
+
+  it("PUT rechaza bajar el cupo máximo por debajo de los reservados", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, {
+      maxParticipants: 10,
+      reservedSpots: 6,
+    });
+    const res = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("maxParticipants", "4");
+    expect(res.status).toBe(400);
+    const refreshed = await Evento.findById(evento._id);
+    expect(refreshed.maxParticipants).toBe(10);
+    expect(refreshed.reservedSpots).toBe(6);
+  });
+
+  it("inscribirse falla si confirmados + reservados ya llenan el cupo", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const confirmedUser = await createUser({ username: "conf1" });
+    const { token } = await createAuthedUser({ username: "late" });
+    const evento = await createEvento(admin, {
+      fee: 0,
+      maxParticipants: 3,
+      reservedSpots: 2,
+      registrations: [
+        {
+          user: confirmedUser._id,
+          status: "confirmed",
+          submittedAt: new Date(),
+        },
+      ],
+    });
+    const res = await request(app)
+      .post(`/api/eventos/${evento._id}/inscribirse`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/cupo/i);
+  });
+
+  it("inscribirse funciona si todavía queda lugar descontando reservados", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { token } = await createAuthedUser({ username: "early" });
+    const evento = await createEvento(admin, {
+      fee: 0,
+      maxParticipants: 3,
+      reservedSpots: 2,
+    });
+    const res = await request(app)
+      .post(`/api/eventos/${evento._id}/inscribirse`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(201);
+  });
+
+  it("confirmar falla si confirmados + reservados ya llenan el cupo", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const conf = await createUser({ username: "confA" });
+    const pend = await createUser({ username: "pendB" });
+    const evento = await createEvento(admin, {
+      maxParticipants: 3,
+      reservedSpots: 2,
+      registrations: [
+        { user: conf._id, status: "confirmed", submittedAt: new Date() },
+        { user: pend._id, status: "pending", submittedAt: new Date() },
+      ],
+    });
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${pend._id}/confirmar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/cupo/i);
+  });
+
+  it("GET /inscripciones expone reservedSpots en el header del evento", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, {
+      maxParticipants: 10,
+      reservedSpots: 4,
+    });
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+    expect(res.status).toBe(200);
+    expect(res.body.evento.reservedSpots).toBe(4);
+  });
+
+  it("GET /:id (detalle público) incluye reservedSpots", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, { reservedSpots: 5 });
+    const res = await request(app).get(`/api/eventos/${evento._id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.reservedSpots).toBe(5);
+  });
+});

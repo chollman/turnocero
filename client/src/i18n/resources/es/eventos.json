@@ -189,6 +189,9 @@
     "feePlaceholder": "0",
     "maxLabel": "Cupo máximo",
     "maxPlaceholder": "Vacío = Sin límite",
+    "reservedLabel": "Cupos ocupados",
+    "reservedHelpAria": "Ayuda sobre el campo Cupos ocupados",
+    "reservedHelp": "Lugares ya tomados por personas que se anotaron por otros medios (WhatsApp, en persona, etc.). Se descuentan del cupo máximo.",
     "transferLabel": "Datos de transferencia",
     "transferPlaceholder": "Alias / CBU / Titular / Instrucciones.",
     "dateLabel": "Fecha y hora *",
@@ -216,7 +219,9 @@
     "errorAddressMin": "Escribí una dirección de al menos 3 caracteres.",
     "errorGeocodeNotFound": "No se encontró la dirección. Intentá ser más específico o picá una sugerencia.",
     "errorGeocode": "Error al buscar la dirección.",
-    "errorSave": "Error al guardar"
+    "errorSave": "Error al guardar",
+    "errorReservedInvalid": "Los cupos ocupados deben ser un número entero mayor o igual a 0.",
+    "errorReservedOverMax": "Los cupos ocupados no pueden superar el cupo máximo."
   },
   "inscripciones": {
     "loading": "Cargando inscripciones…",
@@ -230,6 +235,7 @@
     "statPending": "Pendientes",
     "statConfirmed": "Confirmadas",
     "statRejected": "Rechazadas",
+    "statReserved": "Reservados",
     "statCupo": "Cupo",
     "colPendingTitle": "Pendientes de revisión",
     "colPendingEmpty": "Nada por revisar 🎉",

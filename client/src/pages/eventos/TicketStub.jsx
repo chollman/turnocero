@@ -12,6 +12,7 @@ import {
   RefreshIcon,
 } from "./EventoIcons";
 import styles from "./TicketStub.module.css";
+import { getOccupiedSpots } from "../../utils/eventoCupos";
 
 export default function TicketStub({
   evento,
@@ -50,10 +51,8 @@ export default function TicketStub({
   const cd = countdown(evento.eventDate, now);
   const isFree = !evento.fee;
   const hasMax = !!(evento.maxParticipants && evento.maxParticipants > 0);
-  const confirmed = evento.registrationCount?.confirmed ?? 0;
-  const pendingRegs = evento.registrationCount?.pending ?? 0;
-  // Active inscriptions (pending + confirmed) — see TimelineRow for rationale.
-  const participants = confirmed + pendingRegs;
+  // Active inscriptions + reserved spots — see utils/eventoCupos.
+  const participants = getOccupiedSpots(evento);
   const isFull = hasMax && participants >= evento.maxParticipants;
   const fillPct = hasMax
     ? Math.min(100, (participants / evento.maxParticipants) * 100)

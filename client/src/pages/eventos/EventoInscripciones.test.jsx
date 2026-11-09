@@ -177,6 +177,37 @@ describe("<EventoInscripciones>", () => {
     expect(cupoStat.textContent).toMatch(/3.*\/.*24/);
   });
 
+  it("Cupo suma los cupos reservados por otros medios y muestra el stat Reservados", async () => {
+    setupResponse({
+      registrations: [
+        makeReg("a", "pending"),
+        makeReg("b", "pending"),
+        makeReg("c", "confirmed"),
+      ],
+      counts: { total: 3, pending: 2, confirmed: 1, rejected: 0 },
+      evento: {
+        _id: "e1",
+        title: "Torneo Catán",
+        eventDate: "2026-06-13T17:00:00",
+        maxParticipants: 24,
+        reservedSpots: 5,
+      },
+    });
+    renderInsc();
+    await screen.findByText("User a");
+    // 2 pending + 1 confirmed + 5 reservados = 8/24
+    const cupoStat = screen.getByText(/^cupo$/i).parentElement;
+    expect(cupoStat.textContent).toMatch(/8.*\/.*24/);
+    const reservedStat = screen.getByText(/^reservados$/i).parentElement;
+    expect(reservedStat.textContent).toMatch(/5/);
+  });
+
+  it("sin cupos reservados no muestra el stat Reservados", async () => {
+    renderInsc();
+    await screen.findByText("User a");
+    expect(screen.queryByText(/^reservados$/i)).not.toBeInTheDocument();
+  });
+
   it("B6/B7 — un fallo del PATCH dispara toast global (no estado local inline)", async () => {
     server.use(
       http.patch("/api/eventos/:id/inscripciones/:userId/confirmar", () =>

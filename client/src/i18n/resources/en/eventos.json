@@ -189,6 +189,9 @@
     "feePlaceholder": "0",
     "maxLabel": "Max capacity",
     "maxPlaceholder": "Empty = No limit",
+    "reservedLabel": "Taken spots",
+    "reservedHelpAria": "Help for the Taken spots field",
+    "reservedHelp": "Spots already taken by people who signed up through other channels (WhatsApp, in person, etc.). They count against the max capacity.",
     "transferLabel": "Transfer details",
     "transferPlaceholder": "Alias / CBU / Holder / Instructions.",
     "dateLabel": "Date and time *",
@@ -216,7 +219,9 @@
     "errorAddressMin": "Type an address of at least 3 characters.",
     "errorGeocodeNotFound": "Address not found. Try being more specific or pick a suggestion.",
     "errorGeocode": "Error searching the address.",
-    "errorSave": "Error saving"
+    "errorSave": "Error saving",
+    "errorReservedInvalid": "Taken spots must be a whole number greater than or equal to 0.",
+    "errorReservedOverMax": "Taken spots can't exceed the max capacity."
   },
   "inscripciones": {
     "loading": "Loading registrations…",
@@ -230,6 +235,7 @@
     "statPending": "Pending",
     "statConfirmed": "Confirmed",
     "statRejected": "Rejected",
+    "statReserved": "Reserved",
     "statCupo": "Spots",
     "colPendingTitle": "Pending review",
     "colPendingEmpty": "Nothing to review 🎉",

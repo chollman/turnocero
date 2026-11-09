@@ -106,6 +106,27 @@ describe("<TimelineRow>", () => {
     expect(screen.getByText("10/24 cupos")).toBeInTheDocument();
   });
 
+  it("counts reservedSpots (inscriptos por otros medios) toward the cupo", () => {
+    renderRow({
+      event: {
+        reservedSpots: 5,
+        registrationCount: { total: 3, pending: 1, confirmed: 2 },
+      },
+    });
+    expect(screen.getByText(/8\/24 inscriptos/)).toBeInTheDocument();
+    expect(screen.getByText("8/24 cupos")).toBeInTheDocument();
+  });
+
+  it('reaches "Sin cupo" when reservedSpots fill the remaining capacity', () => {
+    renderRow({
+      event: {
+        reservedSpots: 4,
+        registrationCount: { total: 20, pending: 0, confirmed: 20 },
+      },
+    });
+    expect(screen.getByText("Sin cupo")).toBeInTheDocument();
+  });
+
   it('reaches "Sin cupo" with only pending inscriptions', () => {
     renderRow({
       event: { registrationCount: { total: 24, pending: 24, confirmed: 0 } },

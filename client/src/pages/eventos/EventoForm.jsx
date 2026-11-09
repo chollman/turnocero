@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   eventDate: "",
   location: { ...EMPTY_LOCATION },
   maxParticipants: "",
+  reservedSpots: "",
   status: "open",
 };
 
@@ -51,6 +52,8 @@ function valuesFromEvento(evento) {
     eventDate: toLocalInputValue(evento.eventDate),
     location: normalizeIncomingLocation(evento.location),
     maxParticipants: evento.maxParticipants ?? "",
+    // 0 se muestra vacío (placeholder "0") para no ensuciar el form.
+    reservedSpots: evento.reservedSpots ? evento.reservedSpots : "",
     status: evento.status || "open",
   };
 }
@@ -158,6 +161,16 @@ export default function EventoForm({
       setError(t("form.errorLocationRequired"));
       return;
     }
+    const reserved = form.reservedSpots === "" ? 0 : Number(form.reservedSpots);
+    if (!Number.isInteger(reserved) || reserved < 0) {
+      setError(t("form.errorReservedInvalid"));
+      return;
+    }
+    const max = form.maxParticipants === "" ? 0 : Number(form.maxParticipants);
+    if (max > 0 && reserved > max) {
+      setError(t("form.errorReservedOverMax"));
+      return;
+    }
     setError("");
     const fd = new FormData();
     // Send every field — even empty strings — so the server can clear a
@@ -261,22 +274,23 @@ export default function EventoForm({
             />
           </div>
 
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="evento-fee">
+              {t("form.feeLabel")}
+            </label>
+            <input
+              id="evento-fee"
+              name="fee"
+              value={form.fee}
+              onChange={handleChange}
+              type="number"
+              min="0"
+              className={styles.input}
+              placeholder="0"
+            />
+          </div>
+
           <div className={styles.row}>
-            <div className={styles.field} style={{ flex: 1 }}>
-              <label className={styles.fieldLabel} htmlFor="evento-fee">
-                {t("form.feeLabel")}
-              </label>
-              <input
-                id="evento-fee"
-                name="fee"
-                value={form.fee}
-                onChange={handleChange}
-                type="number"
-                min="0"
-                className={styles.input}
-                placeholder="0"
-              />
-            </div>
             <div className={styles.field} style={{ flex: 1 }}>
               <label className={styles.fieldLabel} htmlFor="evento-max">
                 {t("form.maxLabel")}
@@ -290,6 +304,25 @@ export default function EventoForm({
                 min="1"
                 className={styles.input}
                 placeholder={t("form.maxPlaceholder")}
+              />
+            </div>
+            <div className={styles.field} style={{ flex: 1 }}>
+              <label className={styles.fieldLabel} htmlFor="evento-reserved">
+                {t("form.reservedLabel")}
+                <InfoTooltip label={t("form.reservedHelpAria")}>
+                  {t("form.reservedHelp")}
+                </InfoTooltip>
+              </label>
+              <input
+                id="evento-reserved"
+                name="reservedSpots"
+                value={form.reservedSpots}
+                onChange={handleChange}
+                type="number"
+                min="0"
+                step="1"
+                className={styles.input}
+                placeholder="0"
               />
             </div>
           </div>

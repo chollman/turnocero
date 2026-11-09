@@ -7,6 +7,7 @@ import { PinIcon, UsersIcon, ImageIcon, ArrowIcon } from "./EventoIcons";
 import { getEventoStatusBadge } from "../../utils/eventoStatus";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import styles from "./PosterCard.module.css";
+import { getOccupiedSpots } from "../../utils/eventoCupos";
 
 // `now` viene del caller (Eventos.jsx) para mantener la pureza del render —
 // si no se pasa, countdown() aplica su propio fallback.
@@ -21,11 +22,9 @@ export default function PosterCard({
   const d = dateParts(evento.eventDate);
   const isFree = !evento.fee;
   const cd = countdown(evento.eventDate, now);
-  // Sólo cuentan inscripciones activas (pending + confirmed). Rechazados no
-  // ocupan slot — especialmente los permanentemente rechazados.
-  const confirmed = evento.registrationCount?.confirmed ?? 0;
-  const pending = evento.registrationCount?.pending ?? 0;
-  const participants = confirmed + pending;
+  // Inscripciones activas (pending + confirmed) + cupos reservados por fuera
+  // de la app. Rechazados no ocupan slot. Ver utils/eventoCupos.
+  const participants = getOccupiedSpots(evento);
   const totalInscriptions = participants;
   const detailUrl = `/eventos/${evento._id}`;
 

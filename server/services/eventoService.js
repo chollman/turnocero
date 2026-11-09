@@ -28,6 +28,26 @@ function countsFor(evento) {
   };
 }
 
+// Cupos tomados a efectos del cap: inscripciones confirmadas + cupos
+// reservados por fuera de la app (`reservedSpots`). Las pendientes no
+// bloquean server-side (el admin decide al confirmar).
+function takenSpots(evento) {
+  const confirmed = (evento.registrations || []).filter(
+    (r) => r.status === "confirmed",
+  ).length;
+  return confirmed + (evento.reservedSpots || 0);
+}
+
+// Parsea `reservedSpots` del body (FormData → string). Vacío = 0.
+// Devuelve NaN para valores inválidos (negativos, no enteros) así el
+// caller responde 400.
+function parseReservedSpots(raw) {
+  if (raw === "" || raw == null) return 0;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0) return NaN;
+  return n;
+}
+
 // Notifica a un usuario individual: persiste + socket emit (vía
 // emitNotificationReq → contrato unificado con notifId + count absoluto).
 // Skip si el recipient es el mismo que el actor (un admin que confirma
@@ -200,6 +220,8 @@ async function closePastOpenEvents(req) {
 
 module.exports = {
   countsFor,
+  takenSpots,
+  parseReservedSpots,
   notifyOne,
   notifyActiveRegistrations,
   cancelAssociatedTables,

@@ -77,6 +77,11 @@ const eventoSchema = new mongoose.Schema(
       displayName: { type: String, trim: true, maxlength: 100, default: "" },
     },
     maxParticipants: { type: Number, min: 1 },
+    // Cupos ya ocupados por personas que se anotaron por otros medios
+    // (WhatsApp, en persona, etc.) y no tienen inscripción en la app. Suman
+    // al cupo igual que una inscripción activa — el admin los gestiona a mano
+    // desde el form del evento.
+    reservedSpots: { type: Number, min: 0, default: 0 },
     image: { url: String, publicId: String },
     status: {
       type: String,
