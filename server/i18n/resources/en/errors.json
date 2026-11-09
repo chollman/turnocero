@@ -20,5 +20,9 @@
     "notEnabled": "This feature isn't enabled for your account yet.",
     "invalidFeature": "Invalid feature.",
     "userNotFound": "User not found."
+  },
+  "eventos": {
+    "reservedSpotsInvalid": "Taken spots must be a whole number greater than or equal to 0.",
+    "reservedSpotsOverMax": "Taken spots can't exceed the max capacity."
   }
 }

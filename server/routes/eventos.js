@@ -46,6 +46,17 @@ const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
 
+// Valida `reservedSpots` contra el cupo máximo resultante. Tira 400 con
+// mensaje localizado si no es un entero >= 0 o si supera el máximo.
+function assertValidReservedSpots(req, reservedSpots, maxParticipants) {
+  if (Number.isNaN(reservedSpots)) {
+    throw httpError(400, req.t("errors:eventos.reservedSpotsInvalid"));
+  }
+  if (maxParticipants && reservedSpots > maxParticipants) {
+    throw httpError(400, req.t("errors:eventos.reservedSpotsOverMax"));
+  }
+}
+
 // Mongoose ValidationError → 400 con el primer mensaje. Re-tira otros errores
 // para que caigan al errorHandler central como 500 genérico.
 function rethrowValidation(err) {
@@ -62,6 +73,8 @@ const {
 } = require("../utils/socketHelpers");
 const {
   countsFor,
+  takenSpots,
+  parseReservedSpots,
   notifyOne,
   notifyActiveRegistrations,
   cancelAssociatedTables,
@@ -280,6 +293,12 @@ router.post(
       throw httpError(400, "El lugar del evento es obligatorio");
     }
 
+    const maxParticipants = req.body.maxParticipants
+      ? parseInt(req.body.maxParticipants)
+      : undefined;
+    const reservedSpots = parseReservedSpots(req.body.reservedSpots);
+    assertValidReservedSpots(req, reservedSpots, maxParticipants);
+
     let evento;
     try {
       evento = await Evento.create({
@@ -295,9 +314,8 @@ router.post(
         transferDetails: req.body.transferDetails?.trim() || undefined,
         eventDate: req.body.eventDate || undefined,
         location: normalizedLocation,
-        maxParticipants: req.body.maxParticipants
-          ? parseInt(req.body.maxParticipants)
-          : undefined,
+        maxParticipants,
+        reservedSpots,
         status: req.body.status || "open",
         image,
         author: req.user._id,
@@ -497,6 +515,21 @@ router.put(
       evento.maxParticipants = req.body.maxParticipants
         ? parseInt(req.body.maxParticipants)
         : undefined;
+    }
+    if (req.body.reservedSpots !== undefined) {
+      evento.reservedSpots = parseReservedSpots(req.body.reservedSpots);
+    }
+    // Validar contra el máximo resultante (puede haber cambiado cualquiera de
+    // los dos en este mismo PUT).
+    if (
+      req.body.reservedSpots !== undefined ||
+      req.body.maxParticipants !== undefined
+    ) {
+      assertValidReservedSpots(
+        req,
+        evento.reservedSpots ?? 0,
+        evento.maxParticipants,
+      );
     }
     if (req.body.status) evento.status = req.body.status;
 
@@ -701,11 +734,9 @@ router.post(
     }
     // Rechazado pero NO permanente: el flujo más abajo recicla el registro existente.
 
+    // Cupos reservados por fuera de la app también ocupan lugar.
     if (evento.maxParticipants) {
-      const confirmed = evento.registrations.filter(
-        (r) => r.status === "confirmed",
-      ).length;
-      if (confirmed >= evento.maxParticipants) {
+      if (takenSpots(evento) >= evento.maxParticipants) {
         throw httpError(400, "El evento ya alcanzó el cupo máximo");
       }
     }
@@ -916,6 +947,7 @@ router.get(
         status: evento.status,
         eventDate: evento.eventDate,
         maxParticipants: evento.maxParticipants,
+        reservedSpots: evento.reservedSpots || 0,
       },
       registrations,
       counts: {
@@ -948,11 +980,9 @@ router.patch(
     // Cap check: si la registración aún no está confirmada, confirmarla
     // suma un slot al total confirmado. Re-confirmar una ya confirmada es
     // idempotente y no consume cupo, así que se permite siempre.
+    // Los cupos reservados por fuera de la app (reservedSpots) también cuentan.
     if (evento.maxParticipants && reg.status !== "confirmed") {
-      const confirmedCount = evento.registrations.filter(
-        (r) => r.status === "confirmed",
-      ).length;
-      if (confirmedCount >= evento.maxParticipants) {
+      if (takenSpots(evento) >= evento.maxParticipants) {
         throw httpError(
           400,
           "El evento ya alcanzó el cupo máximo de confirmados",

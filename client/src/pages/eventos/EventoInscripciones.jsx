@@ -19,6 +19,7 @@ import useTickingNow from "../../utils/useTickingNow";
 import TriageColumn from "./TriageColumn";
 import { ArrowLeftIcon } from "./EventoIcons";
 import styles from "./EventoInscripciones.module.css";
+import { getOccupiedSpots, getReservedSpots } from "../../utils/eventoCupos";
 
 export default function EventoInscripciones() {
   const { t } = useTranslation("eventos");
@@ -251,15 +252,17 @@ export default function EventoInscripciones() {
     const regs = data?.registrations || [];
     const pending = regs.filter((r) => r.status === "pending").length;
     const confirmed = regs.filter((r) => r.status === "confirmed").length;
+    const reserved = getReservedSpots(data?.evento);
     return {
       total: regs.length,
       pending,
       confirmed,
       rejected: regs.filter((r) => r.status === "rejected").length,
-      // El cupo ocupado incluye pendientes + confirmadas (las rechazadas no
-      // ocupan). Mismo criterio que TicketStub/TimelineRow/PosterCard para
-      // que el contador "X/max" sea consistente en toda la app.
-      occupied: pending + confirmed,
+      reserved,
+      // Cupo ocupado = pendientes + confirmadas + reservados por fuera de la
+      // app (las rechazadas no ocupan). Mismo criterio que el resto de las
+      // superficies — ver utils/eventoCupos.
+      occupied: getOccupiedSpots(data?.evento, { pending, confirmed }),
     };
   }, [data]);
 
@@ -346,6 +349,14 @@ export default function EventoInscripciones() {
               {counts.rejected}
             </span>
           </div>
+          {counts.reserved > 0 && (
+            <div className={styles.stat}>
+              <span className={styles.statLabel}>
+                {t("inscripciones.statReserved")}
+              </span>
+              <span className={styles.statValue}>{counts.reserved}</span>
+            </div>
+          )}
           {evento.maxParticipants && (
             <div className={styles.stat}>
               <span className={styles.statLabel}>

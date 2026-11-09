@@ -9,6 +9,7 @@ import { PinIcon, UsersIcon } from "./EventoIcons";
 import { getEventoStatusBadge } from "../../utils/eventoStatus";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import styles from "./TimelineRow.module.css";
+import { getOccupiedSpots } from "../../utils/eventoCupos";
 
 // `now` lo provee siempre el caller (Eventos.jsx) para no romper la regla
 // react-hooks/purity con un default impuro (`Date.now()`). Si no se pasa,
@@ -25,8 +26,6 @@ export default function TimelineRow({
   const cd = countdown(evento.eventDate, now);
   const isFree = !evento.fee;
   const hasMax = !!(evento.maxParticipants && evento.maxParticipants > 0);
-  const confirmed = evento.registrationCount?.confirmed ?? 0;
-  const pending = evento.registrationCount?.pending ?? 0;
   const locationTexto =
     typeof evento.location === "string"
       ? evento.location
@@ -37,10 +36,9 @@ export default function TimelineRow({
   // formatDistanceKm devuelve null para distancias que redondean a 0m (incluye
   // 0 exacto), evitando "0 m" / "Aquí mismo" redundantes.
   const distanceLabel = formatDistanceKm(evento.distanceKm);
-  // Sólo cuentan inscripciones activas (pendientes + confirmadas).
-  // Los rechazados — mas que nada los rechazados permanentemente — NO reservan
-  // slot ni se muestran como inscriptos en ninguna superficie pública.
-  const participants = confirmed + pending;
+  // Inscripciones activas (pendientes + confirmadas) + cupos reservados por
+  // fuera de la app. Los rechazados NO reservan slot. Ver utils/eventoCupos.
+  const participants = getOccupiedSpots(evento);
   const totalInscriptions = participants;
   const isFull = hasMax && participants >= evento.maxParticipants;
   const fillPct = hasMax

@@ -57,7 +57,10 @@ describe("<EventoForm>", () => {
     expect(screen.getByLabelText(/descripción/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/condiciones/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/monto/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/cupo/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/cupo máximo/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/cupos ocupados/i, { selector: "input" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByLabelText(/datos de transferencia/i),
     ).toBeInTheDocument();
@@ -115,7 +118,7 @@ describe("<EventoForm>", () => {
       />,
     );
     expect(screen.getByLabelText(/título/i)).toHaveValue("Liga");
-    expect(screen.getByLabelText(/cupo/i)).toHaveValue(16);
+    expect(screen.getByLabelText(/cupo máximo/i)).toHaveValue(16);
   });
 
   it("blocks submission when title is empty and shows error", async () => {
@@ -195,6 +198,117 @@ describe("<EventoForm>", () => {
     expect(sentDate.getMinutes()).toBe(0);
     // status default
     expect(fd.get("status")).toBe("open");
+  });
+
+  describe("cupos ocupados (reservedSpots)", () => {
+    function fillRequired() {
+      fireEvent.change(screen.getByLabelText(/título/i), {
+        target: { value: "Mi evento" },
+      });
+      fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
+        target: { value: "2026-12-31T20:00" },
+      });
+      fireEvent.change(screen.getByLabelText(/^lugar$/i), {
+        target: { value: "Bar Pepe" },
+      });
+    }
+    const flush = () =>
+      new Promise((r) => {
+        setTimeout(r, 0);
+      });
+
+    it("serializa reservedSpots en el FormData", async () => {
+      const onSubmit = vi.fn().mockResolvedValue();
+      renderForm(
+        <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
+      );
+      fillRequired();
+      fireEvent.change(screen.getByLabelText(/cupo máximo/i), {
+        target: { value: "10" },
+      });
+      fireEvent.change(
+        screen.getByLabelText(/cupos ocupados/i, { selector: "input" }),
+        {
+          target: { value: "4" },
+        },
+      );
+      fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
+      await flush();
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit.mock.calls[0][0].get("reservedSpots")).toBe("4");
+    });
+
+    it("bloquea el submit si los cupos ocupados superan el cupo máximo", async () => {
+      const onSubmit = vi.fn().mockResolvedValue();
+      renderForm(
+        <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
+      );
+      fillRequired();
+      fireEvent.change(screen.getByLabelText(/cupo máximo/i), {
+        target: { value: "3" },
+      });
+      fireEvent.change(
+        screen.getByLabelText(/cupos ocupados/i, { selector: "input" }),
+        {
+          target: { value: "5" },
+        },
+      );
+      fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
+      await flush();
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(/no pueden superar el cupo máximo/i),
+      ).toBeInTheDocument();
+    });
+
+    it("no envía el form con un valor no entero", async () => {
+      const onSubmit = vi.fn().mockResolvedValue();
+      renderForm(
+        <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
+      );
+      fillRequired();
+      fireEvent.change(
+        screen.getByLabelText(/cupos ocupados/i, { selector: "input" }),
+        {
+          target: { value: "1.5" },
+        },
+      );
+      fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
+      await flush();
+      // El input number (step=1) ya lo marca inválido nativamente; el check
+      // propio del form es la red de seguridad. En ambos casos no se envía.
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it("pre-carga reservedSpots en modo edit", () => {
+      renderForm(
+        <EventoForm
+          mode="edit"
+          initialEvento={{
+            title: "X",
+            eventDate: "2026-12-31T20:00:00Z",
+            maxParticipants: 10,
+            reservedSpots: 3,
+          }}
+          onSubmit={() => {}}
+          onCancel={() => {}}
+        />,
+      );
+      expect(
+        screen.getByLabelText(/cupos ocupados/i, { selector: "input" }),
+      ).toHaveValue(3);
+    });
+
+    it("la ayuda del campo vive detrás de un InfoTooltip", () => {
+      renderForm(
+        <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
+      );
+      expect(
+        screen.getByRole("button", {
+          name: /ayuda sobre el campo cupos ocupados/i,
+        }),
+      ).toBeInTheDocument();
+    });
   });
 
   it("calls onCancel when Cancel is clicked", () => {
